@@ -109,6 +109,8 @@ impl WordApp {
             synthetic: Vec::new(),
             synthetic_pending: false,
             synthetic_injected: 0,
+            pdf_requests: Vec::new(),
+            switch_to_pdf: false,
             styled: false,
             fonts_hans: false,
             fonts_korean: false,

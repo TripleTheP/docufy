@@ -82,7 +82,12 @@ pub fn short_name(pkg: &str) -> &str {
     pkg.strip_prefix("docufy-").unwrap_or(pkg)
 }
 
+/// The PDF mode's crates (`pdf/`, from PdfCraft) keep PdfCraft's own layering, so they are exempt
+/// here. As dependencies they count as above every layer: only the apps may use them.
 pub fn classify(pkg: &str) -> Option<Class> {
+    if pkg.starts_with("pdfcraft-") {
+        return Some(Class::Exempt);
+    }
     let s = short_name(pkg);
     TABLE.iter().find(|(n, _)| *n == s).map(|(_, c)| *c)
 }
@@ -250,6 +255,18 @@ mod tests {
             c("docufy-cli", &[("docufy-ui-egui", Normal, true)]),
         ];
         assert!(check(&g).is_empty(), "{:?}", check(&g));
+    }
+
+    /// The PDF crates follow PdfCraft's rules among themselves; only the apps may use them.
+    #[test]
+    fn pdf_crates_are_for_the_apps_only() {
+        let ok = [
+            c("pdfcraft-ui-egui", &[("pdfcraft-engine", Normal, true), ("egui", Normal, false)]),
+            c("docufy", &[("docufy-ui-egui", Normal, true), ("pdfcraft-ui-egui", Normal, true)]),
+        ];
+        assert!(check(&ok).is_empty(), "{:?}", check(&ok));
+        let v = check(&[c("docufy-ui-egui", &[("pdfcraft-engine", Normal, true)])]);
+        assert!(matches!(v[..], [Violation::Upward { from: 6, to: 7, .. }]), "{v:?}");
     }
 
     #[test]

@@ -10,6 +10,7 @@ use super::*;
 mod clipboard;
 mod commands;
 mod control;
+mod docufy;
 mod files;
 mod frame;
 mod input;
@@ -213,6 +214,8 @@ impl PdfCraftApp {
             window_state: Default::default(),
             styled: false,
             fonts_ready: false,
+            switch_to_documents: false,
+            document_requests: Vec::new(),
             fonts_cjk: theme::CjkPreference::Default,
             control: None,
             bookmark_rename: None,
@@ -551,7 +554,7 @@ impl eframe::App for PdfCraftApp {
             .active
             .and_then(|i| crate::canvas::tab_label(self, i))
             .or_else(|| self.combine_showing().then(|| tl!("Combine files").to_owned()))
-            .map_or_else(|| "PdfCraft".to_owned(), |name| format!("{name} — PdfCraft"));
+            .map_or_else(|| "Docufy".to_owned(), |name| format!("{name} — Docufy"));
         if title != self.window_title {
             ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.clone()));
             self.window_title = title;

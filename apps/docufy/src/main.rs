@@ -19,6 +19,7 @@ mod file_dialogs;
 #[cfg(any(target_os = "windows", target_os = "macos", test))]
 mod graphics;
 mod logging;
+mod pdf_mode;
 mod print;
 mod region;
 #[cfg(target_os = "macos")]
@@ -32,8 +33,8 @@ use docufy_ui_egui::{
 
 /// The app, the restored window geometry (or, with none, the default: no position) until the
 /// first frame that knows the monitor has checked it, the control server's key file (removed on
-/// exit), the file dialogs the app asked for, this frame's raw host window state and, on macOS,
-/// the documents opened from Finder.
+/// exit), the file dialogs the app asked for, this frame's raw host window state, the PDF mode
+/// and, on macOS, the documents opened from Finder.
 struct App(
     WordApp,
     Option<WindowGeometry>,
@@ -42,16 +43,39 @@ struct App(
     // The host's answer for this frame. `InputState` still describes the last painted frame on
     // a hidden logic tick.
     RawWindowState,
+    pdf_mode::PdfMode,
     #[cfg(target_os = "macos")] fmv_macos_events::Inbox,
 );
 
 impl eframe::App for App {
-    /// Advances one desktop frame: polls Finder events on macOS, runs the app and its file dialogs,
-    /// fits or rescues the window and maximizes it after opening, then gates a close or quit request
-    /// on unsaved changes and active printing.
+    /// Advances one desktop frame: polls Finder events on macOS, runs the shown interface (the
+    /// word processor or the PDF mode) and the file dialogs, fits or rescues the window and
+    /// maximizes it after opening, then gates a close or quit request on unsaved changes in
+    /// either interface and active printing.
     fn logic(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         #[cfg(target_os = "macos")]
-        apple_events::poll(&self.5, &mut self.0, ctx);
+        apple_events::poll(&self.6, &mut self.0, ctx);
+        self.5.route(&mut self.0, ctx);
+        let closing = ctx.input(|i| i.viewport().close_requested());
+        if self.5.shown {
+            // Unsaved Word documents are asked about first, in the word processor; the PDF
+            // interface asks about its own PDFs (its `guard_quit`) once they are settled.
+            if closing && !self.0.close_requested() {
+                ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+                self.5.show(&mut self.0, ctx, false);
+            } else {
+                eframe::App::logic(&mut self.5.app, ctx, frame);
+            }
+            self.3.show(frame);
+            return;
+        }
+        // Unsaved PDFs are asked about in the PDF interface before the word processor closes.
+        if closing && !self.0.closes_a_window() && self.5.app.has_unsaved_pdfs() {
+            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+            self.5.show(&mut self.0, ctx, true);
+            self.5.app.begin_quit(ctx);
+            return;
+        }
         self.0.logic(ctx);
         self.3.show(frame);
         let window = self.4;
@@ -110,16 +134,25 @@ impl eframe::App for App {
         // Keep this frame's native window state. `logic` must not read the last painted
         // `InputState` when a hidden Wayland tick reports no fresh inner rect.
         self.4 = RawWindowState::from_raw(raw);
-        self.0.raw_input_hook(ctx, raw);
+        if self.5.shown {
+            eframe::App::raw_input_hook(&mut self.5.app, ctx, raw);
+        } else {
+            self.0.raw_input_hook(ctx, raw);
+        }
     }
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
-        self.0.ui(ui);
+        if self.5.shown {
+            eframe::App::ui(&mut self.5.app, ui, frame);
+        } else {
+            self.0.ui(ui);
+        }
         self.3.show(frame);
     }
     fn on_exit(&mut self) {
         print::finish_pending_jobs();
         self.0.session.finish_recovery();
         save_prefs(&self.0);
+        self.5.save();
         if let Some(key_file) = &self.2 {
             key_file.remove();
         }
@@ -503,14 +536,17 @@ fn main() -> eframe::Result {
             if files.is_empty() && other_files.is_empty() && !sample && control_port.is_none() {
                 app.start_screen();
             }
+            // PDFs among them go to the PDF mode (`WordApp::open_file`), which then shows.
             for f in files {
-                if let Err(e) = app.run("file.open", serde_json::json!({"path": f})) {
+                if let Err(e) = app.open_file(&f, None) {
                     log::warn!("{f}: {e}");
                 }
             }
             for f in other_files {
                 open_non_unicode(&mut app, &f);
             }
+            let mut pdf = pdf_mode::PdfMode::new(docufy_control_key::settings_dir().filter(|_| prefs_enabled()));
+            pdf.route(&mut app, &cc.egui_ctx);
             Ok(Box::new(App(
                 app,
                 // With nothing restored, the window the system placed is checked all the same.
@@ -518,6 +554,7 @@ fn main() -> eframe::Result {
                 key_file,
                 dialogs,
                 RawWindowState::default(),
+                pdf,
                 #[cfg(target_os = "macos")]
                 apple_events.connect(&cc.egui_ctx),
             )))

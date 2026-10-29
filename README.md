@@ -24,7 +24,7 @@ in der Cloud speichern und eine durchgängige dunkle Oberfläche.
 | Funktion | Stand |
 |---|---|
 | **Dunkler Modus** für die gesamte Oberfläche, umschaltbar oder dem System folgend | in Arbeit |
-| **PDF-Modus**: PDFs öffnen, lesen, durchsuchen, Seiten drehen/löschen/umsortieren, zusammenführen, teilen, kommentieren und Formulare ausfüllen – auf Basis der Bibliotheken von [PdfCraft](https://github.com/storytold/pdfcraft) | geplant |
+| **PDF-Modus**: PDFs öffnen, lesen, durchsuchen, Seiten drehen/löschen/umsortieren, zusammenführen, teilen, kommentieren und Formulare ausfüllen – auf Basis der Bibliotheken von [PdfCraft](https://github.com/storytold/pdfcraft) | erste Version: PDFs öffnen sich im selben Fenster, „PDF“ und „Dokumente“ wechseln zwischen beiden Oberflächen |
 | **Cloud-Speicher** mit automatischem Speichern: OneDrive zuerst, danach weitere Dienste (z. B. Google Drive, Dropbox, Nextcloud/WebDAV) | geplant |
 
 ## Was aus WordCraft schon funktioniert

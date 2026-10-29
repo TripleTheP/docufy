@@ -345,3 +345,21 @@ Not in this repository and never downloaded by it: compiled in only when the bui
 | Input | Option | Title | Author | Licence | Source | Attribution | Used for |
 |---|---|---|---|---|---|---|---|
 | `craft-fonts` | `CRAFT_FONTS_DIR` | Japanese fonts: BIZ UDPGothic (Regular, Bold), Shippori Mincho, BIZ UDMincho; native Simplified Chinese font: LXGW WenKai Lite; Arabic font: Noto Sans Arabic | The BIZ UDGothic and BIZ UDMincho Project Authors (Morisawa Inc.), The Shippori Mincho Project Authors (FONTDASU), LXGW and the original Klee Project Authors / Fontworks (LXGW WenKai Lite), The Noto Project Authors (Noto Sans Arabic) | OFL-1.1 | https://github.com/storytold/craft-fonts (pinned by commit in .github/workflows/release.yml and .github/workflows/ci.yml); LXGW WenKai Lite from https://github.com/lxgw/LxgwWenKai-Lite/releases/tag/v1.530 (commit b712c83d98acf977bacfb7fb010207802808bda9) | https://github.com/storytold/craft-fonts/blob/main/ATTRIBUTION.md | Japanese fallback in the interface (BIZ UDPGothic first) and Japanese glyphs in edited PDF text (Shippori Mincho); Simplified Chinese interface fallback on native builds only (LXGW WenKai Lite Regular, font SHA-256 f799a538a3355877e597a0ae04050e897932c9ae7689eb9227c2953c5dd549ea, OFL SHA-256 0333a85fe077b6849f8e417acc44e8bd879442ceb681e271acf93e2d57fd4e2e, read from fonts/simplified-chinese-manifest.txt and never embedded on wasm); Arabic interface text, file names and document titles (Noto Sans Arabic); the web build embeds BIZ UDPGothic Regular and the pinned small Arabic, Hebrew, Thai and Devanagari faces; the selected craft-fonts revision contains no Telugu face. Other non-Japanese CJK faces retain the general 4 MiB cap; the reviewed native-only LXGW fallback has a separate 16 MiB cap. Open-source OFL releases are permitted under current AGENTS.md §1.1 |
+
+## Companion files (added by Docufy)
+
+Docufy's asset check also lists the licence texts and notes that ship beside PdfCraft's assets.
+They are PdfCraft's files, taken over unchanged with the rest of `pdf/`.
+
+| File | Title | Author | Licence | Source | Used for |
+|---|---|---|---|---|---|
+| `assets/app-icon/LICENSE.txt` | Licence of the PdfCraft app icon | PdfCraft contributors | MIT OR Apache-2.0 | PdfCraft c735fb7d | Licence notice for the app icon files |
+| `assets/app-icon/LICENSE-document.txt` | Licence of the PdfCraft PDF document icon | PdfCraft contributors | ISC AND (MIT OR Apache-2.0) | PdfCraft c735fb7d | Licence notice for the document icon files |
+| `assets/app-icon/README.md` | Notes on the PdfCraft app icon | PdfCraft contributors | MIT OR Apache-2.0 | PdfCraft c735fb7d | Documentation |
+| `assets/demo/README.md` | Notes on the showcase PDF | PdfCraft contributors | MIT OR Apache-2.0 | PdfCraft c735fb7d | Documentation |
+| `assets/demo/showcase.html` | Source of the showcase test PDF | PdfCraft contributors | MIT OR Apache-2.0 | PdfCraft c735fb7d | Rendering test document (built locally, not shipped) |
+| `assets/demo/showcase-data.csv` | Data for the showcase test PDF | PdfCraft contributors | MIT OR Apache-2.0 | PdfCraft c735fb7d | Rendering test document (built locally, not shipped) |
+| `assets/fonts/OFL-DancingScript.txt` | SIL Open Font License for Dancing Script | Dancing Script authors | OFL-1.1 | PdfCraft c735fb7d | Licence text shipped with the font |
+| `assets/fonts/OFL-Inter.txt` | SIL Open Font License for Inter | The Inter Project Authors | OFL-1.1 | PdfCraft c735fb7d | Licence text shipped with the font |
+| `assets/fonts/OFL-JetBrainsMono.txt` | SIL Open Font License for JetBrains Mono | The JetBrains Mono Project Authors | OFL-1.1 | PdfCraft c735fb7d | Licence text shipped with the font |
+| `assets/icons/LICENSE-lucide.txt` | Lucide icon licence | Lucide Contributors | ISC | PdfCraft c735fb7d | Licence text shipped with the icons |

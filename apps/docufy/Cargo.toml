@@ -17,6 +17,8 @@ docufy-proof = { workspace = true }
 # Fonts the user added (#582) load from the settings folder at start-up.
 docufy-fonts = { workspace = true }
 docufy-ui-egui = { workspace = true }
+# The PDF mode (pdf/, from PdfCraft).
+pdfcraft-ui-egui = { workspace = true }
 # The control key file's location (shared with the MCP bridge).
 docufy-control-key = { workspace = true }
 eframe = { workspace = true, features = ["default_fonts", "wgpu", "accesskit", "clipboard", "wayland", "x11", "links"] }
@@ -73,7 +75,7 @@ windows = { version = "0.62", features = ["UI_ViewManagement", "System_UserProfi
 clipboard-win = { version = "5.4", features = ["std"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-craft-print = { git = "https://github.com/storytold/craft-libs", rev = "92d392cff132eaf53e13afff77f38b5c11b73aa0" }
+craft-print = { git = "https://github.com/storytold/craft-libs", rev = "e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545" }
 rfd = { workspace = true }
 # Waits for an `rfd::AsyncFileDialog` on a background thread (the dialogs don't block the UI, #94);
 # rfd itself already depends on it.

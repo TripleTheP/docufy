@@ -508,6 +508,10 @@ pub struct WordApp {
     pub(crate) keytip_rects: Vec<(egui::Rect, String)>,
     /// The Navigation pane's search box takes the keyboard on its next frame (Ctrl+F, #712).
     pub(crate) nav_search_focus: bool,
+    /// PDFs asked to open; the desktop app's PDF mode takes them ([`WordApp::open_file`]).
+    pub pdf_requests: Vec<String>,
+    /// The user asked to show the PDF interface (the title bar's PDF button).
+    pub switch_to_pdf: bool,
     styled: bool,
     /// The CJK face order the installed UI fonts use (Chinese first, or Japanese first).
     fonts_hans: bool,

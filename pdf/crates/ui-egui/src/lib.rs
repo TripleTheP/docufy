@@ -562,6 +562,10 @@ pub struct PdfCraftApp {
     pub window_state: window_state::WindowState,
     styled: bool,
     fonts_ready: bool,
+    /// Docufy: the user asked to go back to the word processor (the strip's Documents button).
+    pub switch_to_documents: bool,
+    /// Docufy: word-processor files opened here, for the word processor to open.
+    pub document_requests: Vec<String>,
     /// The CJK fallback order the installed fonts follow (see `theme::installed_font_definitions`).
     fonts_cjk: theme::CjkPreference,
     /// The window title last sent to the platform.

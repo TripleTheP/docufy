@@ -108,7 +108,13 @@ impl WordApp {
     /// in a window of its own (or its window comes forward if it is already open). A file a
     /// dialog picked arrives while any window draws, so the document it was asked from is made
     /// active again first.
+    /// A PDF goes to the desktop app's PDF mode instead ([`Self::pdf_requests`]).
     pub fn open_file(&mut self, path: &str, into: Option<u64>) -> Result<Value, String> {
+        if is_pdf(path) {
+            self.pdf_requests.push(path.to_owned());
+            self.switch_to_pdf = true;
+            return Ok(json!({"pdf": path}));
+        }
         if let Some(id) = into
             && id != self.session.document_id()
             && self.session.is_open(id)
@@ -116,6 +122,17 @@ impl WordApp {
             self.show_document(id)?;
         }
         self.run("file.open", json!({"path": path}))
+    }
+
+    /// Reinstall this interface's fonts, theme and animation setting on its next frame: the PDF
+    /// interface shares the egui context and installs its own while it is shown.
+    pub fn restyle(&mut self) {
+        self.styled = false;
+        // The new fonts take a frame to arrive; drawing before then would ask for families the
+        // other interface installed.
+        self.fonts_frames = 0;
+        self.applied_theme = None;
+        self.applied_animations = None;
     }
 
     /// Show open document `id` in the window (View › Window › Switch Windows, quitting).
@@ -215,6 +232,11 @@ pub(crate) fn switch_windows_menu(ui: &mut egui::Ui, app: &mut WordApp) {
     }
 }
 
+/// Whether `path` names a PDF (by its extension), which the PDF mode opens.
+pub fn is_pdf(path: &str) -> bool {
+    std::path::Path::new(path).extension().and_then(|e| e.to_str()).is_some_and(|e| e.eq_ignore_ascii_case("pdf"))
+}
+
 #[cfg(test)]
 mod tests {
     use docufy_doc::StoryRef;
@@ -240,6 +262,18 @@ mod tests {
 
     fn text(a: &WordApp) -> String {
         a.session.doc.plain_text(StoryRef::Body).trim().to_string()
+    }
+
+    /// A PDF never reaches the word processor's open: it waits for the PDF mode, which shows.
+    #[test]
+    fn a_pdf_goes_to_the_pdf_mode() {
+        let mut a = app();
+        let before = a.session.doc.plain_text(StoryRef::Body);
+        a.open_file("C:/Scans/Rechnung.PDF", None).unwrap();
+        assert_eq!(a.pdf_requests, vec!["C:/Scans/Rechnung.PDF".to_owned()]);
+        assert!(a.switch_to_pdf);
+        assert_eq!(a.session.doc.plain_text(StoryRef::Body), before, "the document is untouched");
+        assert!(super::is_pdf("a.pdf") && !super::is_pdf("a.docx") && !super::is_pdf("pdf"));
     }
 
     fn prompt(a: &WordApp) -> Option<&'static str> {

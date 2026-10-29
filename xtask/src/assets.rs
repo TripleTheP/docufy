@@ -18,9 +18,20 @@ pub fn is_asset(path: &str) -> bool {
     ASSET_DIRS.iter().any(|d| path.starts_with(d)) || ASSET_EXT.contains(&ext.as_str())
 }
 
+/// Projects taken over whole keep their own ATTRIBUTION.md, with paths relative to their folder:
+/// `pdf/` is PdfCraft (pdf/README.md).
+const SUBTREES: &[&str] = &["pdf/"];
+
 /// Paths that need an ATTRIBUTION.md entry but lack one.
 pub fn missing(files: &[String], assets_md: &str) -> Vec<String> {
     files.iter().filter(|f| is_asset(f) && !assets_md.contains(&format!("`{f}`"))).cloned().collect()
+}
+
+/// [`missing`] for the files under `subtree`, checked against that folder's own ATTRIBUTION.md;
+/// the paths returned are the repository's.
+pub fn missing_in_subtree(files: &[String], subtree: &str, subtree_md: &str) -> Vec<String> {
+    let inner: Vec<String> = files.iter().filter_map(|f| f.strip_prefix(subtree)).map(str::to_owned).collect();
+    missing(&inner, subtree_md).into_iter().map(|f| format!("{subtree}{f}")).collect()
 }
 
 /// The paths in `git ls-files -z` output: NUL-separated and never quoted, so a name with
@@ -40,10 +51,18 @@ pub fn run(root: &Path) -> Result<(), String> {
         return Err(format!("git ls-files failed ({}): {}", out.status, String::from_utf8_lossy(&out.stderr).trim()));
     }
     let files: Vec<String> = git_paths(&out.stdout).into_iter().filter(|l| root.join(l).exists()).collect();
+    let (own, taken_over): (Vec<String>, Vec<String>) = files.into_iter().partition(|f| !SUBTREES.iter().any(|s| f.starts_with(s)));
     let md = std::fs::read_to_string(root.join("ATTRIBUTION.md")).map_err(|e| format!("ATTRIBUTION.md: {e}"))?;
-    let miss = missing(&files, &md);
+    let mut miss = missing(&own, &md);
+    for subtree in SUBTREES {
+        let path = root.join(subtree).join("ATTRIBUTION.md");
+        let md = std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+        miss.extend(missing_in_subtree(&taken_over, subtree, &md));
+    }
     if miss.is_empty() {
-        println!("assets: all {} asset files attributed in ATTRIBUTION.md", files.iter().filter(|f| is_asset(f)).count());
+        let count = own.iter().filter(|f| is_asset(f)).count()
+            + taken_over.iter().filter(|f| SUBTREES.iter().any(|s| f.strip_prefix(s).is_some_and(is_asset))).count();
+        println!("assets: all {count} asset files attributed in ATTRIBUTION.md");
         Ok(())
     } else {
         Err(format!("{} asset file(s) lack an ATTRIBUTION.md entry (author, source, licence):\n  {}", miss.len(), miss.join("\n  ")))
@@ -61,6 +80,13 @@ mod tests {
         assert_eq!(missing(&files, md), vec!["docs/images/b.png".to_string(), "tests/fixture.png".into()]);
         assert!(!is_asset("crates/x/src/lib.rs"));
         assert!(is_asset("assets/fonts/OFL.txt"));
+    }
+
+    #[test]
+    fn a_taken_over_folder_is_checked_against_its_own_attribution() {
+        let files = vec!["pdf/assets/icons/x.svg".to_string(), "pdf/assets/icons/y.svg".into(), "pdf/crates/a/src/lib.rs".into()];
+        let md = "| `assets/icons/x.svg` | Lucide | here | ISC |";
+        assert_eq!(missing_in_subtree(&files, "pdf/", md), vec!["pdf/assets/icons/y.svg".to_string()]);
     }
 
     #[test]

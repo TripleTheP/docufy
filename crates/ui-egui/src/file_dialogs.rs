@@ -39,7 +39,11 @@ pub type FileDialogAnswer = Result<Vec<String>, String>;
 const MAX_FONTS_PER_PICK: usize = 2000;
 
 const PICTURES: &[&str] = &["png", "jpg", "jpeg", "gif", "webp", "bmp", "wmf", "emf"];
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 const DOCUMENTS: &[&str] = &["docx", "docm", "dotx", "dotm", "doc", "dot", "odt", "rtf", "txt", "md", "html", "htm", "tex", "json", "xml"];
+#[cfg(not(target_arch = "wasm32"))]
+const DOCUMENTS_AND_PDF: &[&str] =
+    &["docx", "docm", "dotx", "dotm", "doc", "dot", "odt", "rtf", "txt", "md", "html", "htm", "tex", "json", "xml", "pdf"];
 
 /// The file types Open offers, as (label, extensions; `*` is any file): pictures for Insert/Change
 /// Picture, recipient lists for Select Recipients › Use an Existing List…, documents otherwise.
@@ -50,6 +54,10 @@ pub fn open_filters(purpose: &str) -> &'static [(&'static str, &'static [&'stati
         "font" => &[("Fonts", docufy_fonts::FONT_FILE_EXTS)],
         "sources" => &[("Word sources", &["xml"]), ("All files", &["*"])],
         "recipients" => &[("Recipient lists", docufy_engine::cmd::mailings::RECIPIENT_EXTENSIONS), ("All files", &["*"])],
+        // Docufy: the desktop app opens PDFs in its PDF mode; the web app has none.
+        #[cfg(not(target_arch = "wasm32"))]
+        _ => &[("Documents and PDFs", DOCUMENTS_AND_PDF), ("Word document", &["docx"]), ("PDF", &["pdf"]), ("All files", &["*"])],
+        #[cfg(target_arch = "wasm32")]
         _ => &[("Documents", DOCUMENTS), ("Word document", &["docx"]), ("All files", &["*"])],
     }
 }

@@ -1,6 +1,8 @@
 [workspace]
 resolver = "3"
-members = ["crates/*", "apps/*", "xtask"]
+members = ["crates/*", "apps/*", "xtask", "pdf/crates/*"]
+# PdfCraft's patched third-party crates are path patches below, not workspace members.
+exclude = ["pdf/vendor"]
 default-members = ["crates/*", "apps/docufy", "apps/docufy-cli", "xtask"]
 
 [workspace.package]
@@ -28,6 +30,55 @@ docufy-zotero = { path = "crates/zotero" }
 docufy-control-key = { path = "crates/control-key" }
 docufy-ui-egui = { path = "crates/ui-egui" }
 docufy-metafile = { path = "crates/metafile" }
+
+# PDF mode: PdfCraft's crates, taken over into pdf/ (see pdf/README.md).
+pdfcraft-geom = { path = "pdf/crates/geom" }
+pdfcraft-filters = { path = "pdf/crates/filters" }
+pdfcraft-cos = { path = "pdf/crates/cos" }
+pdfcraft-crypt = { path = "pdf/crates/crypt" }
+pdfcraft-organize = { path = "pdf/crates/organize" }
+pdfcraft-measure = { path = "pdf/crates/measure" }
+pdfcraft-annot = { path = "pdf/crates/annot" }
+pdfcraft-audit = { path = "pdf/crates/audit" }
+pdfcraft-fonts = { path = "pdf/crates/fonts" }
+pdfcraft-model = { path = "pdf/crates/model" }
+pdfcraft-content = { path = "pdf/crates/content" }
+pdfcraft-redact = { path = "pdf/crates/redact" }
+pdfcraft-print = { path = "pdf/crates/print" }
+pdfcraft-xfdf = { path = "pdf/crates/xfdf" }
+pdfcraft-sign = { path = "pdf/crates/sign" }
+pdfcraft-optimize = { path = "pdf/crates/optimize" }
+pdfcraft-a11y = { path = "pdf/crates/a11y" }
+pdfcraft-oracle = { path = "pdf/crates/oracle" }
+pdfcraft-testkit = { path = "pdf/crates/testkit" }
+pdfcraft-ocr = { path = "pdf/crates/ocr" }
+pdfcraft-js = { path = "pdf/crates/js" }
+pdfcraft-compare = { path = "pdf/crates/compare" }
+pdfcraft-preflight = { path = "pdf/crates/preflight" }
+pdfcraft-export = { path = "pdf/crates/export" }
+pdfcraft-edit = { path = "pdf/crates/edit" }
+pdfcraft-create = { path = "pdf/crates/create" }
+pdfcraft-forms = { path = "pdf/crates/forms" }
+pdfcraft-xfa = { path = "pdf/crates/xfa" }
+pdfcraft-render = { path = "pdf/crates/render" }
+pdfcraft-engine = { path = "pdf/crates/engine" }
+pdfcraft-platform = { path = "pdf/crates/platform" }
+pdfcraft-ui-egui = { path = "pdf/crates/ui-egui" }
+pdfcraft-automation = { path = "pdf/crates/automation", default-features = false }
+
+# PDF mode: parsing and rendering (patched copies in pdf/vendor, see the patch section).
+hayro = "0.7.1"
+hayro-syntax = "0.7.2"
+lopdf = "0.45"
+flate2 = { version = "1.1", default-features = false, features = ["rust_backend"] }
+weezl = "0.2"
+# PDF mode: shared frontend components from craft-libs.
+craft-ui = { git = "https://github.com/storytold/craft-libs", version = "0.1.0", rev = "e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545", features = ["serde"] }
+craft-quit = { git = "https://github.com/storytold/craft-libs", version = "0.1.0", rev = "e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545" }
+craft-menu = { git = "https://github.com/storytold/craft-libs", version = "0.1.0", rev = "e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545" }
+craft-keymap = { git = "https://github.com/storytold/craft-libs", version = "0.1.0", rev = "e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545", default-features = false }
+craft-print = { git = "https://github.com/storytold/craft-libs", version = "0.1.0", rev = "e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545" }
+craft-docpath = { version = "0.1.0", git = "https://github.com/storytold/craft-libs", rev = "e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545" }
 
 # foundation
 kurbo = { version = "0.13", features = ["serde"] }
@@ -58,8 +109,8 @@ wuff = "0.2.9"
 brotli-decompressor = "5"
 vello_cpu = "0.2"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp", "gif", "bmp", "tiff"] }
-craft-pdf = { git = "https://github.com/storytold/craft-libs", rev = "92d392cff132eaf53e13afff77f38b5c11b73aa0", version = "=0.1.0", default-features = false, features = ["write"] }
-craft-update = { git = "https://github.com/storytold/craft-libs", version = "=0.1.0", rev = "92d392cff132eaf53e13afff77f38b5c11b73aa0", features = ["egui"] }
+craft-pdf = { git = "https://github.com/storytold/craft-libs", rev = "e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545", version = "=0.1.0", default-features = false, features = ["write"] }
+craft-update = { git = "https://github.com/storytold/craft-libs", version = "=0.1.0", rev = "e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545", features = ["egui"] }
 quick-xml = "0.41"
 zip = { version = "3", default-features = false, features = ["deflate"] }
 # zlib streams (compressed metafile pictures in `.doc` drawings); already in the lock as a dependency of other crates.
@@ -122,7 +173,7 @@ debug = 0
 
 # Required by craft-pdf: the backend rejects writers that failed during unwinding.
 [patch.crates-io]
-krilla = { git = "https://github.com/storytold/craft-libs", rev = "92d392cff132eaf53e13afff77f38b5c11b73aa0" }
+krilla = { git = "https://github.com/storytold/craft-libs", rev = "e11f9d9aebea5f6b8e74643c1ea1ed172ba5f545" }
 ecolor = { git = "https://github.com/storytold/egui.git", rev = "6d518fc799681571963842f95b55a6b68431b15a" }
 emath = { git = "https://github.com/storytold/egui.git", rev = "6d518fc799681571963842f95b55a6b68431b15a" }
 epaint = { git = "https://github.com/storytold/egui.git", rev = "6d518fc799681571963842f95b55a6b68431b15a" }
@@ -138,3 +189,14 @@ eframe = { git = "https://github.com/storytold/egui.git", rev = "6d518fc79968157
 egui_demo_lib = { git = "https://github.com/storytold/egui.git", rev = "6d518fc799681571963842f95b55a6b68431b15a" }
 egui_inspection = { git = "https://github.com/storytold/egui.git", rev = "6d518fc799681571963842f95b55a6b68431b15a" }
 winit = { git = "https://github.com/storytold/winit.git", rev = "a517b3846ee8457d84ee4975110bfda6797c44dc" }
+# PDF mode: PdfCraft's patched renderer stack (pdf/vendor/README.md). The vello copies are 0.0.8,
+# which only the PDF renderer uses; Docufy's own renderer stays on vello_cpu 0.2.
+hayro-interpret = { path = "pdf/vendor/hayro-interpret" }
+hayro = { path = "pdf/vendor/hayro" }
+hayro-syntax = { path = "pdf/vendor/hayro-syntax" }
+hayro-cmap = { path = "pdf/vendor/hayro-cmap" }
+hayro-postscript = { path = "pdf/vendor/hayro-postscript" }
+hayro-jbig2 = { path = "pdf/vendor/hayro-jbig2" }
+lopdf = { path = "pdf/vendor/lopdf" }
+vello_common = { path = "pdf/vendor/vello_common" }
+vello_cpu = { path = "pdf/vendor/vello_cpu" }
