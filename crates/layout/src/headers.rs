@@ -172,7 +172,7 @@ pub(crate) fn header_table_areas(ctx: &mut Ctx, pb: &PageBuilder) -> Vec<Rect> {
 /// Whether a header, a footer or a text box shows a `PAGEREF` field, which they resolve from the
 /// paginated body (see [`bookmark_pages`]).
 pub(crate) fn headers_footers_refer_to_pages(doc: &Document) -> bool {
-    use wordcraft_doc::PartKind;
+    use docufy_doc::PartKind;
     doc.parts.iter().filter(|(_, part)| matches!(part.kind, PartKind::Header | PartKind::Footer | PartKind::TextBox)).any(|(id, _)| {
         let story = StoryRef::Part(*id);
         doc.para_paths(story)

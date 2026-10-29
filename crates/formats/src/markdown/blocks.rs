@@ -14,7 +14,7 @@ pub fn import(text: &str) -> Document {
 }
 
 /// [`import`] onto `page`: Markdown gives no page size (#1381).
-pub fn import_on(text: &str, page: &wordcraft_doc::SectionProps) -> Document {
+pub fn import_on(text: &str, page: &docufy_doc::SectionProps) -> Document {
     model::begin_import();
     model::to_doc_in(&parse(text), page.clone())
 }

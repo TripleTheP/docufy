@@ -206,7 +206,7 @@ fn cell_clip(clips: &Clips, story: StoryRef, path: &[u32]) -> Option<Rect> {
 
 /// The text boxes among `items` whose text is warped (Text Effects › Transform, drawn bent): their
 /// story, frame and warp. Empty, without a walk of the document, when none is.
-fn warped_boxes(doc: &Document, items: &[Placed]) -> Vec<(u32, Rect, wordcraft_doc::wordart::TextWarp)> {
+fn warped_boxes(doc: &Document, items: &[Placed]) -> Vec<(u32, Rect, docufy_doc::wordart::TextWarp)> {
     items
         .iter()
         .filter_map(|it| {
@@ -226,7 +226,7 @@ struct WarpedText<'doc, 'opts, 'lines, 'placed, 'authors, 'author_doc> {
     doc: &'doc Document,
     lines: &'lines [&'placed Placed],
     rect: Rect,
-    warp: &'lines wordcraft_doc::wordart::TextWarp,
+    warp: &'lines docufy_doc::wordart::TextWarp,
     opts: &'opts DisplayOptions,
     authors: &'authors Authors<'author_doc>,
     alpha: f32,
@@ -239,7 +239,7 @@ fn warped_text(input: WarpedText<'_, '_, '_, '_, '_, '_>, out: &mut Vec<Draw>) {
         item(doc, it, opts, authors, alpha, &mut raw);
     }
     // The letters: runs with effects as they are, plain runs from their glyphs.
-    let mut arts: Vec<(BezPath, Box<wordcraft_doc::wordart::TextEffects>, Rgb, f32)> = Vec::new();
+    let mut arts: Vec<(BezPath, Box<docufy_doc::wordart::TextEffects>, Rgb, f32)> = Vec::new();
     let mut hidden = Vec::new();
     for d in &raw {
         match d {
@@ -439,7 +439,7 @@ fn item_in(doc: &Document, it: &Placed, opts: &DisplayOptions, authors: &Authors
 #[cfg(test)]
 mod tests_clips {
     use super::*;
-    use wordcraft_doc::Path as DocPath;
+    use docufy_doc::Path as DocPath;
 
     /// A cell whose area is told apart by `x`.
     fn cell(story: StoryRef, table: Vec<u32>, row: usize, cell: usize, clip: bool, x: f32) -> Placed {

@@ -2,8 +2,8 @@
 
 use std::io::Write;
 
+use docufy_docx::{DocxError, read, write};
 use proptest::prelude::*;
-use wordcraft_docx::{DocxError, read, write};
 
 const W_NS: &str = r#"xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships""#;
 const ROOT_RELS: &str = r#"<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>"#;
@@ -22,9 +22,9 @@ fn doc_zip(document_xml: &[u8]) -> Vec<u8> {
 }
 
 fn sample() -> Vec<u8> {
-    let mut d = wordcraft_doc::Document::from_text("Hello world\nSecond paragraph with more text\nThird");
-    let t = wordcraft_doc::Table::new(2, 2, 200.0);
-    d.body.insert(1, std::sync::Arc::new(wordcraft_doc::Block::Table(t)));
+    let mut d = docufy_doc::Document::from_text("Hello world\nSecond paragraph with more text\nThird");
+    let t = docufy_doc::Table::new(2, 2, 200.0);
+    d.body.insert(1, std::sync::Arc::new(docufy_doc::Block::Table(t)));
     write(&d).unwrap()
 }
 
@@ -65,7 +65,7 @@ fn missing_or_wrong_main_part() {
     // No root rels at all: falls back to word/document.xml.
     let z = zip(&[("word/document.xml", format!("<w:document {W_NS}><w:body><w:p><w:r><w:t>ok</w:t></w:r></w:p></w:body></w:document>").as_bytes())]);
     let d = read(&z).unwrap();
-    assert_eq!(d.plain_text(wordcraft_doc::StoryRef::Body), "ok");
+    assert_eq!(d.plain_text(docufy_doc::StoryRef::Body), "ok");
 }
 
 fn body_zip(body: &str) -> Vec<u8> {
@@ -84,7 +84,7 @@ fn a_malformed_main_part_is_an_error_not_a_truncated_document() {
     }
     let whole = "<w:p><w:r><w:t>a &lt;- b</w:t></w:r></w:p><w:p><w:r><w:t>last</w:t></w:r></w:p>";
     let d = read(&body_zip(whole)).unwrap();
-    assert_eq!(d.plain_text(wordcraft_doc::StoryRef::Body), "a <- b\nlast", "well-formed text still reads whole");
+    assert_eq!(d.plain_text(docufy_doc::StoryRef::Body), "a <- b\nlast", "well-formed text still reads whole");
 }
 
 #[test]
@@ -106,11 +106,11 @@ fn deep_nesting_is_rejected() {
     }
     y.push_str("</w:body></w:document>");
     let d = read(&doc_zip(y.as_bytes())).unwrap();
-    fn all_text(bl: &wordcraft_doc::Blocks, out: &mut String) {
+    fn all_text(bl: &docufy_doc::Blocks, out: &mut String) {
         for b in bl {
             match &**b {
-                wordcraft_doc::Block::Para(p) => out.push_str(&p.plain_text()),
-                wordcraft_doc::Block::Table(t) => t.rows.iter().flat_map(|r| &r.cells).for_each(|c| all_text(&c.blocks, out)),
+                docufy_doc::Block::Para(p) => out.push_str(&p.plain_text()),
+                docufy_doc::Block::Table(t) => t.rows.iter().flat_map(|r| &r.cells).for_each(|c| all_text(&c.blocks, out)),
             }
         }
     }
@@ -133,7 +133,7 @@ fn broken_secondary_parts_are_ignored() {
         ("word/comments.xml", b"<<<"),
     ]);
     let d = read(&z).unwrap();
-    assert_eq!(d.plain_text(wordcraft_doc::StoryRef::Body), "body");
+    assert_eq!(d.plain_text(docufy_doc::StoryRef::Body), "body");
     // The unresolvable list still writes.
     write(&d).unwrap();
 }
@@ -147,7 +147,7 @@ fn many_fields_and_huge_attribute_values() {
     x.push_str(&format!(r#"<w:r><w:rPr><w:rFonts w:ascii="{}"/></w:rPr><w:t>x</w:t></w:r>"#, "F".repeat(100_000)));
     x.push_str("</w:p><w:p><w:r><w:t>later</w:t></w:r></w:p></w:body></w:document>");
     let d = read(&doc_zip(x.as_bytes())).unwrap();
-    assert!(d.plain_text(wordcraft_doc::StoryRef::Body).contains("later"));
+    assert!(d.plain_text(docufy_doc::StoryRef::Body).contains("later"));
 }
 
 /// A paragraph with 2,000,000 attributes deflates to ~15 KB. Opening it is refused with a
@@ -159,7 +159,7 @@ fn millions_of_attributes_on_one_paragraph_are_capped() {
     let start = std::time::Instant::now();
     match read(&doc_zip(x.as_bytes())) {
         Err(DocxError::Limit(_)) => {}
-        Ok(d) => assert!(d.plain_text(wordcraft_doc::StoryRef::Body).contains("kept")),
+        Ok(d) => assert!(d.plain_text(docufy_doc::StoryRef::Body).contains("kept")),
         Err(e) => panic!("expected a Limit error or a document, got {e}"),
     }
     assert!(start.elapsed() < std::time::Duration::from_secs(10), "took {:?}", start.elapsed());
@@ -276,7 +276,7 @@ proptest! {
 /// The streams of a Standard-encrypted package (gap 9), and a compound file holding them.
 fn standard_streams() -> (Vec<u8>, Vec<u8>) {
     use std::io::Read;
-    let file = wordcraft_docx::encrypt_standard_for_tests(&sample(), "pw", 128).unwrap();
+    let file = docufy_docx::encrypt_standard_for_tests(&sample(), "pw", 128).unwrap();
     let mut comp = cfb::CompoundFile::open(std::io::Cursor::new(file)).unwrap();
     let mut info = Vec::new();
     comp.open_stream("/EncryptionInfo").unwrap().read_to_end(&mut info).unwrap();
@@ -310,8 +310,8 @@ proptest! {
             }
         }
         let file = compound(&info, &package);
-        let _ = wordcraft_docx::decrypt(&file, Some("pw"));
-        let _ = wordcraft_docx::read_with_password(&file, Some("pw"));
+        let _ = docufy_docx::decrypt(&file, Some("pw"));
+        let _ = docufy_docx::read_with_password(&file, Some("pw"));
         prop_assert!(read(&file).is_err());
     }
 }
@@ -347,9 +347,9 @@ fn long_header_reference_chain_is_cut_off() {
 /// encrypted-package sniff (reached for any `.docx` name) before `cfb` builds its FAT.
 #[test]
 fn a_repeating_difat_is_refused_before_cfb_opens_it() {
-    let f = wordcraft_doc::cfb_guard::repeating_difat_sample();
-    assert!(!wordcraft_docx::is_encrypted(&f));
-    assert!(matches!(wordcraft_docx::decrypt(&f, None), Err(e) if e.to_string().contains("FAT sectors in a file of")));
+    let f = docufy_doc::cfb_guard::repeating_difat_sample();
+    assert!(!docufy_docx::is_encrypted(&f));
+    assert!(matches!(docufy_docx::decrypt(&f, None), Err(e) if e.to_string().contains("FAT sectors in a file of")));
 }
 
 #[test]

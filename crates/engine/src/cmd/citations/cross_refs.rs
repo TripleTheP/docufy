@@ -63,13 +63,12 @@ pub(super) fn caption_label(p: &Paragraph, text: &str) -> Option<String> {
         Some((i, (seq_at, instr))) => {
             // The text in `from..to` with the bookmark marks dropped, if it says anything.
             let said = |from: usize, to: usize| {
-                let t: String = p.text.get(from..to).unwrap_or_default().chars().filter(|c| *c != wordcraft_doc::para::OBJ).collect();
+                let t: String = p.text.get(from..to).unwrap_or_default().chars().filter(|c| *c != docufy_doc::para::OBJ).collect();
                 let t = t.trim();
                 t.chars().any(char::is_alphanumeric).then(|| t.to_string())
             };
             let first = fields.first().map_or(0, |(o, _)| *o);
-            let after_previous =
-                i.checked_sub(1).and_then(|k| fields.get(k)).map_or(0, |(o, _)| o.saturating_add(wordcraft_doc::para::OBJ.len_utf8()));
+            let after_previous = i.checked_sub(1).and_then(|k| fields.get(k)).map_or(0, |(o, _)| o.saturating_add(docufy_doc::para::OBJ.len_utf8()));
             said(0, first).or_else(|| said(after_previous, *seq_at)).or_else(|| instr.split_whitespace().nth(1).map(|id| id.replace('_', " ")))?
         }
         None => text.get(..text.find(|c: char| c.is_ascii_digit())?)?.trim().to_string(),
@@ -150,7 +149,7 @@ pub fn ref_targets(s: &Session, to: &str) -> Vec<(String, Pos)> {
 /// when `number_only`), reusing one already there. Returns its name and `at` moved past the
 /// bookmark marks inserted before it.
 fn ref_bookmark(s: &mut Session, pos: &Pos, number_only: bool, mut at: Pos) -> Result<(String, Pos), CmdError> {
-    const MARK: usize = wordcraft_doc::para::OBJ.len_utf8();
+    const MARK: usize = docufy_doc::para::OBJ.len_utf8();
     let para = s.doc.para(pos.story, &pos.path).ok_or_else(|| CmdError::Params("cross-reference target is gone".into()))?;
     let end = if number_only { para.text.find(':').unwrap_or(para.len()) } else { para.len() };
     if let Some(InlineObject::BookmarkStart { name }) = para.object_at(0)

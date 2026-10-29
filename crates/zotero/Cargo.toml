@@ -1,21 +1,21 @@
 [package]
-name = "wordcraft-zotero"
+name = "docufy-zotero"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "WordCraft Zotero integration: Zotero's word-processor wire protocol, answered against an engine Session"
+description = "Docufy Zotero integration: Zotero's word-processor wire protocol, answered against an engine Session"
 
 [lints]
 workspace = true
 
 [dependencies]
-wordcraft-doc = { workspace = true }
-wordcraft-engine = { workspace = true }
-wordcraft-formats = { workspace = true }
+docufy-doc = { workspace = true }
+docufy-engine = { workspace = true }
+docufy-formats = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 log = { workspace = true }
 
 [dev-dependencies]
-wordcraft-docx = { workspace = true }
+docufy-docx = { workspace = true }
 proptest = { workspace = true }

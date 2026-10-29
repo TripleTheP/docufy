@@ -1,9 +1,9 @@
 //! The Accessibility pane (the checker's findings, grouped, each a jump and maybe a fix) and the
 //! Alt Text pane (the selected object's or table's alternative text).
 
+use docufy_doc::Pos;
 use egui::Ui;
 use serde_json::{Value, json};
-use wordcraft_doc::Pos;
 
 use crate::WordApp;
 use crate::theme::{regular, semibold};
@@ -68,7 +68,7 @@ fn issues(app: &mut WordApp, ui: &Ui) -> Vec<Value> {
     {
         return v;
     }
-    let v = wordcraft_engine::cmd::accessibility::check(&app.session.doc);
+    let v = docufy_engine::cmd::accessibility::check(&app.session.doc);
     ui.data_mut(|d| d.insert_temp(key, (stamp, v.clone())));
     v
 }
@@ -86,7 +86,7 @@ fn go_to(app: &mut WordApp, issue: &Value) {
 /// Alt Text: the selected picture's, shape's, chart's or group's description and decorative mark,
 /// or the title and description of the table the caret is in.
 pub fn alt_text(app: &mut WordApp, ui: &mut Ui) {
-    if let Some((pos, obj)) = wordcraft_engine::cmd::objects::selected(&app.session) {
+    if let Some((pos, obj)) = docufy_engine::cmd::objects::selected(&app.session) {
         let decorative = obj.is_decorative();
         ui.label(egui::RichText::new(tl!("Describe what this object shows, for people who can't see it.")).weak());
         ui.add_space(4.0);
@@ -126,7 +126,7 @@ pub fn alt_text(app: &mut WordApp, ui: &mut Ui) {
 }
 
 fn still_selected(app: &WordApp, pos: &Pos) -> bool {
-    wordcraft_engine::cmd::objects::selected(&app.session).is_some_and(|(p, _)| &p == pos)
+    docufy_engine::cmd::objects::selected(&app.session).is_some_and(|(p, _)| &p == pos)
 }
 
 /// A text box editing `current`; the draft lives in egui memory while it has focus (frame-local

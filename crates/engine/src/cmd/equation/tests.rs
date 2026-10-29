@@ -1,6 +1,6 @@
 use super::*;
 use crate::Session;
-use wordcraft_doc::Document;
+use docufy_doc::Document;
 
 fn session() -> Session {
     let mut s = Session::new(Document::new());
@@ -123,14 +123,14 @@ fn imported(math: &str) -> Session {
         zw.write_all(xml.as_bytes()).unwrap();
     }
     let bytes = zw.finish().unwrap().into_inner();
-    let mut s = Session::new(wordcraft_docx::read(&bytes).unwrap());
+    let mut s = Session::new(docufy_docx::read(&bytes).unwrap());
     s.run("equation.edit", &json!({})).unwrap();
     s
 }
 
 fn document_xml(s: &Session) -> String {
     use std::io::Read;
-    let bytes = wordcraft_docx::write(&s.doc).unwrap();
+    let bytes = docufy_docx::write(&s.doc).unwrap();
     let mut z = zip::ZipArchive::new(std::io::Cursor::new(bytes)).unwrap();
     let mut xml = String::new();
     z.by_name("word/document.xml").unwrap().read_to_string(&mut xml).unwrap();
@@ -145,7 +145,7 @@ fn removing_numbers_keeps_every_row() {
         s.run("insert.equation", &json!({"linear": numbered})).unwrap();
         s.run("equation.number", &json!({"value": false})).unwrap();
         assert_eq!(linear(&s), "█(a@b)", "{numbered}");
-        let mut back = Session::new(wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap());
+        let mut back = Session::new(docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap());
         assert_eq!(back.run("equation.get", &json!({})).unwrap()["linear"], "█(a@b)", "{numbered} after save and reopen");
         s.run("edit.undo", &json!({})).unwrap();
         assert_eq!(linear(&s), numbered, "Undo restores the numbers");
@@ -166,16 +166,16 @@ fn colour_survives_save_and_reopen() {
     s.run("select.all", &json!({})).unwrap();
     s.run("format.color", &json!({"color": "C00000"})).unwrap();
     assert!(document_xml(&s).contains(r#"<w:color w:val="C00000"/></w:rPr><m:t"#), "the math runs carry the colour");
-    let mut back = Session::new(wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap());
+    let mut back = Session::new(docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap());
     back.run("equation.edit", &json!({})).unwrap();
     let at = back.math.as_ref().unwrap().at.clone();
     let p = back.doc.para_at(&at).unwrap();
     let (_, props) = p.run_ranges().find(|(r, _)| r.contains(&at.off)).unwrap();
-    assert_eq!(props.color, Some(wordcraft_doc::props::TextColor::Rgb(wordcraft_doc::props::Rgb(0xC0, 0, 0))), "the equation's colour is back");
+    assert_eq!(props.color, Some(docufy_doc::props::TextColor::Rgb(docufy_doc::props::Rgb(0xC0, 0, 0))), "the equation's colour is back");
     let Some(InlineObject::Equation { math, .. }) = p.object_at(at.off) else { panic!() };
     let mut nodes = math.nodes.clone();
     let mut runs = 0;
-    wordcraft_doc::math_edit::each_run_mut(&mut nodes, &mut |r| {
+    docufy_doc::math_edit::each_run_mut(&mut nodes, &mut |r| {
         runs += 1;
         assert_eq!(r.color, None, "the colour is the equation's, not stuck on each run");
     });

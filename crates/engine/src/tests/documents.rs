@@ -2,13 +2,13 @@
 //! document keeps its own text, selection, undo and find state, and work addressed to a document
 //! by id lands in that document whichever one is active.
 
+use docufy_doc::StoryRef;
 use serde_json::{Value, json};
-use wordcraft_doc::StoryRef;
 
 use crate::Session;
 
 fn s() -> Session {
-    Session::new(wordcraft_doc::Document::new())
+    Session::new(docufy_doc::Document::new())
 }
 
 fn run(s: &mut Session, id: &str, v: Value) -> Value {
@@ -24,7 +24,7 @@ fn ids(s: &Session) -> Vec<u64> {
 }
 
 fn temp_dir(name: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!("wordcraft-engine-docs-{name}-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-engine-docs-{name}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     dir
@@ -63,7 +63,7 @@ fn undo_and_find_stay_with_their_document_across_switches() {
     let a = s.document_id();
     run(&mut s, "text.insert", json!({"text": "Alpha"}));
     s.find.query = "Alpha".into();
-    let b = s.add_document(wordcraft_doc::Document::new());
+    let b = s.add_document(docufy_doc::Document::new());
     assert_eq!(s.find.query, "", "a new document has its own find state");
     run(&mut s, "text.insert", json!({"text": "Beta"}));
     s.find.query = "Beta".into();
@@ -128,8 +128,8 @@ fn open_replaces_an_untouched_blank_document_and_otherwise_opens_beside() {
 fn close_activates_the_previous_document_and_the_last_leaves_a_blank_one() {
     let mut s = s();
     let a = s.document_id();
-    let b = s.add_document(wordcraft_doc::Document::from_text("B"));
-    let c = s.add_document(wordcraft_doc::Document::from_text("C"));
+    let b = s.add_document(docufy_doc::Document::from_text("B"));
+    let c = s.add_document(docufy_doc::Document::from_text("C"));
     s.activate(b).unwrap();
     s.close_document(b).unwrap();
     assert_eq!((ids(&s), s.document_id()), (vec![a, c], a), "the one opened before it");
@@ -142,7 +142,7 @@ fn close_activates_the_previous_document_and_the_last_leaves_a_blank_one() {
 
     // Closing the first makes the next one active.
     let d = s.document_id();
-    let e = s.add_document(wordcraft_doc::Document::new());
+    let e = s.add_document(docufy_doc::Document::new());
     s.activate(d).unwrap();
     s.close_document(d).unwrap();
     assert_eq!(s.document_id(), e);
@@ -153,7 +153,7 @@ fn close_document_refuses_unsaved_changes_unless_forced() {
     let mut s = s();
     let a = s.document_id();
     run(&mut s, "text.insert", json!({"text": "Draft"}));
-    let b = s.add_document(wordcraft_doc::Document::new());
+    let b = s.add_document(docufy_doc::Document::new());
     assert!(s.run("file.closeDocument", &json!({"id": a})).is_err());
     assert_eq!(ids(&s), vec![a, b], "still open");
     let r = run(&mut s, "file.closeDocument", json!({}));
@@ -174,7 +174,7 @@ fn with_document_works_on_the_given_document_and_keeps_the_active_one() {
     let mut s = s();
     let a = s.document_id();
     run(&mut s, "text.insert", json!({"text": "Alpha"}));
-    let b = s.add_document(wordcraft_doc::Document::new());
+    let b = s.add_document(docufy_doc::Document::new());
     run(&mut s, "text.insert", json!({"text": "Beta"}));
     let (b_rev, b_undo) = (s.rev(), s.undo_depth());
 
@@ -206,7 +206,7 @@ fn read_aloud_belongs_to_its_document() {
     run(&mut s, "caret.docStart", json!({}));
     run(&mut s, "review.readAloud", json!({}));
     assert_eq!(s.read_aloud.document, Some(a));
-    let b = s.add_document(wordcraft_doc::Document::from_text("Other text."));
+    let b = s.add_document(docufy_doc::Document::from_text("Other text."));
     assert_eq!(s.read_aloud.state(), crate::speech::State::Stopped, "the reading of A stopped");
     run(&mut s, "readAloud.skipCitations", json!({"value": false}));
     assert_eq!(s.read_aloud.document, Some(a), "nothing restarted in B");
@@ -218,7 +218,7 @@ fn read_aloud_belongs_to_its_document() {
 fn switch_windows_lists_and_activates() {
     let mut s = s();
     let a = s.document_id();
-    let b = s.add_document(wordcraft_doc::Document::new());
+    let b = s.add_document(docufy_doc::Document::new());
     let r = run(&mut s, "view.switchWindows", json!({}));
     let list = r["documents"].as_array().unwrap();
     assert_eq!(
@@ -249,7 +249,7 @@ fn document_ids_are_unique_across_sessions_and_replacements() {
     let two = s();
     assert_ne!(one.document_id(), two.document_id());
     let before = one.document_id();
-    one.set_document(wordcraft_doc::Document::new());
+    one.set_document(docufy_doc::Document::new());
     assert_ne!(one.document_id(), before);
     assert_eq!(ids(&one), vec![one.document_id()], "the replacement takes its place in the list");
 }

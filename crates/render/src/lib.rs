@@ -1,20 +1,20 @@
-//! WordCraft rasteriser: draws a page's display list with vello_cpu.
+//! Docufy rasteriser: draws a page's display list with vello_cpu.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, Weak};
 
+use docufy_doc::Document;
+use docufy_doc::para::ShapeKind;
+use docufy_doc::props::Rgb;
+use docufy_fonts::FontDb;
+use docufy_layout::Page;
+use docufy_layout::display::Paint;
+use docufy_layout::display::{DisplayOptions, Draw, Stroke, page_layers};
+use docufy_metafile::{Item, Picture, PlacedItem, Seg};
 use vello_cpu::kurbo::{self, Affine, BezPath, Shape};
 use vello_cpu::peniko;
 use vello_cpu::{Pixmap, RenderContext, Resources};
-use wordcraft_doc::Document;
-use wordcraft_doc::para::ShapeKind;
-use wordcraft_doc::props::Rgb;
-use wordcraft_fonts::FontDb;
-use wordcraft_layout::Page;
-use wordcraft_layout::display::Paint;
-use wordcraft_layout::display::{DisplayOptions, Draw, Stroke, page_layers};
-use wordcraft_metafile::{Item, Picture, PlacedItem, Seg};
 
 mod media;
 
@@ -65,12 +65,12 @@ impl Rendered {
         out
     }
     /// Whether the pixels are exactly `width`×`height` RGBA, within a page raster's budget
-    /// ([`wordcraft_geom::MAX_RASTER_PIXELS`]): the fields are public, so an encoder is never asked
+    /// ([`docufy_geom::MAX_RASTER_PIXELS`]): the fields are public, so an encoder is never asked
     /// to pad a short buffer out to a huge claimed size (or, for JPEG, to assert on a mismatch).
     fn encodable(&self) -> bool {
-        let budget = wordcraft_geom::MAX_RASTER_PIXELS.saturating_mul(4);
-        wordcraft_geom::rgba_fits(self.width, self.height, budget)
-            && wordcraft_geom::rgba_bytes(self.width, self.height).is_some_and(|b| b == self.pixels.len() as u64)
+        let budget = docufy_geom::MAX_RASTER_PIXELS.saturating_mul(4);
+        docufy_geom::rgba_fits(self.width, self.height, budget)
+            && docufy_geom::rgba_bytes(self.width, self.height).is_some_and(|b| b == self.pixels.len() as u64)
     }
     /// PNG bytes (empty on failure, logged).
     pub fn to_png(&self) -> Vec<u8> {
@@ -276,13 +276,13 @@ pub fn render_page(doc: &Document, page: &Page, scale: f32, opts: &RenderOptions
 
 /// Render a page into a `w`×`h` raster with `view` (page points → pixels).
 pub fn render_region(doc: &Document, page: &Page, w: u32, h: u32, view: Affine, opts: &RenderOptions) -> Rendered {
-    render_region_capped(doc, page, w, h, view, opts, wordcraft_geom::MAX_RASTER_PIXELS)
+    render_region_capped(doc, page, w, h, view, opts, docufy_geom::MAX_RASTER_PIXELS)
 }
 
 /// [`render_region`] with an explicit pixel cap (a small one in tests).
 fn render_region_capped(doc: &Document, page: &Page, w: u32, h: u32, view: Affine, opts: &RenderOptions, max_pixels: u64) -> Rendered {
     let (w, h) = (w.clamp(1, MAX_SIDE), h.clamp(1, MAX_SIDE));
-    let (cw, ch) = wordcraft_geom::fit_pixels(w, h, max_pixels);
+    let (cw, ch) = docufy_geom::fit_pixels(w, h, max_pixels);
     // Over the cap the whole picture is drawn smaller, not cropped.
     let view = if (cw, ch) == (w, h) { view } else { Affine::scale_non_uniform(cw as f64 / w as f64, ch as f64 / h as f64) * view };
     let (w16, h16) = (cw as u16, ch as u16);
@@ -333,7 +333,7 @@ pub fn background_at(doc: &Document, page: &Page, opts: &RenderOptions, x: f32, 
     for (alpha, items) in page_layers(doc, page, &opts.display) {
         // A faded layer: its own colour there, blended in at its opacity.
         let mut layer = bg;
-        blend_backgrounds(&items, wordcraft_geom::Point::new(x, y), opts, &mut layer, 0);
+        blend_backgrounds(&items, docufy_geom::Point::new(x, y), opts, &mut layer, 0);
         for (v, n) in bg.iter_mut().zip(layer) {
             *v += (n - *v) * alpha;
         }
@@ -342,7 +342,7 @@ pub fn background_at(doc: &Document, page: &Page, opts: &RenderOptions, x: f32, 
     Rgb(c(bg[0]), c(bg[1]), c(bg[2]))
 }
 
-fn blend_backgrounds(items: &[Draw], p: wordcraft_geom::Point, opts: &RenderOptions, bg: &mut [f32; 3], depth: u32) {
+fn blend_backgrounds(items: &[Draw], p: docufy_geom::Point, opts: &RenderOptions, bg: &mut [f32; 3], depth: u32) {
     if depth > 16 {
         return;
     }
@@ -382,12 +382,12 @@ fn blend_backgrounds(items: &[Draw], p: wordcraft_geom::Point, opts: &RenderOpti
 /// list entry. Not the face's ascent: a font with a tall one (Amiri Quran's is 1.8 em) put the
 /// name below the row (#2570). Outlines come straight from the face, not the shared outline
 /// cache, so a face read just for the preview leaves nothing behind once dropped (#848).
-pub fn render_text_line(face: &wordcraft_fonts::FontFace, text: &str, size: f32, w: f32, h: f32, margin: f32, scale: f32) -> Rendered {
+pub fn render_text_line(face: &docufy_fonts::FontFace, text: &str, size: f32, w: f32, h: f32, margin: f32, scale: f32) -> Rendered {
     let fin = |v: f32, d: f32| if v.is_finite() && v >= 0.0 { v } else { d };
     let (size, w, h, margin) = (fin(size, 12.0).min(1000.0) as f64, fin(w, 1.0), fin(h, 1.0), fin(margin, 0.0).min(1000.0) as f64);
     let scale = if scale.is_finite() && scale > 0.0 { scale.min(16.0) } else { 1.0 };
     let (pw, ph) = (((w * scale).ceil() as u32).clamp(1, MAX_SIDE), ((h * scale).ceil() as u32).clamp(1, MAX_SIDE));
-    let (cw, ch) = wordcraft_geom::fit_pixels(pw, ph, wordcraft_geom::MAX_RASTER_PIXELS);
+    let (cw, ch) = docufy_geom::fit_pixels(pw, ph, docufy_geom::MAX_RASTER_PIXELS);
     let (w16, h16) = (cw as u16, ch as u16);
     let mut ctx = RenderContext::new_with(w16, h16, vello_cpu::RenderSettings { num_threads: 0, ..Default::default() });
     ctx.set_transform(Affine::IDENTITY);
@@ -401,7 +401,7 @@ pub fn render_text_line(face: &wordcraft_fonts::FontFace, text: &str, size: f32,
     let baseline = (h as f64 + cap * k) / 2.0;
     let mut x = margin;
     let colour = face.has_color_glyphs();
-    for g in wordcraft_fonts::shape(face, text, &[], |c| c) {
+    for g in docufy_fonts::shape(face, text, &[], |c| c) {
         let at = view * Affine::translate((x + g.x_offset as f64 * k, baseline - g.y_offset as f64 * k)) * Affine::scale(k);
         if colour && let Some(d) = color_glyph::drawable(face, g.gid, size * scale as f64, false) {
             color_glyph::draw(&mut ctx, &d, at, upem, color(Rgb(0, 0, 0), 1.0), 1.0);
@@ -424,10 +424,10 @@ pub fn render_text_line(face: &wordcraft_fonts::FontFace, text: &str, size: f32,
     Rendered { width: w16 as u32, height: h16 as u32, pixels }
 }
 
-fn draw_watermark(ctx: &mut RenderContext, view: Affine, page: &Page, wm: &wordcraft_doc::Watermark, opts: &RenderOptions) {
-    let r = wordcraft_fonts::word::resolve(&wm.font, false, false);
+fn draw_watermark(ctx: &mut RenderContext, view: Affine, page: &Page, wm: &docufy_doc::Watermark, opts: &RenderOptions) {
+    let r = docufy_fonts::word::resolve(&wm.font, false, false);
     let face = r.face;
-    let glyphs = wordcraft_fonts::shape(&face, &wm.text, &[], |c| c);
+    let glyphs = docufy_fonts::shape(&face, &wm.text, &[], |c| c);
     let upem = face.upem.max(1.0);
     let raw_w: f64 = glyphs.iter().map(|g| g.x_advance as f64).sum::<f64>() / upem;
     if raw_w <= 0.0 {
@@ -441,7 +441,7 @@ fn draw_watermark(ctx: &mut RenderContext, view: Affine, page: &Page, wm: &wordc
     let size = bh.min(2000.0);
     let k = size / upem;
     let stretch = bw / (raw_w * size);
-    let descent = (wordcraft_fonts::word::line_metrics(&face).1 / upem).clamp(0.0, 1.0);
+    let descent = (docufy_fonts::word::line_metrics(&face).1 / upem).clamp(0.0, 1.0);
     let angle = if wm.diagonal { -std::f64::consts::FRAC_PI_4 } else { 0.0 };
     let b = page.body;
     let (cx, cy) =
@@ -560,7 +560,7 @@ struct Frame<'a> {
 }
 
 /// The rectangle in kurbo's terms.
-fn kurbo_rect(rect: &wordcraft_geom::Rect) -> kurbo::Rect {
+fn kurbo_rect(rect: &docufy_geom::Rect) -> kurbo::Rect {
     kurbo::Rect::new(rect.x as f64, rect.y as f64, rect.right() as f64, rect.bottom() as f64)
 }
 
@@ -733,11 +733,11 @@ fn draw_glyphs(ctx: &mut RenderContext, fr: &Frame, it: &Draw) {
 
 fn draw_mark(ctx: &mut RenderContext, fr: &Frame, it: &Draw) {
     let Draw::Mark { x, baseline, size, ch, color: mark } = it else { return };
-    let face = wordcraft_fonts::word::resolve("Source Sans 3", false, false).face;
+    let face = docufy_fonts::word::resolve("Source Sans 3", false, false).face;
     let gid = face.glyph_for(*ch);
     let face = if gid == 0 {
         match FontDb::global().fallback_for(*ch, face.id()) {
-            Some(f) => wordcraft_fonts::FaceRef::of(&f),
+            Some(f) => docufy_fonts::FaceRef::of(&f),
             None => return,
         }
     } else {
@@ -753,7 +753,7 @@ fn draw_mark(ctx: &mut RenderContext, fr: &Frame, it: &Draw) {
 
 fn draw_mark_text(ctx: &mut RenderContext, fr: &Frame, it: &Draw) {
     let Draw::MarkText { x, baseline, size, text } = it else { return };
-    let base_face = wordcraft_fonts::word::resolve("Source Sans 3", false, false).face;
+    let base_face = docufy_fonts::word::resolve("Source Sans 3", false, false).face;
     ctx.set_paint(color(fr.opts.ink(fr.opts.mark_color), 0.9));
     let mut gx = *x as f64;
     for ch in text.chars() {
@@ -761,7 +761,7 @@ fn draw_mark_text(ctx: &mut RenderContext, fr: &Frame, it: &Draw) {
         if face.glyph_for(ch) == 0
             && let Some(f) = FontDb::global().fallback_for(ch, face.id())
         {
-            face = wordcraft_fonts::FaceRef::of(&f);
+            face = docufy_fonts::FaceRef::of(&f);
         }
         let gid = face.glyph_for(ch);
         let k = *size as f64 / face.upem.max(1.0);
@@ -790,7 +790,7 @@ fn draw_image(ctx: &mut RenderContext, fr: &Frame, it: &Draw) {
         return;
     };
     let (pw, ph) = (pm.width().max(1) as f64, pm.height().max(1) as f64);
-    let [cl, ct, vis_w, vis_h] = wordcraft_metafile::crop_window(*crop);
+    let [cl, ct, vis_w, vis_h] = docufy_metafile::crop_window(*crop);
     let sx = r.width() / (pw * vis_w);
     let sy = r.height() / (ph * vis_h);
     ctx.set_transform(view);
@@ -814,7 +814,7 @@ fn draw_image(ctx: &mut RenderContext, fr: &Frame, it: &Draw) {
 
 fn draw_path(ctx: &mut RenderContext, fr: &Frame, it: &Draw) {
     let Draw::Path { segs, fill, stroke, stroke_width, dash, cap } = it else { return };
-    let path = wordcraft_layout::display::seg_path(segs);
+    let path = docufy_layout::display::seg_path(segs);
     if path.elements().is_empty() {
         return;
     }
@@ -838,12 +838,12 @@ fn draw_path(ctx: &mut RenderContext, fr: &Frame, it: &Draw) {
 
 fn draw_art(ctx: &mut RenderContext, fr: &Frame, it: &Draw) {
     let Draw::Art { path, fx, color: c, alpha, text_bg } = it else { return };
-    let Some(b) = wordcraft_layout::wordart::path_box(path) else { return };
+    let Some(b) = docufy_layout::wordart::path_box(path) else { return };
     if !b.inflate(200.0, 200.0).overlaps(*fr.visible) {
         return;
     }
     ctx.set_transform(fr.view);
-    for l in wordcraft_layout::wordart::art_layers(path, fx, *c, *alpha) {
+    for l in docufy_layout::wordart::art_layers(path, fx, *c, *alpha) {
         // The letters read against their highlight like plain text (#1252); shadows don't.
         let ink = |c: Rgb| if l.letters { fr.opts.ink_text(c, *text_bg) } else { fr.opts.ink(c) };
         set_paint_inked(ctx, &l.paint, ink);
@@ -881,7 +881,7 @@ struct ShapeGeom {
 
 /// A shape's shadow and glow, behind it: bands of its silhouette grown by `g` points and moved
 /// by `d`, in the current paint. `sw` is the outline's width.
-fn shape_shadow_and_glow(ctx: &mut RenderContext, fr: &Frame, (geom, sw): (&ShapeGeom, f64), fx: &wordcraft_doc::effects::ShapeEffects) {
+fn shape_shadow_and_glow(ctx: &mut RenderContext, fr: &Frame, (geom, sw): (&ShapeGeom, f64), fx: &docufy_doc::effects::ShapeEffects) {
     let r = geom.r;
     let silhouette = |ctx: &mut RenderContext, g: f32, d: kurbo::Vec2| {
         let g = g as f64;
@@ -898,13 +898,13 @@ fn shape_shadow_and_glow(ctx: &mut RenderContext, fr: &Frame, (geom, sw): (&Shap
     };
     if let Some(sh) = fx.shadow {
         let (dx, dy) = sh.offset();
-        for (g, a) in wordcraft_doc::effects::bands(-sh.blur / 2.0, sh.blur / 2.0, sh.opacity()) {
+        for (g, a) in docufy_doc::effects::bands(-sh.blur / 2.0, sh.blur / 2.0, sh.opacity()) {
             ctx.set_paint(color(fr.opts.ink(sh.color), a));
             silhouette(ctx, g, kurbo::Vec2::new(dx as f64, dy as f64));
         }
     }
     if let Some(gl) = fx.glow {
-        for (g, a) in wordcraft_doc::effects::bands(0.0, gl.size, gl.opacity()) {
+        for (g, a) in docufy_doc::effects::bands(0.0, gl.size, gl.opacity()) {
             ctx.set_paint(color(fr.opts.ink(gl.color), a));
             silhouette(ctx, g, kurbo::Vec2::ZERO);
         }
@@ -913,7 +913,7 @@ fn shape_shadow_and_glow(ctx: &mut RenderContext, fr: &Frame, (geom, sw): (&Shap
 
 /// Soft edges: the fill fades out toward the outline (which fades with it).
 fn shape_soft_edges(ctx: &mut RenderContext, fr: &Frame, geom: &ShapeGeom, (rad, f): (f32, &Paint)) {
-    for (g, a) in wordcraft_doc::effects::bands(-rad, 0.0, 1.0) {
+    for (g, a) in docufy_doc::effects::bands(-rad, 0.0, 1.0) {
         let rr = geom.r.inflate(g as f64, g as f64);
         if rr.width() > 0.0 && rr.height() > 0.0 {
             set_paint(ctx, &f.faded(a), fr.opts);
@@ -975,16 +975,16 @@ fn ink_path(pts: &[(f32, f32)]) -> Option<BezPath> {
 }
 
 /// Map the document cap to the raster backend without changing ink-tool stroke styles.
-fn screen_cap(cap: wordcraft_doc::connector::LineCap) -> kurbo::Cap {
+fn screen_cap(cap: docufy_doc::connector::LineCap) -> kurbo::Cap {
     match cap {
-        wordcraft_doc::connector::LineCap::Flat => kurbo::Cap::Butt,
-        wordcraft_doc::connector::LineCap::Square => kurbo::Cap::Square,
-        wordcraft_doc::connector::LineCap::Round => kurbo::Cap::Round,
+        docufy_doc::connector::LineCap::Flat => kurbo::Cap::Butt,
+        docufy_doc::connector::LineCap::Square => kurbo::Cap::Square,
+        docufy_doc::connector::LineCap::Round => kurbo::Cap::Round,
     }
 }
 
 /// Outline of a basic shape in a rectangle; `corner` is a rounded rectangle's
-/// ([`wordcraft_doc::connector::ShapeExtra::corner`]).
+/// ([`docufy_doc::connector::ShapeExtra::corner`]).
 pub fn shape_path(kind: ShapeKind, r: kurbo::Rect, corner: Option<u32>) -> BezPath {
     let (cx, cy) = (r.center().x, r.center().y);
     let poly = |pts: &[(f64, f64)]| {
@@ -1003,7 +1003,7 @@ pub fn shape_path(kind: ShapeKind, r: kurbo::Rect, corner: Option<u32>) -> BezPa
         // A freeform is drawn from its own paths; without them, its frame.
         ShapeKind::Rectangle | ShapeKind::TextBox | ShapeKind::Freeform => r.to_path(0.1),
         ShapeKind::RoundedRectangle => {
-            let radius = wordcraft_doc::connector::corner_radius(corner, r.width() as f32, r.height() as f32);
+            let radius = docufy_doc::connector::corner_radius(corner, r.width() as f32, r.height() as f32);
             kurbo::RoundedRect::from_rect(r, f64::from(radius)).to_path(0.1)
         }
         ShapeKind::Ellipse => kurbo::Ellipse::from_rect(r).to_path(0.1),
@@ -1034,7 +1034,7 @@ pub fn shape_path(kind: ShapeKind, r: kurbo::Rect, corner: Option<u32>) -> BezPa
         }
         ShapeKind::Arrow | ShapeKind::ArrowLeft | ShapeKind::ArrowUp | ShapeKind::ArrowDown => {
             let (w, h) = (r.width(), r.height());
-            let pts: Vec<(f64, f64)> = wordcraft_doc::wrap::arrow_outline(kind, w as f32, h as f32)
+            let pts: Vec<(f64, f64)> = docufy_doc::wrap::arrow_outline(kind, w as f32, h as f32)
                 .iter()
                 .map(|&(u, v)| (r.x0 + f64::from(u) * w, r.y0 + f64::from(v) * h))
                 .collect();
@@ -1064,8 +1064,8 @@ pub fn shape_path(kind: ShapeKind, r: kurbo::Rect, corner: Option<u32>) -> BezPa
 }
 
 /// Render the page `area` (points) at `scale` px/pt — for previews and thumbnails.
-pub fn render_area(doc: &Document, page: &Page, area: wordcraft_geom::Rect, scale: f32, opts: &RenderOptions) -> Rendered {
-    let wordcraft_geom::Rect { x, y, w, h } = area;
+pub fn render_area(doc: &Document, page: &Page, area: docufy_geom::Rect, scale: f32, opts: &RenderOptions) -> Rendered {
+    let docufy_geom::Rect { x, y, w, h } = area;
     let scale = if scale.is_finite() && scale > 0.0 { scale } else { 1.0 };
     let pw = ((w * scale).ceil() as u32).clamp(1, MAX_SIDE);
     let ph = ((h * scale).ceil() as u32).clamp(1, MAX_SIDE);
@@ -1075,11 +1075,11 @@ pub fn render_area(doc: &Document, page: &Page, area: wordcraft_geom::Rect, scal
 
 /// Draw `items` (page points) alone, on nothing, over the page `area` (points) at `scale` px/pt:
 /// no paper, no watermark. A dragged object's preview.
-pub fn render_items(doc: &Document, items: &[Draw], area: wordcraft_geom::Rect, scale: f32, opts: &RenderOptions) -> Rendered {
-    let wordcraft_geom::Rect { x, y, w, h } = area;
+pub fn render_items(doc: &Document, items: &[Draw], area: docufy_geom::Rect, scale: f32, opts: &RenderOptions) -> Rendered {
+    let docufy_geom::Rect { x, y, w, h } = area;
     let scale = if scale.is_finite() && scale > 0.0 { scale } else { 1.0 };
     let (pw, ph) = (((w * scale).ceil() as u32).clamp(1, MAX_SIDE), ((h * scale).ceil() as u32).clamp(1, MAX_SIDE));
-    let (cw, ch) = wordcraft_geom::fit_pixels(pw, ph, wordcraft_geom::MAX_RASTER_PIXELS);
+    let (cw, ch) = docufy_geom::fit_pixels(pw, ph, docufy_geom::MAX_RASTER_PIXELS);
     let (w16, h16) = (cw as u16, ch as u16);
     let view = Affine::scale_non_uniform(cw as f64 / pw as f64, ch as f64 / ph as f64)
         * Affine::scale(scale as f64)

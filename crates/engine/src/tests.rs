@@ -1,11 +1,11 @@
 // Reuse our hand-written Czech proof fixture; its install helper resolves this parent import.
-use wordcraft_proof::cs::install_dictionary;
+use docufy_proof::cs::install_dictionary;
 #[path = "../../proof/src/cs/test_dict.rs"]
 mod czech_test_dict;
 
+use docufy_doc::props::BorderStyle;
+use docufy_doc::{Pos, StoryRef};
 use serde_json::json;
-use wordcraft_doc::props::BorderStyle;
-use wordcraft_doc::{Pos, StoryRef};
 
 use crate::{Session, cmd};
 
@@ -18,7 +18,7 @@ mod typing;
 mod wordart;
 
 fn s() -> Session {
-    Session::new(wordcraft_doc::Document::new())
+    Session::new(docufy_doc::Document::new())
 }
 
 fn run(s: &mut Session, id: &str, v: serde_json::Value) -> serde_json::Value {
@@ -69,11 +69,11 @@ fn encrypted_doc_asks_for_a_password_and_rejects_a_wrong_one() {
 /// one the same way.
 #[test]
 fn aes_encrypted_packages_open_under_any_word_extension() {
-    let mut doc = wordcraft_doc::Document::from_text("Old secret minutes");
+    let mut doc = docufy_doc::Document::from_text("Old secret minutes");
     doc.core.title = "Minutes".into();
-    let pkg = wordcraft_docx::write(&doc).unwrap();
-    let standard = wordcraft_docx::encrypt_standard_for_tests(&pkg, "letmein", 128).unwrap();
-    let agile = wordcraft_docx::encrypt_with_spin_count(&pkg, "letmein", 8).unwrap();
+    let pkg = docufy_docx::write(&doc).unwrap();
+    let standard = docufy_docx::encrypt_standard_for_tests(&pkg, "letmein", 128).unwrap();
+    let agile = docufy_docx::encrypt_with_spin_count(&pkg, "letmein", 8).unwrap();
     for (kind, bytes) in [("standard", &standard), ("agile", &agile)] {
         for name in ["old.doc", "old.docx", "old.dot", "noext"] {
             let (d, encrypted) = crate::io::open_bytes_with(name, bytes, Some("letmein")).unwrap_or_else(|e| panic!("{kind} {name}: {e}"));
@@ -258,10 +258,10 @@ fn custom_dictionary_words_persist_through_their_file() {
     assert!(!saved.lines().any(|l| l == "zxqengpersist"), "removal reaches the file too: {saved:?}");
 
     // Ignore All is for this session only, as in Word: the word is accepted, never saved.
-    assert!(!wordcraft_proof::is_correct("zxqengignored"));
+    assert!(!docufy_proof::is_correct("zxqengignored"));
     run(&mut s, "review.ignoreAll", json!({"word": "zxqengignored"}));
-    assert!(wordcraft_proof::is_correct("zxqengignored"));
-    assert!(!wordcraft_proof::user_dictionary().contains(&"zxqengignored".to_string()));
+    assert!(docufy_proof::is_correct("zxqengignored"));
+    assert!(!docufy_proof::user_dictionary().contains(&"zxqengignored".to_string()));
     let saved = std::fs::read_to_string(&path).unwrap_or_default();
     assert!(!saved.contains("zxqengignored"), "Ignore All doesn't reach the file: {saved:?}");
     let _ = std::fs::remove_dir_all(&dir);
@@ -281,7 +281,7 @@ fn confined_sessions_neither_save_the_dictionary_nor_choose_folders_outside_thei
     s.user_dict_path = Some(outside.clone());
     let confined = |s: &mut Session, cmd: &str, v: serde_json::Value| crate::file_access::confine(roots.as_ref(), || s.run(cmd, &v));
     assert!(confined(&mut s, "review.addToDictionary", json!({"word": "zxqengconfined"})).is_ok());
-    assert!(wordcraft_proof::user_dictionary().contains(&"zxqengconfined".to_string()), "kept in memory");
+    assert!(docufy_proof::user_dictionary().contains(&"zxqengconfined".to_string()), "kept in memory");
     assert!(!outside.exists(), "nothing written outside the write root");
     for key in ["dictionariesFolder", "userTemplatesFolder"] {
         assert!(confined(&mut s, "file.options", json!({key: base.join("outside").to_string_lossy()})).is_err(), "{key}");
@@ -300,10 +300,10 @@ fn add_to_dictionary_takes_only_words_the_file_keeps() {
     let mut s = s();
     for bad in ["two words", "tab\tword", "bell\u{7}", &"x".repeat(65)] {
         assert!(s.run("review.addToDictionary", &json!({"word": bad})).is_err(), "{bad:?}");
-        assert!(!wordcraft_proof::user_dictionary().iter().any(|w| w == &bad.to_lowercase()));
+        assert!(!docufy_proof::user_dictionary().iter().any(|w| w == &bad.to_lowercase()));
     }
     run(&mut s, "review.addToDictionary", json!({"word": " zxqengtrimmed "}));
-    assert!(wordcraft_proof::user_dictionary().contains(&"zxqengtrimmed".to_string()));
+    assert!(docufy_proof::user_dictionary().contains(&"zxqengtrimmed".to_string()));
 }
 
 #[test]
@@ -321,7 +321,7 @@ fn non_english_runs_are_not_proofed() {
     assert_eq!(after, json!([]), "Lithuanian runs are skipped: {after}");
 
     // English typos are still caught.
-    let mut e = Session::new(wordcraft_doc::Document::new());
+    let mut e = Session::new(docufy_doc::Document::new());
     run(&mut e, "text.insert", json!({"text": "Hello helo world"}));
     let en = run(&mut e, "review.issues", json!({}));
     assert_eq!(en.as_array().map(|a| a.len()).unwrap_or(0), 1, "English typo still flagged: {en}");
@@ -374,7 +374,7 @@ fn a_command_that_changes_nothing_is_not_an_edit() {
     // A command that changes nothing leaves the unsaved-changes flag and the layout revision as
     // they were, even when it calls `touch` itself: a saved document is not marked edited for
     // nothing, and its layout is not laid out again.
-    let mut clean = Session::new(wordcraft_doc::Document::new());
+    let mut clean = Session::new(docufy_doc::Document::new());
     run(&mut clean, "para.align", json!({"value": "left"}));
     clean.dirty = false;
     let rev = clean.rev();
@@ -704,7 +704,7 @@ fn failed_command_restores_history_changed_by_nested_commands() {
     // checkpoints), then `review.acceptAll` (refused). The refusal must leave the undo and
     // redo stacks exactly as they were, including at and next to the history limit, where the
     // outer and nested checkpoints each evict the oldest step.
-    fn timeline(s: &mut Session) -> Vec<(Vec<String>, wordcraft_doc::Document)> {
+    fn timeline(s: &mut Session) -> Vec<(Vec<String>, docufy_doc::Document)> {
         let mut out = Vec::new();
         // Straight through the history (the commands won't undo past Restrict Editing).
         while s.can_redo() {
@@ -820,11 +820,11 @@ fn bold_toggles_selection_and_caret_word() {
 
 #[test]
 fn border_toggles_and_saves() {
-    use wordcraft_doc::props::Border;
+    use docufy_doc::props::Border;
     let border = |s: &Session| s.doc.para_at(&Pos::body(0, 0)).unwrap().props_of_char(5).border;
     // Saved .docx carries the border iff it is on (read back: the reader maps only `w:bdr` to `border`).
     let docx_has_bdr = |s: &Session| {
-        let back = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+        let back = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
         back.para_at(&Pos::body(0, 0)).unwrap().props_of_char(5).border.is_some()
     };
     let mut s = s();
@@ -1177,9 +1177,9 @@ fn clipboard_round_trip() {
 fn equations(s: &Session) -> Vec<String> {
     let mut out = Vec::new();
     for b in &s.doc.body {
-        if let wordcraft_doc::Block::Para(p) = &**b {
+        if let docufy_doc::Block::Para(p) = &**b {
             for o in &p.objects {
-                if let wordcraft_doc::para::InlineObject::Equation { linear, .. } = o {
+                if let docufy_doc::para::InlineObject::Equation { linear, .. } = o {
                     out.push(linear.clone());
                 }
             }
@@ -1206,7 +1206,7 @@ fn copying_an_equation_puts_mathml_on_the_clipboard() {
     let clip = r["text"].as_str().unwrap_or_default().to_string();
 
     // Pasting it into another document reads the equation back from the HTML.
-    let mut t = Session::new(wordcraft_doc::Document::new());
+    let mut t = Session::new(docufy_doc::Document::new());
     run(&mut t, "edit.paste", json!({"text": clip, "html": html}));
     assert_eq!(equations(&t), vec!["y=2x_s".to_string()]);
     assert!(text(&t).starts_with("Speed"), "{}", text(&t));
@@ -1347,8 +1347,8 @@ fn copying_symbol_font_text_puts_the_unicode_symbols_on_the_clipboard() {
 /// The text drawn on the first page.
 fn drawn_text(s: &mut Session) -> String {
     let layout = s.layout();
-    let draws = wordcraft_layout::display::page_display(&s.doc, &layout.pages[0], &Default::default());
-    draws.iter().filter_map(|d| if let wordcraft_layout::display::Draw::Glyphs { text, .. } = d { Some(text.as_str()) } else { None }).collect()
+    let draws = docufy_layout::display::page_display(&s.doc, &layout.pages[0], &Default::default());
+    draws.iter().filter_map(|d| if let docufy_layout::display::Draw::Glyphs { text, .. } = d { Some(text.as_str()) } else { None }).collect()
 }
 
 #[test]
@@ -1430,7 +1430,7 @@ fn replacing_a_symbol_with_text_gives_the_text_no_symbol_font() {
 }
 
 fn bold_at(s: &Session, block: usize, off: usize) -> bool {
-    let pos = Pos { story: StoryRef::Body, path: wordcraft_doc::Path::top(block), off };
+    let pos = Pos { story: StoryRef::Body, path: docufy_doc::Path::top(block), off };
     s.doc.para_at(&pos).and_then(|p| p.props_of_char(off).bold).unwrap_or(false)
 }
 
@@ -1468,19 +1468,19 @@ fn pasted_rtf_tracked_changes_point_at_their_own_revisions() {
     // already has revisions, they must not point at the document's (index 0 here is "Zed").
     let mut s = s();
     run(&mut s, "document.setText", json!({"text": "x"}));
-    s.doc.revisions.push(wordcraft_doc::Revision::new(wordcraft_doc::RevisionKind::Delete, "Zed", ""));
+    s.doc.revisions.push(docufy_doc::Revision::new(docufy_doc::RevisionKind::Delete, "Zed", ""));
     run(&mut s, "caret.docEnd", json!({}));
     let rtf = r"{\rtf1{\*\revtbl {Unknown;}{Alice;}}{\revised\revauth1 added}\par}";
     run(&mut s, "edit.pasteSpecial", json!({"as": "rtf", "rtf": rtf}));
-    let pos = Pos { story: StoryRef::Body, path: wordcraft_doc::Path::top(0), off: 2 };
+    let pos = Pos { story: StoryRef::Body, path: docufy_doc::Path::top(0), off: 2 };
     let ins = s.doc.para_at(&pos).and_then(|p| p.props_of_char(2).ins);
     let rev = ins.and_then(|i| s.doc.revisions.get(i as usize));
-    assert_eq!(rev.map(|r| (r.kind, r.author.as_str())), Some((wordcraft_doc::RevisionKind::Insert, "Alice")), "{:?}", s.doc.revisions);
+    assert_eq!(rev.map(|r| (r.kind, r.author.as_str())), Some((docufy_doc::RevisionKind::Insert, "Alice")), "{:?}", s.doc.revisions);
 }
 
 /// Insertion and deletion revision kinds at body paragraph 0, offset `off`.
-fn rev_kinds_at(s: &Session, off: usize) -> (Option<wordcraft_doc::RevisionKind>, Option<wordcraft_doc::RevisionKind>) {
-    let pos = Pos { story: StoryRef::Body, path: wordcraft_doc::Path::top(0), off };
+fn rev_kinds_at(s: &Session, off: usize) -> (Option<docufy_doc::RevisionKind>, Option<docufy_doc::RevisionKind>) {
+    let pos = Pos { story: StoryRef::Body, path: docufy_doc::Path::top(0), off };
     let cp = s.doc.para_at(&pos).map(|p| p.props_of_char(off).clone()).unwrap_or_default();
     let kind = |i: Option<u32>| i.and_then(|i| s.doc.revisions.get(i as usize)).map(|r| r.kind);
     (kind(cp.ins), kind(cp.del))
@@ -1492,7 +1492,7 @@ const RTF_WITH_DELETION: &str = r"{\rtf1{\*\revtbl {Unknown;}{Bob;}}kept{\delete
 fn pasted_rtf_deletions_stay_deleted_under_track_changes() {
     // Gap 19: with Track Changes on the paste is an insertion, and text deleted in the source is
     // inserted-then-deleted (struck), never live text.
-    use wordcraft_doc::RevisionKind::{Delete, Insert};
+    use docufy_doc::RevisionKind::{Delete, Insert};
     let mut s = s();
     run(&mut s, "document.setText", json!({"text": "x"}));
     run(&mut s, "caret.docEnd", json!({}));
@@ -1506,7 +1506,7 @@ fn pasted_rtf_deletions_stay_deleted_under_track_changes() {
 
 #[test]
 fn paste_merge_formatting_keeps_rtf_deletions() {
-    use wordcraft_doc::RevisionKind::Delete;
+    use docufy_doc::RevisionKind::Delete;
     let mut s = s();
     run(&mut s, "document.setText", json!({"text": "x"}));
     run(&mut s, "caret.docEnd", json!({}));
@@ -1523,8 +1523,8 @@ fn pasted_rtf_sections_link_their_headers_to_the_previous() {
     // break keeps its page but links its headers and footers to the previous section.
     let mut s = s();
     run(&mut s, "document.setText", json!({"text": "x"}));
-    let note = s.doc.add_part(wordcraft_doc::PartKind::Footnote, Vec::new());
-    let _comment = s.doc.add_part(wordcraft_doc::PartKind::Comment, Vec::new());
+    let note = s.doc.add_part(docufy_doc::PartKind::Footnote, Vec::new());
+    let _comment = s.doc.add_part(docufy_doc::PartKind::Comment, Vec::new());
     run(&mut s, "caret.docEnd", json!({}));
     let rtf = r"{\rtf1\ansi\sectd\lndscpsxn\titlepg{\header Head\par}{\footer Foot\par}{\headerf First\par} a\par\sect\sectd{\header Two\par} b\par}";
     run(&mut s, "edit.pasteSpecial", json!({"as": "rtf", "rtf": rtf}));
@@ -1532,7 +1532,7 @@ fn pasted_rtf_sections_link_their_headers_to_the_previous() {
     assert_eq!(secs.len(), 2, "the pasted section break is kept");
     assert!(secs[0].1.landscape, "with its page settings");
     for (_, sp) in &secs {
-        for (set, kind) in [(sp.headers, wordcraft_doc::PartKind::Header), (sp.footers, wordcraft_doc::PartKind::Footer)] {
+        for (set, kind) in [(sp.headers, docufy_doc::PartKind::Header), (sp.footers, docufy_doc::PartKind::Footer)] {
             for id in [set.default, set.first, set.even].into_iter().flatten() {
                 assert_eq!(s.doc.parts.get(&id).map(|p| p.kind), Some(kind), "section refers to part {id} (footnote is {note})");
             }
@@ -1552,7 +1552,7 @@ fn assert_unlinked(s: &Session) {
 fn text_from_file_unlinks_inserted_sections_headers() {
     // #1378: Insert › Text from File brings the file's section breaks with their pages, but
     // the file's header and footer ids are its own: they link to the previous section's.
-    let dir = std::env::temp_dir().join(format!("wordcraft-text-from-file-sections-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-text-from-file-sections-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let rtf = r"{\rtf1\ansi\sectd\lndscpsxn\titlepg{\header Head\par}{\footer Foot\par}{\headerf First\par} a\par\sect\sectd{\header Two\par} b\par}";
     let rtf_path = dir.join("sections.rtf");
@@ -1564,7 +1564,7 @@ fn text_from_file_unlinks_inserted_sections_headers() {
     for path in [&rtf_path, &docx_path] {
         let mut s = s();
         run(&mut s, "document.setText", json!({"text": "x"}));
-        s.doc.add_part(wordcraft_doc::PartKind::Footnote, Vec::new());
+        s.doc.add_part(docufy_doc::PartKind::Footnote, Vec::new());
         run(&mut s, "caret.docEnd", json!({}));
         run(&mut s, "insert.textFromFile", json!({"path": path.to_str().unwrap()}));
         let secs = s.doc.sections();
@@ -1621,8 +1621,8 @@ fn paste_special_respects_track_changes_and_brings_lists() {
 }
 
 /// Character formatting at a body offset of the first paragraph.
-fn props_at(s: &Session, off: usize) -> wordcraft_doc::CharProps {
-    let pos = Pos { story: StoryRef::Body, path: wordcraft_doc::Path::top(0), off };
+fn props_at(s: &Session, off: usize) -> docufy_doc::CharProps {
+    let pos = Pos { story: StoryRef::Body, path: docufy_doc::Path::top(0), off };
     s.doc.para_at(&pos).map(|p| p.props_of_char(off).clone()).unwrap_or_default()
 }
 
@@ -1719,7 +1719,7 @@ fn pasted_blockquote_is_an_indented_paragraph_not_a_quote() {
         let q = s.doc.body.get(1).and_then(|b| b.as_para()).unwrap();
         assert_ne!(q.props.style.as_deref(), Some("Quote"), "not the Quote style");
         let rp = s.doc.styles.resolve_para(&q.props);
-        assert_ne!(rp.align, wordcraft_doc::props::Align::Center, "not centred");
+        assert_ne!(rp.align, docufy_doc::props::Align::Center, "not centred");
         assert!((rp.indent_left - left).abs() < 0.1, "left {}", rp.indent_left);
         assert!((rp.indent_right - right).abs() < 0.1, "right {}", rp.indent_right);
         let rc = s.doc.styles.resolve_char(q.props.style.as_deref(), q.props_of_char(0));
@@ -1803,7 +1803,7 @@ fn spiked(s: &Session) -> Option<String> {
 
 #[test]
 fn spike_collects_cuts_and_insert_spike_pastes_them_and_empties_it() {
-    let mut s = Session::new(wordcraft_doc::Document::from_text("Alpha beta gamma.\n"));
+    let mut s = Session::new(docufy_doc::Document::from_text("Alpha beta gamma.\n"));
     run(&mut s, "select.text", json!({"text": "beta"}));
     run(&mut s, "edit.copy", json!({}));
     run(&mut s, "select.text", json!({"text": "Alpha"}));
@@ -1823,7 +1823,7 @@ fn spike_collects_cuts_and_insert_spike_pastes_them_and_empties_it() {
 
 #[test]
 fn spike_keeps_character_formatting() {
-    let mut s = Session::new(wordcraft_doc::Document::from_text("Bold plain\n"));
+    let mut s = Session::new(docufy_doc::Document::from_text("Bold plain\n"));
     run(&mut s, "select.text", json!({"text": "Bold"}));
     run(&mut s, "format.bold", json!({}));
     run(&mut s, "edit.spike", json!({}));
@@ -1836,7 +1836,7 @@ fn spike_keeps_character_formatting() {
 
 #[test]
 fn spike_and_insert_spike_are_one_undo_step_each() {
-    let mut s = Session::new(wordcraft_doc::Document::from_text("one two\n"));
+    let mut s = Session::new(docufy_doc::Document::from_text("one two\n"));
     run(&mut s, "select.text", json!({"text": "one"}));
     run(&mut s, "edit.spike", json!({}));
     run(&mut s, "edit.undo", json!({}));
@@ -1852,7 +1852,7 @@ fn spike_and_insert_spike_are_one_undo_step_each() {
 
 #[test]
 fn spike_needs_a_selection() {
-    let mut s = Session::new(wordcraft_doc::Document::from_text("one two"));
+    let mut s = Session::new(docufy_doc::Document::from_text("one two"));
     let r = s.run("edit.spike", &json!({}));
     assert!(matches!(r, Err(crate::CmdError::Disabled(_))), "{r:?}");
     assert_eq!(spiked(&s), None);
@@ -1861,7 +1861,7 @@ fn spike_needs_a_selection() {
 
 #[test]
 fn autotext_inserts_the_spike_without_emptying_it() {
-    let mut s = Session::new(wordcraft_doc::Document::from_text("Alpha beta\n"));
+    let mut s = Session::new(docufy_doc::Document::from_text("Alpha beta\n"));
     run(&mut s, "select.text", json!({"text": "Alpha"}));
     run(&mut s, "edit.spike", json!({}));
     run(&mut s, "caret.docEnd", json!({}));
@@ -1873,7 +1873,7 @@ fn autotext_inserts_the_spike_without_emptying_it() {
 
 #[test]
 fn spike_outside_the_editable_regions_changes_nothing() {
-    let mut s = Session::new(wordcraft_doc::Document::from_text("Locked intro.\nFill in here.\n"));
+    let mut s = Session::new(docufy_doc::Document::from_text("Locked intro.\nFill in here.\n"));
     run(&mut s, "select.text", json!({"text": "Fill in here."}));
     run(&mut s, "review.restrict", json!({"exception": "add"}));
     run(&mut s, "review.restrict", json!({"mode": "readOnly"}));
@@ -1972,7 +1972,7 @@ fn cell_widths_follow_the_grid_after_skipped_columns() {
     let mut s = s();
     run(&mut s, "insert.table", json!({"rows": 2, "cols": 3}));
     let i = s.doc.body.iter().position(|b| b.as_table().is_some()).unwrap();
-    let wordcraft_doc::Block::Table(t) = std::sync::Arc::make_mut(&mut s.doc.body[i]) else { panic!("no table") };
+    let docufy_doc::Block::Table(t) = std::sync::Arc::make_mut(&mut s.doc.body[i]) else { panic!("no table") };
     t.grid = vec![100.0, 200.0, 300.0];
     t.rows[1].props.grid_before = 1;
     t.rows[1].cells.pop();
@@ -1983,7 +1983,7 @@ fn cell_widths_follow_the_grid_after_skipped_columns() {
 
 #[test]
 fn a_rejected_version_restore_saves_nothing() {
-    let mut s = Session::new(wordcraft_doc::Document::from_text("Original text."));
+    let mut s = Session::new(docufy_doc::Document::from_text("Original text."));
     s.run("review.restrict", &json!({"mode": "readOnly", "password": "pw"})).unwrap();
     s.run("file.versions", &json!({"save": "before"})).unwrap();
     // One command asking for both a save and a restore the protection refuses: the save must
@@ -2012,10 +2012,10 @@ fn a_rejected_version_restore_saves_nothing() {
 /// history and Repeat stay as they were.
 #[test]
 fn preview_layout_shows_a_command_without_running_it() {
-    let mut s = Session::new(wordcraft_doc::Document::from_text("Lanterns"));
+    let mut s = Session::new(docufy_doc::Document::from_text("Lanterns"));
     run(&mut s, "caret.docEnd", json!({}));
     let (doc, sel, rev) = (s.doc.clone(), s.sel.clone(), s.rev());
-    let cells = |l: &wordcraft_layout::DocLayout| l.index.keys().filter(|(st, p)| *st == StoryRef::Body && p.0.len() == 4).count();
+    let cells = |l: &docufy_layout::DocLayout| l.index.keys().filter(|(st, p)| *st == StoryRef::Body && p.0.len() == 4).count();
     let (_, _, preview) = s.preview_layout("insert.table", &json!({"rows": 4, "cols": 3})).expect("a table can be inserted here");
     assert_eq!(cells(&preview), 12, "four rows of three cells");
     // At the caret: after "Lanterns", the second block.
@@ -2034,7 +2034,7 @@ fn preview_layout_shows_a_command_without_running_it() {
 /// paragraphs from the wrong blocks, or from none.
 #[test]
 fn preview_layout_comes_with_the_document_it_lays_out() {
-    let mut s = Session::new(wordcraft_doc::Document::from_text("Lanterns\nKites"));
+    let mut s = Session::new(docufy_doc::Document::from_text("Lanterns\nKites"));
     run(&mut s, "caret.docStart", json!({}));
     run(&mut s, "caret.end", json!({}));
     let (doc, _, preview) = s.preview_layout("insert.table", &json!({"rows": 2, "cols": 2})).expect("a table can be inserted here");
@@ -2050,17 +2050,17 @@ fn preview_layout_comes_with_the_document_it_lays_out() {
 /// the table moves the copy's caret off it and splits its paragraph.
 #[test]
 fn preview_layout_keeps_the_word_being_typed_unmarked() {
-    let mut s = Session::new(wordcraft_doc::Document::from_text("helo"));
+    let mut s = Session::new(docufy_doc::Document::from_text("helo"));
     s.view.proofing = true;
     run(&mut s, "caret.docEnd", json!({}));
     run(&mut s, "text.insert", json!({"text": " wrld"}));
-    let marks = |l: &wordcraft_layout::DocLayout, doc: &wordcraft_doc::Document| -> Vec<String> {
-        let text = &doc.para(StoryRef::Body, &wordcraft_doc::Path(vec![0])).unwrap().text;
+    let marks = |l: &docufy_layout::DocLayout, doc: &docufy_doc::Document| -> Vec<String> {
+        let text = &doc.para(StoryRef::Body, &docufy_doc::Path(vec![0])).unwrap().text;
         l.pages[0]
             .items
             .iter()
             .filter_map(|i| match i {
-                wordcraft_layout::Placed::Lines { para, path, .. } if path.0 == [0] => {
+                docufy_layout::Placed::Lines { para, path, .. } if path.0 == [0] => {
                     Some(para.issues.iter().filter(|i| !i.2).map(|i| text[i.0..i.1].to_string()).collect::<Vec<_>>())
                 }
                 _ => None,
@@ -2076,7 +2076,7 @@ fn preview_layout_keeps_the_word_being_typed_unmarked() {
 
 #[test]
 fn delete_row_on_a_merge_start_promotes_the_cell_below() {
-    use wordcraft_doc::props::VMerge;
+    use docufy_doc::props::VMerge;
     let vm = |s: &Session, r: usize| {
         let t = s.doc.body.iter().find_map(|b| b.as_table()).unwrap();
         t.rows[r].cells[0].props.vmerge
@@ -2091,7 +2091,7 @@ fn delete_row_on_a_merge_start_promotes_the_cell_below() {
     run(&mut s, "table.deleteRow", json!({}));
     assert_eq!(vm(&s, 0), VMerge::None, "first row's cell continues a merge that no longer exists");
     // Merge of three rows: the cell below restarts the merge.
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     run(&mut s, "insert.table", json!({"rows": 4, "cols": 2}));
     run(&mut s, "caret.down", json!({}));
     run(&mut s, "caret.down", json!({}));
@@ -2109,10 +2109,10 @@ fn delete_row_on_a_merge_start_promotes_the_cell_below() {
 /// again in the second.
 #[test]
 fn split_table_ends_and_restarts_a_merge_it_cuts() {
-    use wordcraft_doc::props::VMerge::{self, Continue, None as No, Restart};
+    use docufy_doc::props::VMerge::{self, Continue, None as No, Restart};
     let cell = |r: u32, c: u32| json!({"story": "body", "path": [0, r, c, 0], "off": 0});
     let tables = |s: &Session| -> Vec<Vec<Vec<VMerge>>> {
-        let rows = |t: &wordcraft_doc::Table| t.rows.iter().map(|r| r.cells.iter().map(|c| c.props.vmerge).collect()).collect();
+        let rows = |t: &docufy_doc::Table| t.rows.iter().map(|r| r.cells.iter().map(|c| c.props.vmerge).collect()).collect();
         s.doc.body.iter().filter_map(|b| b.as_table()).map(rows).collect()
     };
     let merged = |last: u32| {
@@ -2141,10 +2141,10 @@ fn split_table_ends_and_restarts_a_merge_it_cuts() {
 #[test]
 fn split_table_keeps_a_row_control_on_both_parts() {
     let cell = |r: u32, c: u32| json!({"story": "body", "path": [0, r, c, 0], "off": 0});
-    let control = |tag: &str| wordcraft_doc::ContentControl { id: Some(7), tag: tag.into(), ..Default::default() };
+    let control = |tag: &str| docufy_doc::ContentControl { id: Some(7), tag: tag.into(), ..Default::default() };
     let mut s = table_from("A\tB\nC\tD\nE\tF\nG\tH");
     if let Some(b) = s.doc.body.iter_mut().find(|b| b.as_table().is_some())
-        && let wordcraft_doc::Block::Table(t) = std::sync::Arc::make_mut(b)
+        && let docufy_doc::Block::Table(t) = std::sync::Arc::make_mut(b)
     {
         // "outer" goes around every row, and "inner" goes around row 1 alone.
         t.rows[0].controls.open = vec![control("outer")];
@@ -2154,10 +2154,10 @@ fn split_table_keeps_a_row_control_on_both_parts() {
     }
     run(&mut s, "caret.set", json!({"pos": cell(2, 0)}));
     run(&mut s, "table.splitTable", json!({}));
-    let wraps = |t: &wordcraft_doc::Table| -> Vec<(Vec<String>, u32)> {
+    let wraps = |t: &docufy_doc::Table| -> Vec<(Vec<String>, u32)> {
         t.rows.iter().map(|r| (r.controls.open.iter().map(|c| c.tag.clone()).collect(), r.controls.close)).collect()
     };
-    let parts: Vec<&wordcraft_doc::Table> = s.doc.body.iter().filter_map(|b| b.as_table()).collect();
+    let parts: Vec<&docufy_doc::Table> = s.doc.body.iter().filter_map(|b| b.as_table()).collect();
     assert_eq!(parts.len(), 2);
     assert_eq!(wraps(parts[0]), [(vec!["outer".to_string()], 0), (vec!["inner".to_string()], 2)], "the first table closes the control");
     assert_eq!(wraps(parts[1]), [(vec!["outer".to_string()], 0), (vec![], 1)], "the second table opens it again");
@@ -2272,7 +2272,7 @@ fn select_extend_from_a_table_paragraph_selects_the_document() {
 /// in the deepest cell says so; a table pasted there brings its text as paragraphs.
 #[test]
 fn tables_nest_at_most_24_deep() {
-    use wordcraft_doc::table::MAX_TABLE_DEPTH;
+    use docufy_doc::table::MAX_TABLE_DEPTH;
     let mut s = s();
     for _ in 0..MAX_TABLE_DEPTH {
         run(&mut s, "insert.table", json!({"rows": 1, "cols": 1}));
@@ -2318,7 +2318,7 @@ fn autofit_contents_sizes_columns_to_their_text() {
     assert!(t.props.width_pct.is_none() && !t.props.fixed);
     assert_eq!(t.rows[0].cells[1].props.width, Some(after[1]), "cell widths follow the grid");
     // Short text only: every column gets just what its text needs.
-    s.doc = wordcraft_doc::Document::new();
+    s.doc = docufy_doc::Document::new();
     s.sel = crate::Selection::caret(Pos::body(0, 0));
     run(&mut s, "insert.table", json!({"rows": 1, "cols": 2}));
     run(&mut s, "text.insert", json!({"text": "Name"}));
@@ -2329,7 +2329,7 @@ fn autofit_contents_sizes_columns_to_their_text() {
     assert!(g[0] < g[1] && g[1] < 100.0, "{g:?}");
     // The layout uses the new widths.
     let w = s.layout().pages[0].items.iter().find_map(|it| match it {
-        wordcraft_layout::Placed::Cell { rect, row: 0, cell: 0, .. } => Some(rect.w),
+        docufy_layout::Placed::Cell { rect, row: 0, cell: 0, .. } => Some(rect.w),
         _ => None,
     });
     assert!(w.is_some_and(|w| (w - g[0]).abs() < 0.5), "{w:?} vs {g:?}");
@@ -2339,7 +2339,7 @@ fn autofit_contents_sizes_columns_to_their_text() {
 /// `table.columnWidth`; each edit is one Undo.
 #[test]
 fn cell_size_boxes_set_row_height_and_column_width() {
-    use wordcraft_doc::props::HeightRule;
+    use docufy_doc::props::HeightRule;
     let mut s = s();
     run(&mut s, "insert.table", json!({"rows": 2, "cols": 2}));
     run(&mut s, "table.autofit", json!({"mode": "window"}));
@@ -2352,7 +2352,7 @@ fn cell_size_boxes_set_row_height_and_column_width() {
     assert!(t.props.width_pct.is_none(), "the column isn't scaled back to the window");
     assert_eq!((t.rows[0].props.height, t.rows[0].props.height_rule), (Some(30.0), HeightRule::Exact));
     let rect = s.layout().pages[0].items.iter().find_map(|it| match it {
-        wordcraft_layout::Placed::Cell { rect, row: 0, cell: 0, .. } => Some(*rect),
+        docufy_layout::Placed::Cell { rect, row: 0, cell: 0, .. } => Some(*rect),
         _ => None,
     });
     assert!(rect.is_some_and(|r| (r.w - 100.0).abs() < 0.5 && (r.h - 30.0).abs() < 0.5), "{rect:?}");
@@ -2400,7 +2400,7 @@ fn cell_size_boxes_apply_to_the_whole_selection() {
 /// without settings the command reports the current ones (the dialog's source).
 #[test]
 fn table_properties_apply_in_one_step() {
-    use wordcraft_doc::props::{Align, HeightRule, VAlign};
+    use docufy_doc::props::{Align, HeightRule, VAlign};
     let mut s = s();
     run(&mut s, "insert.table", json!({"rows": 2, "cols": 2}));
     let t0 = s.doc.body.iter().find_map(|b| b.as_table()).unwrap().clone();
@@ -2436,7 +2436,7 @@ fn table_properties_apply_in_one_step() {
 /// top-to-bottom and bottom-to-top, and the layout turns the text.
 #[test]
 fn table_text_direction_cycles_and_turns_the_text() {
-    use wordcraft_doc::props::TextDirection;
+    use docufy_doc::props::TextDirection;
     let mut s = s();
     run(&mut s, "insert.table", json!({"rows": 1, "cols": 3}));
     run(&mut s, "text.insert", json!({"text": "Turned"}));
@@ -2445,7 +2445,7 @@ fn table_text_direction_cycles_and_turns_the_text() {
     };
     let turned = |s: &mut Session| {
         s.layout().pages[0].items.iter().find_map(|it| match it {
-            wordcraft_layout::Placed::Lines { para, turn, .. } if para.lines.first().is_some_and(|l| l.stop > 0) => Some(*turn),
+            docufy_layout::Placed::Lines { para, turn, .. } if para.lines.first().is_some_and(|l| l.stop > 0) => Some(*turn),
             _ => None,
         })
     };
@@ -2494,7 +2494,7 @@ fn the_caret_table_has_its_handles() {
     assert!(m.right() <= x && m.bottom() <= y, "past the top-left corner");
     assert!(z.x > m.right() && z.y > m.bottom(), "past the bottom-right one");
     // Exactly where the pointer handles are, so a click on them grabs them.
-    let mid = |r: wordcraft_geom::Rect| (r.x + r.w / 2.0, r.y + r.h / 2.0);
+    let mid = |r: docufy_geom::Rect| (r.x + r.w / 2.0, r.y + r.h / 2.0);
     let (hx, hy) = mid(m);
     let g = crate::cmd::table_mouse::handle_table(&l, &s.doc, s.sel.focus.story, 0, hx, hy, 4.0).expect("the move handle grabs");
     assert_eq!(crate::cmd::table_mouse::handle(&g), m);
@@ -2530,7 +2530,7 @@ fn the_caret_table_shows_its_handles_where_it_starts_and_ends() {
             l.pages[p]
                 .items
                 .iter()
-                .any(|it| matches!(it, wordcraft_layout::Placed::Cell { table, row, .. } if *table == tp && r.is_none_or(|r| *row == r)))
+                .any(|it| matches!(it, docufy_layout::Placed::Cell { table, row, .. } if *table == tp && r.is_none_or(|r| *row == r)))
         };
         assert!(l.pages.len() >= 2 && holds(1, Some(0)), "row 0 is drawn on page 2 too (header {header})");
         let end = (0..l.pages.len()).rev().find(|p| holds(*p, None)).unwrap();
@@ -2550,7 +2550,7 @@ fn table_and_section_direction_commands() {
     let rtl = |s: &Session| s.doc.body.iter().find_map(|b| b.as_table()).unwrap().props.bidi_visual;
     let first_cell_x = |s: &mut Session| {
         s.layout().pages[0].items.iter().find_map(|it| match it {
-            wordcraft_layout::Placed::Cell { rect, cell: 0, .. } => Some(rect.x),
+            docufy_layout::Placed::Cell { rect, cell: 0, .. } => Some(rect.x),
             _ => None,
         })
     };
@@ -2715,13 +2715,13 @@ fn layout_size_when_focus_is_in_header_updates_correct_section() {
     assert_eq!(s.doc.sections().len(), 2);
 
     let hid = s.doc.add_part(
-        wordcraft_doc::PartKind::Header,
-        vec![std::sync::Arc::new(wordcraft_doc::Block::Para(wordcraft_doc::Paragraph::with_text("header text", Default::default())))],
+        docufy_doc::PartKind::Header,
+        vec![std::sync::Arc::new(docufy_doc::Block::Para(docufy_doc::Paragraph::with_text("header text", Default::default())))],
     );
     s.doc.last_section.headers.default = Some(hid);
 
     // Focus inside section 2's header
-    s.sel = crate::Selection::caret(s.doc.start_of(wordcraft_doc::StoryRef::Part(hid)));
+    s.sel = crate::Selection::caret(s.doc.start_of(docufy_doc::StoryRef::Part(hid)));
     assert_eq!(crate::cmd::page::sect(&s).page_w, s.doc.last_section.page_w);
 
     // Change size to A4
@@ -2820,8 +2820,8 @@ fn tracked_split_gives_the_new_paragraph_mark_to_its_author() {
             run(&mut s, "caret.set", json!({"pos": {"story": "body", "path": [0], "off": off}}));
         }
         run(&mut s, "text.newParagraph", json!({}));
-        let head = s.doc.para(StoryRef::Body, &wordcraft_doc::Path::top(0)).unwrap();
-        let tail = s.doc.para(StoryRef::Body, &wordcraft_doc::Path::top(1)).unwrap();
+        let head = s.doc.para(StoryRef::Body, &docufy_doc::Path::top(0)).unwrap();
+        let tail = s.doc.para(StoryRef::Body, &docufy_doc::Path::top(1)).unwrap();
         assert_eq!(author_of(&s, head.mark.ins).as_deref(), Some("Ben"), "split at {off:?}: the new paragraph mark is Ben's");
         // The second paragraph ends with the original mark, which nobody inserted (not Ana).
         assert_eq!(tail.mark.ins, None, "split at {off:?}");
@@ -3078,12 +3078,12 @@ fn privacy_options_strip_names_and_dates_from_the_saved_docx_only() {
     run(&mut s, "review.newComment", json!({"text": "Tightened."}));
     let off = run(&mut s, "file.privacy", json!({}));
     assert_eq!(off, json!({"removePersonalInfo": false, "removeDateTime": false}));
-    let plain = wordcraft_docx::write(&s.doc).unwrap();
-    let back = wordcraft_docx::read(&plain).unwrap();
+    let plain = docufy_docx::write(&s.doc).unwrap();
+    let back = docufy_docx::read(&plain).unwrap();
     assert!(back.comments.values().all(|c| c.author == "Mira Calloway" && !c.date.is_empty()));
     let on = run(&mut s, "file.privacyOptions", json!({"removePersonalInfo": true, "removeDateTime": true}));
     assert_eq!(on, json!({"removePersonalInfo": true, "removeDateTime": true}));
-    let back = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+    let back = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
     assert!(back.settings.remove_personal_info && back.settings.remove_date_time);
     assert!(back.comments.values().all(|c| c.author == "Author" && c.date.is_empty()), "{:?}", back.comments);
     assert!(!back.revisions.is_empty());
@@ -3120,7 +3120,7 @@ fn set_author_refuses_blank_names_and_clamps_long_ones() {
     let mut s = s();
     for bad in [json!(null), json!({}), json!({"name": 5}), json!({"name": ""}), json!({"name": " \t\n "}), json!({"name": "\u{0}\u{7}"})] {
         assert!(s.run("file.setAuthor", &bad).is_err(), "{bad} should be refused");
-        assert_eq!(s.author, "WordCraft User", "a refused name leaves the author alone");
+        assert_eq!(s.author, "Docufy User", "a refused name leaves the author alone");
     }
     run(&mut s, "file.setAuthor", json!({"name": "Ada\u{0}\u{1b} Lovelace"}));
     assert_eq!(s.author, "Ada Lovelace", "control characters can't reach the saved XML");
@@ -3145,7 +3145,7 @@ fn line_and_page_break_toggles_take_an_explicit_value() {
     // #967: a script sets keep with next on a heading and clears it on the paragraph after,
     // which inherits it through Enter, without tracking the toggle state.
     let reg = cmd::registry();
-    type Field = fn(&wordcraft_doc::ParaProps) -> Option<bool>;
+    type Field = fn(&docufy_doc::ParaProps) -> Option<bool>;
     let cases: [(&str, Field); 4] = [
         ("para.keepNext", |p| p.keep_next),
         ("para.keepLines", |p| p.keep_lines),
@@ -3238,7 +3238,7 @@ fn comments() {
 fn empty_comments_delete() {
     for body in ["", "Some text here"] {
         for by_id in [false, true] {
-            let mut s = Session::new(wordcraft_doc::Document::new());
+            let mut s = Session::new(docufy_doc::Document::new());
             if !body.is_empty() {
                 run(&mut s, "text.insert", json!({"text": body}));
                 run(&mut s, "caret.set", json!({"pos": {"story": "body", "path": [0], "off": 6}}));
@@ -3362,12 +3362,12 @@ fn toc_refresh_after_save_and_reopen() {
 /// refreshed in place, not duplicated, and the refresh is one undo step.
 #[test]
 fn imported_range_toc_is_refreshed_in_place() {
-    use wordcraft_doc::para::InlineObject;
-    use wordcraft_doc::props::CharProps;
+    use docufy_doc::para::InlineObject;
+    use docufy_doc::props::CharProps;
     for locked in [false, true] {
-        let mut d = wordcraft_doc::Document::from_text("Before.\nOld entry\t9\nAlpha\nBeta");
+        let mut d = docufy_doc::Document::from_text("Before.\nOld entry\t9\nAlpha\nBeta");
         {
-            let p = d.para_mut(StoryRef::Body, &wordcraft_doc::Path::top(1)).unwrap();
+            let p = d.para_mut(StoryRef::Body, &docufy_doc::Path::top(1)).unwrap();
             let n = p.len();
             p.insert_object(n, InlineObject::FieldEnd, &CharProps::default()).unwrap();
             p.insert_object(0, InlineObject::FieldStart { instr: r#"TOC \o "1-2" \h"#.into(), locked, dirty: false }, &CharProps::default()).unwrap();
@@ -3378,8 +3378,8 @@ fn imported_range_toc_is_refreshed_in_place() {
             run(&mut s, "styles.apply", json!({"style": style}));
         }
         // Through DOCX, as an imported file is.
-        let bytes = wordcraft_docx::write(&s.doc).unwrap();
-        s = Session::new(wordcraft_docx::read(&bytes).unwrap());
+        let bytes = docufy_docx::write(&s.doc).unwrap();
+        s = Session::new(docufy_docx::read(&bytes).unwrap());
         assert_eq!(s.doc.field_ranges(StoryRef::Body).len(), 1, "read back as a range field");
         let before = text(&s);
         run(&mut s, "references.updateToc", json!({}));
@@ -3410,13 +3410,13 @@ fn imported_range_toc_is_refreshed_in_place() {
 /// entry) and the end of the last entry; and repeated update, save and reopen adds no blank line.
 #[test]
 fn toc_menu_offers_update_field_after_save_and_reopen() {
-    use wordcraft_doc::para::InlineObject;
-    use wordcraft_doc::props::CharProps;
+    use docufy_doc::para::InlineObject;
+    use docufy_doc::props::CharProps;
     // What the canvas context menu checks before offering Update Field.
     let offered = |s: &Session| !crate::cmd::fields::selected(s).is_empty() || crate::cmd::references::caret_in_toc(s);
-    let mut d = wordcraft_doc::Document::from_text("Before.\nOld entry\t9\nAlpha\nBeta");
+    let mut d = docufy_doc::Document::from_text("Before.\nOld entry\t9\nAlpha\nBeta");
     {
-        let p = d.para_mut(StoryRef::Body, &wordcraft_doc::Path::top(1)).unwrap();
+        let p = d.para_mut(StoryRef::Body, &docufy_doc::Path::top(1)).unwrap();
         let n = p.len();
         p.insert_object(n, InlineObject::FieldEnd, &CharProps::default()).unwrap();
         p.insert_object(0, InlineObject::FieldStart { instr: r#"TOC \o "1-2" \h"#.into(), locked: false, dirty: false }, &CharProps::default())
@@ -3446,8 +3446,8 @@ fn toc_menu_offers_update_field_after_save_and_reopen() {
             }
         }
     };
-    let bytes = wordcraft_docx::write(&s.doc).unwrap();
-    s = Session::new(wordcraft_docx::read(&bytes).unwrap());
+    let bytes = docufy_docx::write(&s.doc).unwrap();
+    s = Session::new(docufy_docx::read(&bytes).unwrap());
     let mut blocks = None;
     for round in 0..3 {
         run(&mut s, "references.updateToc", json!({}));
@@ -3455,8 +3455,8 @@ fn toc_menu_offers_update_field_after_save_and_reopen() {
         // No extra blank line per cycle.
         assert!(blocks.is_none_or(|n| n == s.doc.body.len()), "after update {round}: the document grew: {}", text(&s));
         blocks = Some(s.doc.body.len());
-        let bytes = wordcraft_docx::write(&s.doc).unwrap();
-        s = Session::new(wordcraft_docx::read(&bytes).unwrap());
+        let bytes = docufy_docx::write(&s.doc).unwrap();
+        s = Session::new(docufy_docx::read(&bytes).unwrap());
         check(&mut s, &format!("after reopen {round}"));
     }
 }
@@ -3496,11 +3496,11 @@ fn word_toc_control_with_the_field_end_after_the_entries_survives_update_and_sav
         zip.start_file(name, zip::write::SimpleFileOptions::default()).unwrap();
         zip.write_all(value.as_bytes()).unwrap();
     }
-    let mut s = Session::new(wordcraft_docx::read(&zip.finish().unwrap().into_inner()).unwrap());
+    let mut s = Session::new(docufy_docx::read(&zip.finish().unwrap().into_inner()).unwrap());
     let mut blocks = None;
     for round in 0..3 {
         run(&mut s, "references.updateToc", json!({}));
-        let bytes = wordcraft_docx::write(&s.doc).unwrap();
+        let bytes = docufy_docx::write(&s.doc).unwrap();
         let mut xml = String::new();
         zip::ZipArchive::new(std::io::Cursor::new(&bytes)).unwrap().by_name("word/document.xml").unwrap().read_to_string(&mut xml).unwrap();
         assert_eq!(xml.matches("<w:sdt>").count(), 1, "round {round}: {xml}");
@@ -3509,7 +3509,7 @@ fn word_toc_control_with_the_field_end_after_the_entries_survives_update_and_sav
         let entries = xml.find(r#"<w:pStyle w:val="TOC1"/>"#).unwrap();
         assert!(open < entries && xml.rfind(r#"<w:pStyle w:val="TOC2"/>"#).unwrap() < close, "round {round}: {xml}");
         assert!(close < xml.rfind(">Chapter One<").unwrap(), "round {round}: {xml}");
-        s = Session::new(wordcraft_docx::read(&bytes).unwrap());
+        s = Session::new(docufy_docx::read(&bytes).unwrap());
         assert!(blocks.is_none_or(|n| n == s.doc.body.len()), "round {round}: the document grew: {}", text(&s));
         blocks = Some(s.doc.body.len());
     }
@@ -3577,7 +3577,7 @@ fn update_table_keeps_the_formatting_of_localized_toc_styles() {
         style_xml("Sumrio3", "toc 3", r#"<w:ind w:left="220"/>"#, "<w:i/>"),
     ]
     .concat();
-    let mut s = Session::new(wordcraft_docx::read(&docx_with_styles(&body, &styles)).unwrap());
+    let mut s = Session::new(docufy_docx::read(&docx_with_styles(&body, &styles)).unwrap());
     run(&mut s, "references.updateToc", json!({}));
     let entries: Vec<(String, bool, bool, f32)> = s
         .doc
@@ -3639,11 +3639,11 @@ fn toc_in_columns_with_localized_styles_keeps_its_layout_through_update_table() 
         style_xml("Sumrio2", "toc 2", r#"<w:spacing w:after="100"/><w:ind w:left="220"/>"#, ""),
     ]
     .concat();
-    let mut s = Session::new(wordcraft_docx::read(&docx_with_styles(&body, &styles)).unwrap());
+    let mut s = Session::new(docufy_docx::read(&docx_with_styles(&body, &styles)).unwrap());
     let mut blocks = None;
     for round in 0..3 {
         run(&mut s, "references.updateToc", json!({}));
-        let entries: Vec<(usize, &wordcraft_doc::Paragraph)> = s
+        let entries: Vec<(usize, &docufy_doc::Paragraph)> = s
             .doc
             .body
             .iter()
@@ -3656,15 +3656,15 @@ fn toc_in_columns_with_localized_styles_keeps_its_layout_through_update_table() 
         assert_eq!(found, [(Some("TOC1"), "Chapter One\t2".to_string()), (Some("TOC2"), "Section\t2".to_string())], "round {round}: {}", text(&s));
         assert_eq!(s.doc.styles.get("TOC2").and_then(|st| st.para.indent_left), Some(11.0), "round {round}: the document's own TOC 2");
         for (_, e) in &entries {
-            let right = e.props.tabs.as_ref().and_then(|t| t.iter().find(|t| t.align == wordcraft_doc::props::TabAlign::Right)).unwrap();
+            let right = e.props.tabs.as_ref().and_then(|t| t.iter().find(|t| t.align == docufy_doc::props::TabAlign::Right)).unwrap();
             assert!((right.pos - 194.4).abs() < 0.1, "round {round}: page numbers at the first column's edge, not the page's: {}", right.pos);
         }
         // The paragraph above the first entry ends the one-column section: no blank line tops the
         // first column.
         let above = entries[0].0 - 1;
         assert!(s.doc.body[above].as_para().unwrap().section.is_some(), "round {round}: a blank line above the entries: {}", text(&s));
-        let bytes = wordcraft_docx::write(&s.doc).unwrap();
-        s = Session::new(wordcraft_docx::read(&bytes).unwrap());
+        let bytes = docufy_docx::write(&s.doc).unwrap();
+        s = Session::new(docufy_docx::read(&bytes).unwrap());
         assert!(blocks.is_none_or(|n| n == s.doc.body.len()), "round {round}: the document grew: {}", text(&s));
         blocks = Some(s.doc.body.len());
     }
@@ -3685,11 +3685,11 @@ fn toc_in_columns_with_localized_styles_keeps_its_layout_through_update_table() 
 /// range TOC doesn't claim the menu, so it never refreshes a different table.
 #[test]
 fn toc_menu_targets_the_toc_update_table_refreshes() {
-    use wordcraft_doc::para::InlineObject;
-    use wordcraft_doc::props::CharProps;
-    let mut d = wordcraft_doc::Document::from_text("One\nTwo\nHead\nFirst\nSecond\nTail");
+    use docufy_doc::para::InlineObject;
+    use docufy_doc::props::CharProps;
+    let mut d = docufy_doc::Document::from_text("One\nTwo\nHead\nFirst\nSecond\nTail");
     for (para, instr) in [(0, r#"TOC \o "1-2""#), (3, r#"TOC \o "1-3""#)] {
-        let p = d.para_mut(StoryRef::Body, &wordcraft_doc::Path::top(para)).unwrap();
+        let p = d.para_mut(StoryRef::Body, &docufy_doc::Path::top(para)).unwrap();
         let n = p.len();
         p.insert_object(n, InlineObject::FieldEnd, &CharProps::default()).unwrap();
         p.insert_object(0, InlineObject::FieldStart { instr: instr.into(), locked: false, dirty: false }, &CharProps::default()).unwrap();
@@ -3708,11 +3708,11 @@ fn toc_menu_targets_the_toc_update_table_refreshes() {
 /// them after the field's end marker.
 #[test]
 fn update_toc_clears_stale_field_result_for_docx_span() {
-    use wordcraft_doc::para::InlineObject;
-    use wordcraft_doc::props::CharProps;
-    let mut d = wordcraft_doc::Document::from_text("\nAlpha\nBeta");
+    use docufy_doc::para::InlineObject;
+    use docufy_doc::props::CharProps;
+    let mut d = docufy_doc::Document::from_text("\nAlpha\nBeta");
     {
-        let p = d.para_mut(StoryRef::Body, &wordcraft_doc::Path::top(0)).unwrap();
+        let p = d.para_mut(StoryRef::Body, &docufy_doc::Path::top(0)).unwrap();
         p.insert_object(
             0,
             InlineObject::Field {
@@ -3744,7 +3744,7 @@ fn update_toc_clears_stale_field_result_for_docx_span() {
     assert!(refreshed.contains("Beta\t"), "{refreshed}");
 
     // DOCX round-trip: entries must be enclosed within the TOC field rather than outside it.
-    let bytes = wordcraft_docx::write(&s.doc).unwrap();
+    let bytes = docufy_docx::write(&s.doc).unwrap();
     let xml = {
         let cursor = std::io::Cursor::new(bytes);
         let mut archive = zip::ZipArchive::new(cursor).unwrap();
@@ -3765,17 +3765,17 @@ fn update_toc_clears_stale_field_result_for_docx_span() {
 }
 
 /// #877: computing a field's result clears `w:dirty` — the result is no longer stale, like
-/// Word's F9. A field WordCraft can't compute keeps the flag so Word refreshes it on open.
+/// Word's F9. A field Docufy can't compute keeps the flag so Word refreshes it on open.
 #[test]
 fn update_fields_clears_dirty() {
     let mut s = s();
     s.doc.core.title = "Report".into();
-    let mut p = wordcraft_doc::Paragraph::new();
+    let mut p = docufy_doc::Paragraph::new();
     for instr in ["TITLE", "NUMWORDS", "NOTAFIELD \\x"] {
         let end = p.len();
         p.insert_object(
             end,
-            wordcraft_doc::InlineObject::Field {
+            docufy_doc::InlineObject::Field {
                 instr: instr.into(),
                 result: String::new(),
                 locked: false,
@@ -3783,33 +3783,33 @@ fn update_fields_clears_dirty() {
                 code: false,
                 form: String::new(),
             },
-            &wordcraft_doc::props::CharProps::default(),
+            &docufy_doc::props::CharProps::default(),
         )
         .unwrap();
     }
-    s.doc.body = vec![wordcraft_doc::para_block(p)];
+    s.doc.body = vec![docufy_doc::para_block(p)];
     run(&mut s, "references.updateFields", json!({}));
     let objs = &s.doc.body[0].as_para().unwrap().objects;
-    let dirty: Vec<bool> = objs.iter().map(|o| matches!(o, wordcraft_doc::InlineObject::Field { dirty: true, .. })).collect();
+    let dirty: Vec<bool> = objs.iter().map(|o| matches!(o, docufy_doc::InlineObject::Field { dirty: true, .. })).collect();
     assert_eq!(dirty, vec![false, false, true], "computed fields clear the flag, unknown ones keep it: {:?}", objs);
-    assert!(matches!(objs.first(), Some(wordcraft_doc::InlineObject::Field { result, .. }) if result == "Report"), "{objs:?}");
+    assert!(matches!(objs.first(), Some(docufy_doc::InlineObject::Field { result, .. }) if result == "Report"), "{objs:?}");
 }
 
 /// #877/#878: an imported TOC field whose begin marker carries `w:dirty` (a generator wrote a
 /// placeholder result and asked Word to refresh it on open) keeps the flag through saves until
-/// WordCraft computes the entries: Update Table replaces the placeholder in place (#878) and
+/// Docufy computes the entries: Update Table replaces the placeholder in place (#878) and
 /// clears the flag, like Word's F9. Undo brings the dirty imported field back.
 #[test]
 fn imported_dirty_toc_updates_in_place_and_clears() {
-    let mut d = wordcraft_doc::Document::from_text("Placeholder: update fields (F9).\nAlpha\nBody text.\nBeta\nGamma");
+    let mut d = docufy_doc::Document::from_text("Placeholder: update fields (F9).\nAlpha\nBody text.\nBeta\nGamma");
     {
-        let p = d.para_mut(StoryRef::Body, &wordcraft_doc::Path::top(0)).unwrap();
+        let p = d.para_mut(StoryRef::Body, &docufy_doc::Path::top(0)).unwrap();
         let n = p.len();
-        p.insert_object(n, wordcraft_doc::InlineObject::FieldEnd, &wordcraft_doc::props::CharProps::default()).unwrap();
+        p.insert_object(n, docufy_doc::InlineObject::FieldEnd, &docufy_doc::props::CharProps::default()).unwrap();
         p.insert_object(
             0,
-            wordcraft_doc::InlineObject::FieldStart { instr: r#"TOC \o "1-3" \h \z \u"#.into(), locked: false, dirty: true },
-            &wordcraft_doc::props::CharProps::default(),
+            docufy_doc::InlineObject::FieldStart { instr: r#"TOC \o "1-3" \h \z \u"#.into(), locked: false, dirty: true },
+            &docufy_doc::props::CharProps::default(),
         )
         .unwrap();
     }
@@ -3819,17 +3819,17 @@ fn imported_dirty_toc_updates_in_place_and_clears() {
         run(&mut s, "styles.apply", json!({"style": style}));
     }
     // As an imported file: the flag survives the round trip, and a plain save keeps it.
-    s = Session::new(wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap());
-    let toc_dirty = |d: &wordcraft_doc::Document| {
+    s = Session::new(docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap());
+    let toc_dirty = |d: &docufy_doc::Document| {
         d.body.iter().find_map(|b| {
             b.as_para()?.objects.iter().find_map(|o| match o {
-                wordcraft_doc::InlineObject::FieldStart { dirty, .. } => Some(*dirty),
+                docufy_doc::InlineObject::FieldStart { dirty, .. } => Some(*dirty),
                 _ => None,
             })
         })
     };
     assert_eq!(toc_dirty(&s.doc), Some(true), "the imported TOC reads back dirty");
-    let saved = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+    let saved = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
     assert_eq!(toc_dirty(&saved), Some(true), "a plain save keeps the flag for Word to refresh");
     // Update Table replaces the placeholder in place and clears the flag.
     run(&mut s, "references.updateToc", json!({}));
@@ -3839,7 +3839,7 @@ fn imported_dirty_toc_updates_in_place_and_clears() {
         assert_eq!(t.matches(entry).count(), 1, "{t}");
     }
     assert!(s.doc.field_ranges(StoryRef::Body).is_empty(), "now the engine's TOC");
-    let updated = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+    let updated = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
     assert_eq!(toc_dirty(&updated), Some(false), "the computed TOC no longer asks Word to refresh it");
     // Undo brings the dirty imported field back.
     while s.undo() {}
@@ -3854,10 +3854,10 @@ fn imported_dirty_toc_updates_in_place_and_clears() {
 /// entries that wrap, and level-one entries whose style has no stops of its own.
 #[test]
 fn toc_page_numbers_reach_the_right_margin() {
-    use wordcraft_doc::para::InlineObject;
-    use wordcraft_doc::props::{CharProps, TabAlign, TabLeader, TabStop};
+    use docufy_doc::para::InlineObject;
+    use docufy_doc::props::{CharProps, TabAlign, TabLeader, TabStop};
     let long = "A deliberately long section title that does not fit on one line of the table of contents and wraps onto a second line";
-    let mut d = wordcraft_doc::Document::from_text(&format!("Contents\n\nNo entries.\n\nShort\n{long}\nTop\nAppendix"));
+    let mut d = docufy_doc::Document::from_text(&format!("Contents\n\nNo entries.\n\nShort\n{long}\nTop\nAppendix"));
     {
         let toc2 = d.styles.get_mut("TOC2").unwrap();
         toc2.para.tabs = Some(vec![
@@ -3866,10 +3866,10 @@ fn toc_page_numbers_reach_the_right_margin() {
         ]);
         toc2.para.indent_left = Some(36.9);
         toc2.para.indent_first = Some(-22.7);
-        let p = d.para_mut(StoryRef::Body, &wordcraft_doc::Path::top(1)).unwrap();
+        let p = d.para_mut(StoryRef::Body, &docufy_doc::Path::top(1)).unwrap();
         p.insert_object(0, InlineObject::FieldStart { instr: r#"TOC \o "1-3" \h \z \u"#.into(), locked: false, dirty: false }, &CharProps::default())
             .unwrap();
-        let p = d.para_mut(StoryRef::Body, &wordcraft_doc::Path::top(3)).unwrap();
+        let p = d.para_mut(StoryRef::Body, &docufy_doc::Path::top(3)).unwrap();
         p.insert_object(0, InlineObject::FieldEnd, &CharProps::default()).unwrap();
     }
     let mut s = Session::new(d);
@@ -3886,8 +3886,8 @@ fn toc_page_numbers_reach_the_right_margin() {
     run(&mut s, "caret.docEnd", json!({}));
     run(&mut s, "layout.orientation", json!({"value": "landscape"}));
     // Through DOCX, as an imported file is.
-    let bytes = wordcraft_docx::write(&s.doc).unwrap();
-    s = Session::new(wordcraft_docx::read(&bytes).unwrap());
+    let bytes = docufy_docx::write(&s.doc).unwrap();
+    s = Session::new(docufy_docx::read(&bytes).unwrap());
     run(&mut s, "select.all", json!({}));
     run(&mut s, "references.updateFields", json!({}));
 
@@ -3952,12 +3952,12 @@ fn toc_entries_carry_heading_numbers() {
         run(&mut s, "para.heading1", json!({}));
         run(&mut s, "text.newParagraph", json!({}));
     }
-    let num = s.doc.numbering.add_list(wordcraft_doc::ListKind::Numbered);
+    let num = s.doc.numbering.add_list(docufy_doc::ListKind::Numbered);
     for b in s.doc.body.iter_mut() {
-        if let wordcraft_doc::Block::Para(p) = std::sync::Arc::make_mut(b)
+        if let docufy_doc::Block::Para(p) = std::sync::Arc::make_mut(b)
             && p.props.style.as_deref() == Some("Heading1")
         {
-            p.props.numbering = Some(wordcraft_doc::props::NumRef { num, level: 0 });
+            p.props.numbering = Some(docufy_doc::props::NumRef { num, level: 0 });
         }
     }
     run(&mut s, "references.updateToc", json!({}));
@@ -4102,7 +4102,7 @@ fn text_box_insert_puts_the_caret_inside() {
     assert_eq!(anchor, Pos::body(0, "Before \u{FFFC}".len()));
     run(&mut s, "caret.set", json!({"pos": anchor}));
     run(&mut s, "text.insert", json!({"text": " after"}));
-    assert_eq!(s.doc.para(StoryRef::Body, &wordcraft_doc::Path::top(0)).map(|p| p.text.as_str()), Some("Before \u{FFFC} after"));
+    assert_eq!(s.doc.para(StoryRef::Body, &docufy_doc::Path::top(0)).map(|p| p.text.as_str()), Some("Before \u{FFFC} after"));
     // Undo goes back through the typing to before the box, in the body.
     run(&mut s, "edit.undo", json!({}));
     run(&mut s, "edit.undo", json!({}));
@@ -4111,7 +4111,7 @@ fn text_box_insert_puts_the_caret_inside() {
     assert_eq!(text(&s), "Before ");
     // Given text: the caret ends after it.
     let id = run(&mut s, "insert.textBox", json!({"text": "Note"}))["story"].as_u64().unwrap() as u32;
-    assert_eq!(s.sel.focus, Pos { story: StoryRef::Part(id), path: wordcraft_doc::Path::top(0), off: 4 });
+    assert_eq!(s.sel.focus, Pos { story: StoryRef::Part(id), path: docufy_doc::Path::top(0), off: 4 });
 }
 
 #[test]
@@ -4141,7 +4141,7 @@ fn font_commands_on_a_selected_text_box_format_all_its_text() {
         }
     }
     // The body text around the box is left as it was, and the box stays selected.
-    let body = s.doc.para(StoryRef::Body, &wordcraft_doc::Path::top(0)).unwrap();
+    let body = s.doc.para(StoryRef::Body, &docufy_doc::Path::top(0)).unwrap();
     assert!(body.run_ranges().all(|(_, c)| c.font.is_none() && c.bold.is_none()));
     assert!(crate::cmd::objects::object_selection(&s).is_some());
     // Bold reads the box's text, so pressing it again takes it off.
@@ -4167,20 +4167,20 @@ fn case_and_clearing_commands_on_a_selected_text_box_work_on_its_text() {
         run(s, "select.range", json!({"anchor": Pos::body(0, "Before ".len()), "focus": Pos::body(0, "Before \u{FFFC}".len())}));
         StoryRef::Part(id)
     };
-    let body_bold = |s: &Session| s.doc.para(StoryRef::Body, &wordcraft_doc::Path::top(0)).unwrap().run_ranges().any(|(_, c)| c.bold == Some(true));
+    let body_bold = |s: &Session| s.doc.para(StoryRef::Body, &docufy_doc::Path::top(0)).unwrap().run_ranges().any(|(_, c)| c.bold == Some(true));
 
     let mut cased = s();
     let id = boxed(&mut cased);
     run(&mut cased, "format.changeCase", json!({"mode": "upper"}));
     assert_eq!(cased.doc.plain_text(id), "BOX TEXT");
-    assert_eq!(cased.doc.para(StoryRef::Body, &wordcraft_doc::Path::top(0)).map(|p| p.text.as_str()), Some("Before \u{FFFC}body"));
+    assert_eq!(cased.doc.para(StoryRef::Body, &docufy_doc::Path::top(0)).map(|p| p.text.as_str()), Some("Before \u{FFFC}body"));
     assert!(crate::cmd::objects::object_selection(&cased).is_some(), "the box stays selected");
 
     for cmd in ["format.clear", "format.resetChar"] {
         let mut cleared = s();
         let id = boxed(&mut cleared);
         run(&mut cleared, cmd, json!({}));
-        let p = cleared.doc.para(id, &wordcraft_doc::Path::top(0)).unwrap();
+        let p = cleared.doc.para(id, &docufy_doc::Path::top(0)).unwrap();
         assert!(p.run_ranges().all(|(_, c)| c.italic.is_none()), "{cmd} clears the box's text");
         assert!(body_bold(&cleared), "{cmd} leaves the body text's formatting");
         assert!(crate::cmd::objects::object_selection(&cleared).is_some(), "the box stays selected");
@@ -4194,7 +4194,7 @@ fn case_and_clearing_commands_on_a_selected_text_box_work_on_its_text() {
     let anchor = empty.doc.text_box_anchor(id).unwrap();
     run(&mut empty, "select.range", json!({"anchor": Pos { off: anchor.off - "\u{FFFC}".len(), ..anchor.clone() }, "focus": anchor}));
     run(&mut empty, "format.bold", json!({}));
-    let mark = &empty.doc.para(StoryRef::Part(id), &wordcraft_doc::Path::top(0)).unwrap().mark;
+    let mark = &empty.doc.para(StoryRef::Part(id), &docufy_doc::Path::top(0)).unwrap().mark;
     assert_eq!(mark.bold, Some(true), "the empty box wasn't bold, so Bold turns it on");
 }
 
@@ -4221,11 +4221,11 @@ fn commands_after_the_largest_ids_take_free_ones() {
     let mut s = s();
     run(&mut s, "text.insert", json!({"text": "Some words here"}));
     for id in [0, u32::MAX] {
-        let blocks = vec![wordcraft_doc::para_block(wordcraft_doc::Paragraph::new())];
-        s.doc.parts.insert(id, wordcraft_doc::Part { kind: wordcraft_doc::PartKind::Comment, blocks, ..Default::default() });
-        s.doc.comments.insert(id, wordcraft_doc::Comment { part: id, ..Default::default() });
+        let blocks = vec![docufy_doc::para_block(docufy_doc::Paragraph::new())];
+        s.doc.parts.insert(id, docufy_doc::Part { kind: docufy_doc::PartKind::Comment, blocks, ..Default::default() });
+        s.doc.comments.insert(id, docufy_doc::Comment { part: id, ..Default::default() });
     }
-    s.doc.numbering.add_list(wordcraft_doc::ListKind::Bullet);
+    s.doc.numbering.add_list(docufy_doc::ListKind::Bullet);
     s.doc.numbering.abstracts[0].id = u32::MAX;
     s.doc.numbering.nums[0].id = u32::MAX;
     s.doc.numbering.nums[0].abstract_id = u32::MAX;
@@ -4260,7 +4260,7 @@ fn text_box_in_a_table_cell_shows_its_text() {
     run(&mut s, "text.insert", json!({"text": "In a cell"}));
     let caret = s.layout().caret(&s.sel.focus).expect("laid out");
     let cell = s.layout().find_object(0, |o| o.text_box == Some(id)).unwrap();
-    assert!(cell.rect.contains(wordcraft_geom::Point::new(caret.x, caret.top)), "{caret:?} in {:?}", cell.rect);
+    assert!(cell.rect.contains(docufy_geom::Point::new(caret.x, caret.top)), "{caret:?} in {:?}", cell.rect);
     // No text box inside a text box.
     assert!(s.run("insert.textBox", &json!({})).is_err());
 }
@@ -4279,18 +4279,18 @@ fn copy_paste_text_box_makes_an_independent_copy() {
     assert_eq!(s.doc.parts.len(), parts + 1);
     let stories: Vec<u32> = s
         .doc
-        .para(StoryRef::Body, &wordcraft_doc::Path::top(0))
+        .para(StoryRef::Body, &docufy_doc::Path::top(0))
         .unwrap()
         .objects
         .iter()
-        .filter_map(|o| if let wordcraft_doc::InlineObject::Shape { story, .. } = o { *story } else { None })
+        .filter_map(|o| if let docufy_doc::InlineObject::Shape { story, .. } = o { *story } else { None })
         .collect();
     assert_eq!(stories.len(), 2);
     assert_eq!(stories[0], id);
     let copy = stories[1];
     assert_ne!(copy, id);
     // Typing in the copy leaves the original alone.
-    run(&mut s, "caret.set", json!({"pos": Pos { story: StoryRef::Part(copy), path: wordcraft_doc::Path::top(0), off: 0 }}));
+    run(&mut s, "caret.set", json!({"pos": Pos { story: StoryRef::Part(copy), path: docufy_doc::Path::top(0), off: 0 }}));
     run(&mut s, "text.insert", json!({"text": "Copy of "}));
     assert_eq!(s.doc.plain_text(StoryRef::Part(copy)), "Copy of Original");
     assert_eq!(s.doc.plain_text(StoryRef::Part(id)), "Original");
@@ -4324,11 +4324,11 @@ fn word_count_includes_text_boxes_by_default() {
 
 #[test]
 fn word_count_includes_numbered_list_labels_in_words_but_not_characters() {
-    let mut d = wordcraft_doc::Document::new();
-    let num_id = d.numbering.add_list(wordcraft_doc::ListKind::Numbered);
-    let mut p = wordcraft_doc::Paragraph::with_text("Apple", wordcraft_doc::CharProps::default());
-    p.props.numbering = Some(wordcraft_doc::props::NumRef { num: num_id, level: 0 });
-    d.body = vec![std::sync::Arc::new(wordcraft_doc::Block::Para(p))];
+    let mut d = docufy_doc::Document::new();
+    let num_id = d.numbering.add_list(docufy_doc::ListKind::Numbered);
+    let mut p = docufy_doc::Paragraph::with_text("Apple", docufy_doc::CharProps::default());
+    p.props.numbering = Some(docufy_doc::props::NumRef { num: num_id, level: 0 });
+    d.body = vec![std::sync::Arc::new(docufy_doc::Block::Para(p))];
     let mut s = Session::new(d);
 
     let v = run(&mut s, "review.wordCount", json!({}));
@@ -4353,7 +4353,7 @@ fn word_count_excludes_carriage_returns_from_character_counts() {
 }
 
 /// The laid-out area of the only text box.
-fn box_area(s: &mut Session) -> wordcraft_layout::hit::ObjectHit {
+fn box_area(s: &mut Session) -> docufy_layout::hit::ObjectHit {
     let l = s.layout();
     l.find_object(0, |o| o.text_box.is_some()).unwrap()
 }
@@ -4366,7 +4366,7 @@ fn select_box(s: &mut Session) {
 
 #[test]
 fn arrange_bounds_resizes_and_moves_objects() {
-    use wordcraft_doc::para::{Anchor, Wrap};
+    use docufy_doc::para::{Anchor, Wrap};
     let mut s = s();
     run(&mut s, "text.insert", json!({"text": "Some text "}));
     run(&mut s, "insert.textBox", json!({"text": "Box"}));
@@ -4390,7 +4390,7 @@ fn arrange_bounds_resizes_and_moves_objects() {
     let o = box_area(&mut s);
     assert!((o.rect.x - before.x - 30.0).abs() < 0.01 && (o.rect.y - before.y + 5.0).abs() < 0.01, "{:?} → {:?}", before, o.rect);
     let p = s.doc.para(StoryRef::Body, &o.path).unwrap();
-    let Some(wordcraft_doc::InlineObject::Shape { float, .. }) = p.object_at(o.off) else { panic!() };
+    let Some(docufy_doc::InlineObject::Shape { float, .. }) = p.object_at(o.off) else { panic!() };
     assert_eq!((float.h_rel, float.v_rel), (Anchor::Column, Anchor::Paragraph));
     assert!((float.x - (o.rect.x - o.origin.x)).abs() < 0.01 && (float.y - (o.rect.y - o.origin.y)).abs() < 0.01);
     // Nudge.
@@ -4411,7 +4411,7 @@ fn arrange_bounds_resizes_and_moves_objects() {
 #[test]
 fn an_object_dropped_near_the_bottom_of_a_page_lands_there() {
     let para = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
-    let mut s = Session::new(wordcraft_doc::Document::from_text(&vec![para; 20].join("\n")));
+    let mut s = Session::new(docufy_doc::Document::from_text(&vec![para; 20].join("\n")));
     run(&mut s, "insert.textBox", json!({"text": "Box"}));
     select_box(&mut s);
     run(&mut s, "arrange.bounds", json!({"width": 450, "height": 300}));
@@ -4426,7 +4426,7 @@ fn an_object_dropped_near_the_bottom_of_a_page_lands_there() {
 
 #[test]
 fn nudging_an_aligned_object_moves_it_from_where_it_is() {
-    use wordcraft_doc::para::{Anchor, FloatAlign};
+    use docufy_doc::para::{Anchor, FloatAlign};
     let mut s = s();
     run(&mut s, "text.insert", json!({"text": "Some text "}));
     run(&mut s, "insert.textBox", json!({"text": "Box"}));
@@ -4435,7 +4435,7 @@ fn nudging_an_aligned_object_moves_it_from_where_it_is() {
     // As a .docx can place it: centred on the page, at the bottom margin.
     let o = box_area(&mut s);
     let p = s.doc.para_mut(StoryRef::Body, &o.path).unwrap();
-    if let Some(wordcraft_doc::InlineObject::Shape { float, .. }) = p.object_at_mut(o.off) {
+    if let Some(docufy_doc::InlineObject::Shape { float, .. }) = p.object_at_mut(o.off) {
         (float.h_rel, float.h_align, float.v_rel, float.v_align) =
             (Anchor::Page, Some(FloatAlign::Center), Anchor::BottomMargin, Some(FloatAlign::Start));
     }
@@ -4447,7 +4447,7 @@ fn nudging_an_aligned_object_moves_it_from_where_it_is() {
     let o = box_area(&mut s);
     assert!((o.rect.x - before.x - 6.0).abs() < 0.01 && (o.rect.y - before.y + 2.0).abs() < 0.01, "{before:?} → {:?}", o.rect);
     let p = s.doc.para(StoryRef::Body, &o.path).unwrap();
-    let Some(wordcraft_doc::InlineObject::Shape { float, .. }) = p.object_at(o.off) else { panic!() };
+    let Some(docufy_doc::InlineObject::Shape { float, .. }) = p.object_at(o.off) else { panic!() };
     assert_eq!((float.h_align, float.v_align), (None, None));
     // Dragging it clears alignment too, and it lands where dropped.
     select_box(&mut s);
@@ -4493,20 +4493,20 @@ fn moved_text_box_makes_the_text_it_lands_on_wrap() {
     select_box(&mut s);
     // Drop it over paragraph 1, right half of the page: well above its own paragraph (4).
     let l = s.layout();
-    let p1_top = wordcraft_layout::hit::page_lines(&l.pages[0], StoryRef::Body).iter().find(|ln| ln.path.0 == [1] && ln.li == 0).unwrap().top;
+    let p1_top = docufy_layout::hit::page_lines(&l.pages[0], StoryRef::Body).iter().find(|ln| ln.path.0 == [1] && ln.li == 0).unwrap().top;
     run(&mut s, "arrange.bounds", json!({"x": 300, "y": p1_top + 2.0}));
     let o = box_area(&mut s);
     assert_eq!(o.path.0, vec![1], "anchored to the paragraph it was dropped on");
     assert_eq!((o.rect.x, o.rect.y), (300.0, p1_top + 2.0));
     // Lines beside the box stop short of it; lines below it use the full width again.
     let l = s.layout();
-    let lines = wordcraft_layout::hit::page_lines(&l.pages[0], StoryRef::Body);
+    let lines = docufy_layout::hit::page_lines(&l.pages[0], StoryRef::Body);
     let beside: Vec<_> = lines.iter().filter(|ln| ln.bottom > o.rect.y && ln.top < o.rect.bottom()).collect();
     assert!(!beside.is_empty());
     assert!(beside.iter().all(|ln| ln.right <= o.rect.x + 0.5 || ln.left >= o.rect.right() - 0.5), "text overlaps the box");
     assert!(lines.iter().any(|ln| ln.top > o.rect.bottom() + 10.0 && ln.right > o.rect.right()));
     // Its old paragraph no longer holds it.
-    assert!(s.doc.para(StoryRef::Body, &wordcraft_doc::Path::top(4)).unwrap().objects.is_empty());
+    assert!(s.doc.para(StoryRef::Body, &docufy_doc::Path::top(4)).unwrap().objects.is_empty());
 }
 
 #[test]
@@ -4527,7 +4527,7 @@ fn deleted_text_box_takes_its_text_with_it_until_undo() {
     run(&mut s, "edit.paste", json!({}));
     assert_eq!(s.doc.parts.len(), 1);
     let (_, part) = s.doc.parts.iter().next().unwrap();
-    assert_eq!(part.kind, wordcraft_doc::PartKind::TextBox);
+    assert_eq!(part.kind, docufy_doc::PartKind::TextBox);
     assert_eq!(s.doc.word_count_including_notes(), 2);
 }
 
@@ -4535,11 +4535,11 @@ fn deleted_text_box_takes_its_text_with_it_until_undo() {
 fn text_box_in_a_table_nested_seventeen_deep_survives_an_edit_and_a_save() {
     // #1339: opened from a .docx, a box shown only from a table nested deeper than 16 was taken
     // for unshown, so the next unrelated edit pruned its story and saving dropped its text.
-    use wordcraft_doc::{Block, Document, InlineObject, Paragraph, PartKind, Path, Table, para_block};
+    use docufy_doc::{Block, Document, InlineObject, Paragraph, PartKind, Path, Table, para_block};
     let mut d = Document::from_text("Intro");
     let id = d.add_part(PartKind::TextBox, vec![para_block(Paragraph::with_text("Deep box", Default::default()))]);
     let shape = InlineObject::Shape {
-        kind: wordcraft_doc::para::ShapeKind::TextBox,
+        kind: docufy_doc::para::ShapeKind::TextBox,
         w: 72.0,
         h: 36.0,
         fill: None,
@@ -4564,13 +4564,13 @@ fn text_box_in_a_table_nested_seventeen_deep_survives_an_edit_and_a_save() {
         let id = doc.para(StoryRef::Body, &path)?.objects.iter().find_map(InlineObject::text_box)?;
         doc.parts.get(&id).filter(|p| p.kind == PartKind::TextBox).map(|_| doc.plain_text(StoryRef::Part(id)))
     };
-    let mut s = Session::new(wordcraft_docx::read(&wordcraft_docx::write(&d).unwrap()).unwrap());
+    let mut s = Session::new(docufy_docx::read(&docufy_docx::write(&d).unwrap()).unwrap());
     assert_eq!(deep_box(&s.doc).as_deref(), Some("Deep box"), "opened");
     let unshown = s.doc.add_part(PartKind::TextBox, vec![para_block(Paragraph::with_text("Shown nowhere", Default::default()))]);
     run(&mut s, "text.insert", json!({"text": "Edited. "}));
     assert_eq!(deep_box(&s.doc).as_deref(), Some("Deep box"), "kept through the edit");
     assert!(!s.doc.parts.contains_key(&unshown), "a box shown nowhere still goes");
-    let back = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+    let back = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
     assert_eq!(deep_box(&back).as_deref(), Some("Deep box"), "saved");
     assert!(back.plain_text(StoryRef::Body).starts_with("Edited. Intro"));
 }
@@ -4594,7 +4594,7 @@ fn word_count_with_an_object_selected_counts_the_document() {
 fn custom_properties_delete_legacy_names_but_new_names_keep_the_limit() {
     let mut s = s();
     let long = "x".repeat(crate::cmd::file::MAX_CUSTOM_NAME + 1);
-    s.doc.custom_props.push(wordcraft_doc::CustomProp { name: long.clone(), kind: "raw".into(), value: "<data/>".into() });
+    s.doc.custom_props.push(docufy_doc::CustomProp { name: long.clone(), kind: "raw".into(), value: "<data/>".into() });
     let mut custom = serde_json::Map::new();
     custom.insert(long.clone(), serde_json::Value::Null);
     run(&mut s, "file.properties", json!({"custom": custom}));
@@ -4637,13 +4637,13 @@ fn custom_properties_case_only_rename_keeps_the_new_spelling() {
 fn custom_properties_round_trip_through_docx() {
     let mut s = s();
     run(&mut s, "file.properties", json!({"custom": {"Status": "draft", "Reviewer": "Ada L."}}));
-    let back = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+    let back = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
     assert_eq!(back.custom_prop("Status"), Some("draft"));
     assert_eq!(back.custom_prop("Reviewer"), Some("Ada L."));
     assert_eq!(back.custom_props.len(), 2);
     // One call removes one and adds another; the saved file follows the document.
     run(&mut s, "file.properties", json!({"custom": {"Status": null, "Owner": "Ada L."}}));
-    let back = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+    let back = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
     assert_eq!(back.custom_prop("Status"), None);
     assert_eq!(back.custom_prop("Reviewer"), Some("Ada L."));
     assert_eq!(back.custom_prop("Owner"), Some("Ada L."));
@@ -4672,7 +4672,7 @@ fn document_id_changes_only_when_the_document_is_replaced() {
 /// so it isn't offered. The main document stays open as it was, with no undo step for the command.
 #[test]
 fn mailings_results_are_new_untitled_documents() {
-    let dir = std::env::temp_dir().join(format!("wordcraft-engine-mailings-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-engine-mailings-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     let original = dir.join("letter.docx");
@@ -4719,7 +4719,7 @@ fn mailings_results_are_new_untitled_documents() {
 #[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn saving_a_text_file_over_itself_saves_the_document() {
-    let dir = std::env::temp_dir().join(format!("wordcraft-engine-own-txt-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-engine-own-txt-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     for name in ["note.txt", "note.md"] {
@@ -4759,7 +4759,7 @@ fn a_failed_save_leaves_the_save_stamps_untouched() {
     // nothing to pre-clean and nothing of anyone else's this test could delete by mistake. `dir`
     // itself is deliberately never created: that's what makes the write below fail.
     let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
-    let dir = std::env::temp_dir().join(format!("wordcraft-engine-save-stamps-{}-{nanos}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-engine-save-stamps-{}-{nanos}", std::process::id()));
     assert!(!dir.exists(), "a fresh name");
     let bogus = dir.join("does-not-exist").join("out.docx");
     let mut s = s();
@@ -4780,7 +4780,7 @@ fn a_failed_save_leaves_the_save_stamps_untouched() {
 #[test]
 fn html_pictures_load_relative_to_the_file() {
     // Issue #98: `<img src="logo.png">` beside an HTML file is embedded when it is opened.
-    let dir = std::env::temp_dir().join(format!("wordcraft-html-img-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-html-img-{}", std::process::id()));
     std::fs::create_dir_all(dir.join("img")).unwrap();
     let mut png = Vec::new();
     image::RgbaImage::from_pixel(4, 2, image::Rgba([10, 20, 30, 255]))
@@ -4801,7 +4801,7 @@ fn html_pictures_load_relative_to_the_file() {
 /// A fresh, empty scratch folder for one test.
 #[cfg(not(target_arch = "wasm32"))]
 fn scratch_dir(name: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!("wordcraft-{name}-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-{name}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     dir
@@ -4891,7 +4891,7 @@ fn opening_a_named_pipe_or_device_is_refused_without_blocking() {
     let (tx, rx) = std::sync::mpsc::channel();
     let (pipe, device) = (fifo.clone(), zero.clone());
     std::thread::spawn(move || {
-        let mut s = Session::new(wordcraft_doc::Document::new());
+        let mut s = Session::new(docufy_doc::Document::new());
         let by_command = s.run("file.open", &json!({"path": pipe.to_string_lossy()})).map(|_| ());
         let _ = tx.send([by_command.map_err(|e| e.to_string()), crate::io::read_document(&device).map(|_| ())]);
     });
@@ -5241,7 +5241,7 @@ fn styles_apply_multi_paragraph_selection() {
 /// still reads the serialized forms, and rejects a bad colour without touching the style.
 #[test]
 fn modify_style_takes_hex_colours_like_format_color() {
-    use wordcraft_doc::{CharProps, Rgb, TextColor};
+    use docufy_doc::{CharProps, Rgb, TextColor};
     let mut s = s();
     let color = |s: &Session| s.doc.styles.get("Heading1").and_then(|st| st.chr.color);
     let modify = |s: &mut Session, c: serde_json::Value| s.run("styles.modify", &json!({"style": "Heading1", "chr": {"color": c}}));
@@ -5272,7 +5272,7 @@ fn modify_style_takes_hex_colours_like_format_color() {
 /// `color`) take `RRGGBB` / `#RRGGBB` like `para.borders` and `table.shading`, and still `[r, g, b]`.
 #[test]
 fn props_colours_take_hex_strings() {
-    use wordcraft_doc::{Pos, Rgb};
+    use docufy_doc::{Pos, Rgb};
     let ink = Rgb(0x1B, 0x16, 0x11);
     let mut s = s();
     run(
@@ -5304,7 +5304,7 @@ fn props_colours_take_hex_strings() {
 /// paragraph changes; the selected paragraph takes Heading 2, and it is one undo step.
 #[test]
 fn update_heading_to_match_selection_takes_the_selections_formatting() {
-    use wordcraft_doc::{Align, CharProps, ParaProps, Rgb, TextColor};
+    use docufy_doc::{Align, CharProps, ParaProps, Rgb, TextColor};
     let mut s = s();
     run(&mut s, "text.insert", json!({"text": "Heading text"}));
     run(&mut s, "styles.apply", json!({"style": "Heading 2"}));
@@ -5575,7 +5575,7 @@ fn advanced_find_lists_and_highlights_matches() {
 /// text, banded rows), can be modified, and saves as a table style the table refers to.
 #[test]
 fn custom_table_style_applies_modifies_and_saves() {
-    use wordcraft_doc::{Rgb, StyleKind, TextColor};
+    use docufy_doc::{Rgb, StyleKind, TextColor};
     let mut s = s();
     run(&mut s, "insert.table", json!({"rows": 3, "cols": 2}));
     run(&mut s, "text.insert", json!({"text": "Head"}));
@@ -5623,7 +5623,7 @@ fn custom_table_style_applies_modifies_and_saves() {
     assert_eq!(fills(&mut s, Rgb(0xEE, 0xEE, 0xEE)), 4, "two rows per band");
     assert!(!head(&mut s).bold);
 
-    let back = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+    let back = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
     let st = back.styles.get(&id).unwrap();
     assert_eq!((st.kind, st.name.as_str(), st.based_on.as_deref()), (StyleKind::Table, "Thesis Table", Some("TableGrid")));
     let parts = st.table.as_ref().unwrap();
@@ -5641,7 +5641,7 @@ fn custom_table_style_applies_modifies_and_saves() {
 /// survives a .docx round trip (`w:vAlign w:val="top"`).
 #[test]
 fn explicit_cell_top_beats_a_centred_table_style() {
-    use wordcraft_doc::props::VAlign;
+    use docufy_doc::props::VAlign;
     fn text_y(s: &mut Session) -> f32 {
         s.layout().pages[0]
             .items
@@ -5665,7 +5665,7 @@ fn explicit_cell_top_beats_a_centred_table_style() {
     assert_eq!(t.rows[0].cells[0].props.valign, Some(VAlign::Top));
     assert!((text_y(&mut s) - top).abs() < 0.5, "the cell's Top wins over the style");
     // It saves and comes back as an explicit Top.
-    let back = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+    let back = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
     let t = back.body.iter().find_map(|b| b.as_table()).unwrap();
     assert_eq!((t.rows[0].cells[0].props.valign, t.rows[0].cells[1].props.valign), (Some(VAlign::Top), None));
     let mut back = Session::new(back);
@@ -5674,9 +5674,9 @@ fn explicit_cell_top_beats_a_centred_table_style() {
 
 #[test]
 fn table_style_parts_format_every_table_using_the_style() {
-    use wordcraft_doc::props::{Align, BorderStyle, VAlign};
-    use wordcraft_doc::styles::TablePart;
-    use wordcraft_doc::{Rgb, TextColor};
+    use docufy_doc::props::{Align, BorderStyle, VAlign};
+    use docufy_doc::styles::TablePart;
+    use docufy_doc::{Rgb, TextColor};
     let mut s = s();
     let look = json!({"headerRow": true, "bandedRows": true, "firstColumn": true, "totalRow": false});
     run(&mut s, "insert.table", json!({"rows": 4, "cols": 3}));
@@ -5739,11 +5739,11 @@ fn table_style_parts_format_every_table_using_the_style() {
     assert_eq!(heads.len(), 2, "{heads:?}");
     for (align, rc) in heads {
         assert_eq!(align, Align::Center);
-        assert!(rc.bold && rc.underline != wordcraft_doc::props::Underline::None, "{rc:?}");
+        assert!(rc.bold && rc.underline != docufy_doc::props::Underline::None, "{rc:?}");
         assert_eq!(rc.color, TextColor::Rgb(Rgb::WHITE));
     }
     // It saves: the parts come back.
-    let back = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+    let back = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
     let got = back.styles.get("Parts").unwrap();
     for part in TablePart::ALL {
         assert_eq!(got.table_part(part), st.table_part(part), "{}", part.ooxml());
@@ -5875,7 +5875,7 @@ fn zoom_after_one_page_keeps_single_column() {
 /// reopened; changing the zoom alone doesn't make the document unsaved.
 #[test]
 fn one_page_is_restored_when_the_document_is_reopened() {
-    let dir = std::env::temp_dir().join(format!("wordcraft-engine-zoom-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-engine-zoom-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("one-page.docx");
@@ -5887,7 +5887,7 @@ fn one_page_is_restored_when_the_document_is_reopened() {
     assert!(!s.dirty, "a zoom isn't an edit");
     run(&mut s, "file.save", json!({}));
 
-    let mut other = Session::new(wordcraft_doc::Document::new());
+    let mut other = Session::new(docufy_doc::Document::new());
     run(&mut other, "file.open", json!({"path": path}));
     assert_eq!(other.view.fit, "onePage");
     assert!(other.view.single_column && !other.view.multi_page);
@@ -6017,7 +6017,7 @@ fn reading_page_color_is_a_transient_view_setting() {
 /// File › Options › Advanced › Numeral: the display mode for digits (display only).
 #[test]
 fn numeral_mode_sets_gets_and_rejects_junk() {
-    use wordcraft_layout::NumeralMode;
+    use docufy_layout::NumeralMode;
     let mut s = s();
     assert_eq!(s.view.numeral, NumeralMode::Arabic, "Western digits by default");
     let r = run(&mut s, "view.numeral", json!({"value": "hindi"}));
@@ -6032,7 +6032,7 @@ fn numeral_mode_sets_gets_and_rejects_junk() {
     assert!(s.run("view.numeral", &json!({"value": ["hindi"]})).is_err());
     assert_eq!(s.view.numeral, NumeralMode::Context, "rejected values keep the mode");
     // Switching modes relayouts without disturbing the text.
-    s.doc = wordcraft_doc::Document::from_text("Year 2024");
+    s.doc = docufy_doc::Document::from_text("Year 2024");
     run(&mut s, "view.numeral", json!({"value": "hindi"}));
     let _l = s.layout();
     assert_eq!(text(&s), "Year 2024");
@@ -6041,7 +6041,7 @@ fn numeral_mode_sets_gets_and_rejects_junk() {
 /// The Numeral setting also applies to print and PDF output, not just the screen layout.
 #[test]
 fn export_layout_follows_the_numeral_setting() {
-    use wordcraft_layout::Placed;
+    use docufy_layout::Placed;
     fn glyph_ids(s: &Session) -> Vec<u32> {
         let mut out = Vec::new();
         for page in &s.export_layout().pages {
@@ -6054,7 +6054,7 @@ fn export_layout_follows_the_numeral_setting() {
         out
     }
     let mut s = s();
-    s.doc = wordcraft_doc::Document::from_text("Year 2024");
+    s.doc = docufy_doc::Document::from_text("Year 2024");
     let western = glyph_ids(&s);
     assert!(!western.is_empty());
     run(&mut s, "view.numeral", json!({"value": "hindi"}));
@@ -6065,14 +6065,14 @@ fn export_layout_follows_the_numeral_setting() {
 #[test]
 fn pdf_and_png_copies_follow_the_numeral_setting() {
     let mut s = s();
-    s.doc = wordcraft_doc::Document::from_text("Year 2024");
+    s.doc = docufy_doc::Document::from_text("Year 2024");
     // A fixed creation date, so the PDF bytes depend only on the layout.
     s.doc.core.created = "2024-01-01T00:00:00Z".into();
     let copy = |s: &Session, name: &str| crate::io::save_bytes_opts(name, &s.doc, &cmd::file::export_options(s, &json!({}))).unwrap();
     let (pdf, png) = (copy(&s, "x.pdf"), copy(&s, "x.png"));
     assert_eq!(copy(&s, "x.pdf"), pdf);
     run(&mut s, "view.numeral", json!({"value": "hindi"}));
-    assert_eq!(cmd::file::export_options(&s, &json!({})).numeral, wordcraft_layout::NumeralMode::Hindi);
+    assert_eq!(cmd::file::export_options(&s, &json!({})).numeral, docufy_layout::NumeralMode::Hindi);
     assert_ne!(copy(&s, "x.pdf"), pdf, "Hindi digits reach the PDF");
     assert_ne!(copy(&s, "x.png"), png, "Hindi digits reach the page image");
 }
@@ -6134,13 +6134,13 @@ fn timestamps_come_from_the_clock() {
 
 #[test]
 fn charts_and_diagrams_can_be_selected_and_deleted_but_not_moved() {
+    use docufy_doc::para::InlineObject;
     use std::sync::Arc;
-    use wordcraft_doc::para::InlineObject;
     let mut s = s();
     run(&mut s, "text.insert", json!({"text": "Before "}));
     let chart = InlineObject::Graphic { w: 200.0, h: 100.0, alt: String::new(), float: Default::default(), graphic: Arc::new(Default::default()) };
     s.doc.insert_object(&Pos::body(0, 7), chart, &Default::default()).unwrap();
-    let end = 7 + wordcraft_doc::para::OBJ.len_utf8();
+    let end = 7 + docufy_doc::para::OBJ.len_utf8();
     run(&mut s, "select.range", json!({"anchor": Pos::body(0, 7), "focus": Pos::body(0, end)}));
     assert!(crate::cmd::objects::object_selection(&s).is_some(), "the chart is selected");
     for (id, v) in [
@@ -6159,8 +6159,8 @@ fn charts_and_diagrams_can_be_selected_and_deleted_but_not_moved() {
 }
 
 /// The chart model of the first object in the body's first paragraph.
-fn first_chart(doc: &wordcraft_doc::Document) -> Option<wordcraft_doc::chart::ChartSpec> {
-    use wordcraft_doc::para::InlineObject;
+fn first_chart(doc: &docufy_doc::Document) -> Option<docufy_doc::chart::ChartSpec> {
+    use docufy_doc::para::InlineObject;
     let p = doc.para_at(&Pos::body(0, 0))?;
     p.object_offsets().into_iter().find_map(|off| match p.object_at(off) {
         Some(InlineObject::Graphic { graphic, .. }) => graphic.chart.as_deref().cloned(),
@@ -6178,14 +6178,14 @@ fn inserted_chart_is_saved_and_reopened_with_its_data() {
     let spec = first_chart(&s.doc).expect("a chart with a model");
     assert_eq!(spec.series[0].values, vec![Some(12.5), None, Some(3.0)]);
     assert!(crate::cmd::chart::selected_chart(&s).is_some(), "the new chart is selected");
-    let bytes = wordcraft_docx::write(&s.doc).unwrap();
+    let bytes = docufy_docx::write(&s.doc).unwrap();
     assert!(bytes.windows(22).any(|w| w == b"word/charts/chart1.xml"), "a chart part is written");
-    let back = wordcraft_docx::read(&bytes).unwrap();
+    let back = docufy_docx::read(&bytes).unwrap();
     assert_eq!(first_chart(&back), Some(spec), "the chart reads back as the same editable chart");
     // Sample data when none is given.
     let mut s2 = self::s();
     run(&mut s2, "insert.chart", json!({"type": "pie"}));
-    assert!(first_chart(&s2.doc).is_some_and(|c| c.kind == wordcraft_doc::chart::ChartType::Pie && !c.series.is_empty()));
+    assert!(first_chart(&s2.doc).is_some_and(|c| c.kind == docufy_doc::chart::ChartType::Pie && !c.series.is_empty()));
     // No params: the picker, nothing inserted.
     let mut s3 = self::s();
     run(&mut s3, "insert.chart", json!({}));
@@ -6195,7 +6195,7 @@ fn inserted_chart_is_saved_and_reopened_with_its_data() {
 
 #[test]
 fn chart_edits_are_one_undo_step_each() {
-    use wordcraft_doc::chart::{ChartType, LegendPos};
+    use docufy_doc::chart::{ChartType, LegendPos};
     let mut s = s();
     run(&mut s, "insert.chart", json!({"type": "column"}));
     let before = first_chart(&s.doc).unwrap();
@@ -6207,7 +6207,7 @@ fn chart_edits_are_one_undo_step_each() {
     let c = first_chart(&s.doc).unwrap();
     assert_eq!((c.kind, c.title.as_deref(), c.legend, c.data_labels), (ChartType::BarStacked, Some("Totals"), None, true));
     assert_eq!((c.categories.len(), c.series.len()), (2, 1));
-    let steps: [&dyn Fn(&wordcraft_doc::chart::ChartSpec) -> bool; 5] = [
+    let steps: [&dyn Fn(&docufy_doc::chart::ChartSpec) -> bool; 5] = [
         &|c| !c.data_labels,
         &|c| c.legend == Some(LegendPos::Bottom),
         &|c| c.title.is_none(),
@@ -6222,7 +6222,7 @@ fn chart_edits_are_one_undo_step_each() {
     run(&mut s, "edit.redo", json!({}));
     run(&mut s, "picture.size", json!({"width": 300, "height": 150, "lockAspect": false}));
     let p = s.doc.para_at(&Pos::body(0, 0)).unwrap();
-    let Some(wordcraft_doc::para::InlineObject::Graphic { graphic, w, .. }) = p.object_offsets().into_iter().find_map(|o| p.object_at(o)) else {
+    let Some(docufy_doc::para::InlineObject::Graphic { graphic, w, .. }) = p.object_offsets().into_iter().find_map(|o| p.object_at(o)) else {
         panic!()
     };
     assert_eq!((*w, graphic.w, graphic.h), (300.0, 300.0, 150.0));
@@ -6230,7 +6230,7 @@ fn chart_edits_are_one_undo_step_each() {
 
 #[test]
 fn hostile_chart_data_is_capped() {
-    use wordcraft_doc::chart::{MAX_CELLS, MAX_POINTS, MAX_SERIES, MAX_TEXT};
+    use docufy_doc::chart::{MAX_CELLS, MAX_POINTS, MAX_SERIES, MAX_TEXT};
     let mut s = s();
     let values: Vec<serde_json::Value> = (0..5000).map(|i| if i % 2 == 0 { json!("NaN") } else { json!(1e308) }).collect();
     let series: Vec<serde_json::Value> = (0..300).map(|i| json!({"name": "n".repeat(10_000), "values": values, "x": i})).collect();
@@ -6245,7 +6245,7 @@ fn hostile_chart_data_is_capped() {
     assert!(c.series.iter().all(|x| x.name.chars().count() <= MAX_TEXT && x.values.len() == c.points()));
     assert!(c.series[0].values.iter().all(|v| v.is_none_or(f64::is_finite)));
     let _ = s.layout();
-    let back = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+    let back = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
     assert_eq!(first_chart(&back), Some(c));
     for bad in [json!({"type": "radar"}), json!({"data": {"series": 5}}), json!({"data": {"series": []}})] {
         assert!(s.run("insert.chart", &bad).is_err(), "{bad}");
@@ -6253,16 +6253,16 @@ fn hostile_chart_data_is_capped() {
     // A chart without a model (from another program) is shown, not edited.
     let mut s = self::s();
     let foreign =
-        wordcraft_doc::para::InlineObject::Graphic { w: 200.0, h: 100.0, alt: String::new(), float: Default::default(), graphic: Default::default() };
+        docufy_doc::para::InlineObject::Graphic { w: 200.0, h: 100.0, alt: String::new(), float: Default::default(), graphic: Default::default() };
     s.doc.insert_object(&Pos::body(0, 0), foreign, &Default::default()).unwrap();
-    run(&mut s, "select.range", json!({"anchor": Pos::body(0, 0), "focus": Pos::body(0, wordcraft_doc::para::OBJ.len_utf8())}));
+    run(&mut s, "select.range", json!({"anchor": Pos::body(0, 0), "focus": Pos::body(0, docufy_doc::para::OBJ.len_utf8())}));
     assert!(s.run("chart.type", &json!({"type": "pie"})).is_err());
 }
 
 #[test]
 fn accessibility_reports_a_chart_without_alt_text() {
+    use docufy_doc::para::InlineObject;
     use std::sync::Arc;
-    use wordcraft_doc::para::InlineObject;
     let mut s = s();
     let chart = InlineObject::Graphic { w: 200.0, h: 100.0, alt: " ".into(), float: Default::default(), graphic: Arc::new(Default::default()) };
     s.doc.insert_object(&Pos::body(0, 0), chart, &Default::default()).unwrap();
@@ -6275,7 +6275,7 @@ fn accessibility_reports_a_chart_without_alt_text() {
 /// default interval, and is one undo step.
 #[test]
 fn para_tabs_set_clear_and_undo() {
-    use wordcraft_doc::props::{TabAlign, TabLeader};
+    use docufy_doc::props::{TabAlign, TabLeader};
     let mut s = s();
     run(&mut s, "text.insert", json!({"text": "Name\tPrice"}));
     run(&mut s, "para.style", json!({"style": "Header"}));
@@ -6335,7 +6335,7 @@ fn border_sides_apply_exactly() {
     let b = s.doc.para_at(&s.sel.focus).and_then(|p| p.props.borders).unwrap();
     for x in [b.top, b.bottom, b.left, b.right] {
         let x = x.unwrap();
-        assert_eq!((x.style, x.width, x.color), (BorderStyle::Double, 1.5, Some(wordcraft_doc::props::Rgb(0xC0, 0, 0))));
+        assert_eq!((x.style, x.width, x.color), (BorderStyle::Double, 1.5, Some(docufy_doc::props::Rgb(0xC0, 0, 0))));
     }
     assert!(b.between.is_none());
     run(&mut s, "para.borders", json!({"sides": {}}));
@@ -6362,7 +6362,7 @@ fn password_protected_documents_round_trip() {
     run(&mut a, "document.setText", json!({"text": "Quarterly numbers"}));
     let r = run(&mut a, "file.save", json!({"path": path_str, "password": "hunter2"}));
     assert_eq!(r["encrypted"], true);
-    assert!(wordcraft_docx::is_encrypted(&std::fs::read(&path).unwrap()));
+    assert!(docufy_docx::is_encrypted(&std::fs::read(&path).unwrap()));
     assert!(a.run("file.save", &json!({"path": dir.join("x.txt").to_string_lossy(), "password": "pw"})).is_err(), "only Word packages encrypt");
 
     // No password, then a wrong one: clear errors, and the open document stays.
@@ -6400,18 +6400,18 @@ fn password_protected_documents_round_trip() {
 /// an omitted key is kept, hostile numbers are clamped and each change is one undo step.
 #[test]
 fn shape_effects_apply_and_undo() {
-    use wordcraft_doc::effects::{MAX_BLUR, MAX_DISTANCE, Shadow};
+    use docufy_doc::effects::{MAX_BLUR, MAX_DISTANCE, Shadow};
     let mut s = s();
     run(&mut s, "insert.shape", json!({"kind": "ellipse"}));
     let effects = |s: &Session| match cmd::objects::selected(s) {
-        Some((_, wordcraft_doc::InlineObject::Shape { effects, float, .. })) => (effects, float.effect),
+        Some((_, docufy_doc::InlineObject::Shape { effects, float, .. })) => (effects, float.effect),
         o => panic!("{o:?}"),
     };
     assert!(effects(&s).0.is_empty());
     run(&mut s, "shape.effects", json!({"shadow": "offsetBottomRight", "glow": {"color": "FF0000", "size": 8}, "softEdge": 5}));
     let (e, extent) = effects(&s);
     assert_eq!(e.shadow, Shadow::preset("offsetBottomRight"));
-    assert_eq!(e.glow.map(|g| (g.color, g.size)), Some((wordcraft_doc::props::Rgb(255, 0, 0), 8.0)));
+    assert_eq!(e.glow.map(|g| (g.color, g.size)), Some((docufy_doc::props::Rgb(255, 0, 0), 8.0)));
     assert_eq!(e.soft_edge, Some(5.0));
     assert!(extent.iter().all(|v| *v >= 8.0), "room for the glow: {extent:?}");
     // Clearing the glow leaves the shadow and soft edges.
@@ -6507,7 +6507,7 @@ fn deleting_a_style_falls_back_to_its_base_and_undoes() {
 /// Table Grid, styles based on it keep their look, and Word's built-in table styles are refused.
 #[test]
 fn deleting_a_table_style_from_manage_styles_uses_table_style_deletion() {
-    use wordcraft_doc::Rgb;
+    use docufy_doc::Rgb;
     let mut s = s();
     run(&mut s, "insert.table", json!({"rows": 2, "cols": 2}));
     let (tp, _, _) = s.sel.focus.path.cell().unwrap();
@@ -6552,7 +6552,7 @@ fn word_xml_saves_and_opens_through_io() {
     let mut s = s();
     run(&mut s, "text.insert", json!({"text": "Kept in one XML file"}));
     let bytes = crate::io::save_bytes("notes.xml", &s.doc).unwrap();
-    assert_eq!(wordcraft_docx::sniff_xml(&bytes), wordcraft_docx::XmlKind::FlatOpc);
+    assert_eq!(docufy_docx::sniff_xml(&bytes), docufy_docx::XmlKind::FlatOpc);
     let doc = crate::io::open_bytes("notes.XML", &bytes).unwrap();
     assert_eq!(doc.body, crate::io::open_bytes("n.docx", &crate::io::save_bytes("n.docx", &s.doc).unwrap()).unwrap().body);
     let err = crate::io::open_bytes("feed.xml", b"<rss><channel/></rss>").unwrap_err();
@@ -6565,17 +6565,17 @@ fn word_xml_saves_and_opens_through_io() {
 fn word_2003_xml_saves_through_the_save_commands() {
     let mut s = s();
     run(&mut s, "text.insert", json!({"text": "Kept for old readers"}));
-    let dir = std::env::temp_dir().join(format!("wordcraft-2003-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-2003-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("old.xml").to_string_lossy().to_string();
-    let kind = |p: &str| wordcraft_docx::sniff_xml(&std::fs::read(p).unwrap());
+    let kind = |p: &str| docufy_docx::sniff_xml(&std::fs::read(p).unwrap());
     run(&mut s, "file.saveAs", json!({"path": path, "format": "wordml2003"}));
-    assert_eq!(kind(&path), wordcraft_docx::XmlKind::WordMl2003);
-    assert!(crate::io::open_path(std::path::Path::new(&path)).unwrap().plain_text(wordcraft_doc::StoryRef::Body).contains("Kept for old readers"));
+    assert_eq!(kind(&path), docufy_docx::XmlKind::WordMl2003);
+    assert!(crate::io::open_path(std::path::Path::new(&path)).unwrap().plain_text(docufy_doc::StoryRef::Body).contains("Kept for old readers"));
     run(&mut s, "file.save", json!({}));
-    assert_eq!(kind(&path), wordcraft_docx::XmlKind::WordMl2003);
+    assert_eq!(kind(&path), docufy_docx::XmlKind::WordMl2003);
     run(&mut s, "file.save", json!({"path": path, "format": "flatopc"}));
-    assert_eq!(kind(&path), wordcraft_docx::XmlKind::FlatOpc);
+    assert_eq!(kind(&path), docufy_docx::XmlKind::FlatOpc);
     for bad in [
         json!({"path": dir.join("a.docx").to_string_lossy(), "format": "wordml2003"}),
         json!({"path": path, "format": "bogus"}),
@@ -6590,7 +6590,7 @@ fn word_2003_xml_saves_through_the_save_commands() {
 /// regions win: the total row's fill beats the first column's) and round-trip through .docx.
 #[test]
 fn custom_table_style_column_and_total_regions() {
-    use wordcraft_doc::Rgb;
+    use docufy_doc::Rgb;
     let mut s = s();
     run(&mut s, "insert.table", json!({"rows": 3, "cols": 4}));
     run(
@@ -6618,7 +6618,7 @@ fn custom_table_style_column_and_total_regions() {
     assert_eq!(fills(&mut s, Rgb(0x44, 0x55, 0x66)), 2, "last column");
     assert_eq!(fills(&mut s, Rgb(0xAB, 0xCD, 0xEF)), 2, "first column band");
 
-    let back = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+    let back = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
     let p = back.styles.get(&id).unwrap().table.clone().unwrap();
     assert_eq!(
         (p.first_col_fill, p.first_col_chr.bold, p.last_col_fill, p.total_fill, p.col_band_fill),
@@ -6631,7 +6631,7 @@ fn custom_table_style_column_and_total_regions() {
 /// puts its tables on Table Grid, refuses built-in styles, and undoes.
 #[test]
 fn delete_table_style_falls_back_and_undoes() {
-    use wordcraft_doc::Rgb;
+    use docufy_doc::Rgb;
     let mut s = s();
     run(&mut s, "insert.table", json!({"rows": 2, "cols": 2}));
     let (tp, _, _) = s.sel.focus.path.cell().unwrap();
@@ -6694,7 +6694,7 @@ fn deleting_the_last_cell_column_never_leaves_a_table_without_rows() {
 #[test]
 fn center_after_select_paragraph_leaves_the_next_paragraph_alone() {
     // #418: Select Paragraph ends at the next paragraph's start; that paragraph isn't selected.
-    use wordcraft_doc::Align;
+    use docufy_doc::Align;
     let align = |s: &Session, i: usize| s.doc.para_at(&Pos::body(i, 0)).and_then(|p| p.props.align);
     let mut s = s();
     run(&mut s, "text.insert", json!({"text": "Alpha\rBeta", "raw": true}));
@@ -6705,14 +6705,14 @@ fn center_after_select_paragraph_leaves_the_next_paragraph_alone() {
     assert_eq!((align(&s, 0), align(&s, 1)), (Some(Align::Center), None));
     // Reversed, too; a range into Beta centres both; a caret at Beta's start centres Beta.
     for (a, b, want) in [((1, 0), (0, 0), (Some(Align::Center), None)), ((0, 0), (1, 1), (Some(Align::Center), Some(Align::Center)))] {
-        let mut s = crate::Session::new(wordcraft_doc::Document::new());
+        let mut s = crate::Session::new(docufy_doc::Document::new());
         run(&mut s, "text.insert", json!({"text": "Alpha\rBeta", "raw": true}));
         run(&mut s, "caret.set", json!({"pos": {"block": a.0, "off": a.1}}));
         run(&mut s, "caret.set", json!({"pos": {"block": b.0, "off": b.1}, "extend": true}));
         run(&mut s, "para.align", json!({"value": "center"}));
         assert_eq!((align(&s, 0), align(&s, 1)), want, "{a:?}..{b:?}");
     }
-    let mut s = crate::Session::new(wordcraft_doc::Document::new());
+    let mut s = crate::Session::new(docufy_doc::Document::new());
     run(&mut s, "text.insert", json!({"text": "Alpha\rBeta", "raw": true}));
     run(&mut s, "caret.set", json!({"pos": {"block": 1, "off": 0}}));
     run(&mut s, "para.alignCenter", json!({}));
@@ -6729,7 +6729,7 @@ fn change_case_keeps_the_selection_when_lengths_change() {
     assert_eq!(text(&s), "ai\u{307}xZ");
     assert_eq!(s.selected_text(), "i\u{307}x");
     // ı uppers to I (one byte less); the trailing Z stays out of the selection.
-    let mut s = crate::Session::new(wordcraft_doc::Document::new());
+    let mut s = crate::Session::new(docufy_doc::Document::new());
     run(&mut s, "text.insert", json!({"text": "ıxZ", "raw": true}));
     run(&mut s, "select.text", json!({"text": "ıx"}));
     run(&mut s, "format.changeCase", json!({"mode": "upper"}));
@@ -6791,7 +6791,7 @@ fn document_grid_sets_lines_and_characters_in_one_undo_step() {
 
 #[test]
 fn insert_icon_places_a_picture_of_the_requested_size_that_saves_and_recolours() {
-    use wordcraft_doc::para::InlineObject;
+    use docufy_doc::para::InlineObject;
     let mut s = s();
     // Without an id: the library is listed and a front end is asked for its picker.
     let r = run(&mut s, "insert.icon", json!({"query": "envelope"}));
@@ -6812,7 +6812,7 @@ fn insert_icon_places_a_picture_of_the_requested_size_that_saves_and_recolours()
     assert!(!inked.is_empty() && inked.iter().all(|p| p.0[..3] == [0xC0, 0, 0]));
     assert!(png.get_pixel(0, 0).0[3] == 0, "transparent background");
     // It is an ordinary picture: it saves to .docx.
-    let back = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+    let back = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
     assert_eq!(back.media.len(), 1);
 
     // Icon Color repaints it, keeping the transparency.
@@ -6827,7 +6827,7 @@ fn insert_icon_places_a_picture_of_the_requested_size_that_saves_and_recolours()
 /// (balloons beside the scaled page) and at the end of HTML, Markdown and text copies.
 #[test]
 fn print_markup_exports_comments() {
-    let mut s = Session::new(wordcraft_doc::Document::from_text("The quarterly figures look strong."));
+    let mut s = Session::new(docufy_doc::Document::from_text("The quarterly figures look strong."));
     s.author = "Ada Reviewer".into();
     s.run("select.text", &json!({"text": "figures"})).unwrap();
     let id = s.run("review.newComment", &json!({"text": "Check the totals"})).unwrap()["id"].as_u64().unwrap();
@@ -6861,7 +6861,7 @@ fn print_markup_exports_comments() {
     assert_eq!(s.run("file.printMarkup", &json!({"value": false})).unwrap()["value"], false);
     assert!(html(&s, json!({"markup": true})).contains("Check the totals"));
     // file.exportPdf and file.exportPng take it too.
-    let dir = std::env::temp_dir().join(format!("wordcraft-print-markup-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-print-markup-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("m.pdf");
     let r = s.run("file.exportPdf", &json!({"path": path.to_string_lossy(), "markup": true})).unwrap();
@@ -6912,9 +6912,9 @@ fn colour_commands_take_any_custom_hex() {
     // Shading and page colour take custom colours the same way.
     run(&mut s, "para.shading", json!({"color": "#C0FFEE"}));
     let shading = s.doc.para_at(&s.sel.focus).and_then(|p| p.props.shading);
-    assert_eq!(shading, wordcraft_doc::Rgb::parse("C0FFEE"));
+    assert_eq!(shading, docufy_doc::Rgb::parse("C0FFEE"));
     run(&mut s, "design.pageColor", json!({"color": "123ABC"}));
-    assert_eq!(s.doc.settings.page_color, wordcraft_doc::Rgb::parse("123ABC"));
+    assert_eq!(s.doc.settings.page_color, docufy_doc::Rgb::parse("123ABC"));
 }
 
 /// #2738: Home › Underline › Underline Color sets the underline's own colour and leaves its style
@@ -6927,16 +6927,16 @@ fn underline_color_sets_and_clears_the_underlines_own_colour() {
     run(&mut s, "select.all", json!({}));
     run(&mut s, "format.underline", json!({"style": "wave"}));
     assert_eq!(run(&mut s, "format.state", json!({})).get("underlineColor"), Some(&json!("auto")));
-    let style = |s: &Session| s.doc.para_at(&wordcraft_doc::Pos::body(0, 0)).unwrap().runs[0].props.underline;
+    let style = |s: &Session| s.doc.para_at(&docufy_doc::Pos::body(0, 0)).unwrap().runs[0].props.underline;
     let wave = style(&s);
     for (given, want) in [("C00000", "C00000"), ("#1b5e20", "1B5E20")] {
         run(&mut s, "format.underlineColor", json!({"color": given}));
         assert_eq!(run(&mut s, "format.state", json!({})).get("underlineColor"), Some(&json!(want)));
         assert_eq!(style(&s), wave, "the style is kept");
     }
-    let back = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
-    let para = back.para_at(&wordcraft_doc::Pos::body(0, 0)).unwrap();
-    assert_eq!(para.runs[0].props.underline_color, wordcraft_doc::Rgb::parse("1B5E20"));
+    let back = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
+    let para = back.para_at(&docufy_doc::Pos::body(0, 0)).unwrap();
+    assert_eq!(para.runs[0].props.underline_color, docufy_doc::Rgb::parse("1B5E20"));
     run(&mut s, "edit.undo", json!({}));
     assert_eq!(run(&mut s, "format.state", json!({})).get("underlineColor"), Some(&json!("C00000")));
     run(&mut s, "format.underlineColor", json!({"color": "auto"}));
@@ -6954,7 +6954,7 @@ fn underline_color_sets_and_clears_the_underlines_own_colour() {
 /// that way), a `.docx` package renamed `.doc`, and RTF renamed `.docx`.
 #[test]
 fn documents_open_by_content_when_the_extension_is_wrong() {
-    let text = |doc: &wordcraft_doc::Document| doc.plain_text(StoryRef::Body);
+    let text = |doc: &docufy_doc::Document| doc.plain_text(StoryRef::Body);
     let rtf = b"{\\rtf1\\ansi\\ansicpg1251\\deff0{\\fonttbl{\\f0 Times New Roman;}}\\f0 \\'d1\\'f7\\'e5\\'f2 \\'b9 12\\par Invoice line\\par}";
     for name in ["Счет 12.doc", "report.DOC", "letter.dot", "renamed.docx"] {
         let doc = crate::io::open_bytes(name, rtf).unwrap_or_else(|e| panic!("{name}: {e}"));
@@ -6962,7 +6962,7 @@ fn documents_open_by_content_when_the_extension_is_wrong() {
         assert!(t.contains("Счет № 12") && t.contains("Invoice line"), "{name}: {t:?}");
     }
     // A Word package renamed `.doc` or `.rtf`.
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     run(&mut s, "text.insert", json!({"text": "Packaged text"}));
     let docx = crate::io::save_bytes("a.docx", &s.doc).unwrap();
     for name in ["package.doc", "package.rtf"] {
@@ -6979,8 +6979,8 @@ fn documents_open_by_content_when_the_extension_is_wrong() {
 /// and the window showed a blank page.
 #[test]
 fn word_xml_and_web_pages_saved_as_doc_open_by_content() {
-    let text = |doc: &wordcraft_doc::Document| doc.plain_text(StoryRef::Body);
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let text = |doc: &docufy_doc::Document| doc.plain_text(StoryRef::Body);
+    let mut s = Session::new(docufy_doc::Document::new());
     run(&mut s, "text.insert", json!({"text": "Truyện ngắn, chương một"}));
     run(&mut s, "format.bold", json!({}));
     let word2003 = crate::io::ExportOptions { word2003: true, ..Default::default() };
@@ -7019,12 +7019,12 @@ fn word_xml_and_web_pages_saved_as_doc_open_by_content() {
     }
 }
 
-/// #569: a playlist (.m3u / .m3u8) — or any file with an extension WordCraft doesn't know —
+/// #569: a playlist (.m3u / .m3u8) — or any file with an extension Docufy doesn't know —
 /// opens as plain text with its encoding detected, like Word's text import; a binary file is a
 /// clean error, never garbage or a panic.
 #[test]
 fn unknown_text_extensions_open_as_text() {
-    let lines = |doc: &wordcraft_doc::Document| doc.plain_text(StoryRef::Body);
+    let lines = |doc: &docufy_doc::Document| doc.plain_text(StoryRef::Body);
     let m3u8 = "#EXTM3U\r\n#EXTINF:215,Björk — Jóga\r\nmusic/Jóga.mp3\r\n#EXTINF:-1,Радио\r\nhttp://example.org/live\r\n";
     let doc = crate::io::open_bytes("Mix.M3U8", m3u8.as_bytes()).unwrap();
     assert!(
@@ -7057,7 +7057,7 @@ fn unknown_text_extensions_open_as_text() {
     let rtf = crate::io::open_bytes("note.tmp", br"{\rtf1\ansi Hello {\b bold}\par}").unwrap();
     assert!(lines(&rtf).starts_with("Hello bold"), "{:?}", lines(&rtf));
     // Through file.open, both from disk and with the bytes (the web's picker and drops).
-    let dir = std::env::temp_dir().join(format!("wordcraft-569-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-569-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("road trip.m3u");
     std::fs::write(&path, cp1252).unwrap();
@@ -7079,7 +7079,7 @@ fn unknown_text_extensions_open_as_text() {
 /// of asking for a name.
 #[test]
 fn an_empty_file_opens_as_a_blank_document_saved_back_to_it() {
-    let dir = std::env::temp_dir().join(format!("wordcraft-1384-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-1384-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("New Microsoft Word Document.docx");
     std::fs::write(&path, b"").unwrap();
@@ -7176,7 +7176,7 @@ fn selection_bar_selects_and_drags_by_lines() {
     run(&mut s, "select.line", json!({"pos": line2.clone()}));
     let (a, b) = s.sel.ordered();
     assert_eq!(a, line2);
-    assert_eq!(b.path, wordcraft_doc::Path::top(0));
+    assert_eq!(b.path, docufy_doc::Path::top(0));
     assert!(b.off > a.off && b.off < long.trim_end().len());
     assert_eq!(s.doc.para_at(&b).unwrap().text.as_bytes()[b.off - 1], b' ', "the trailing space is in");
     // The last line of a paragraph takes its mark.
@@ -7200,7 +7200,7 @@ fn selection_bar_selects_and_drags_by_lines() {
 /// again, and each step undoes.
 #[test]
 fn enclose_characters_make_an_eq_field_and_come_back_out() {
-    use wordcraft_doc::InlineObject;
+    use docufy_doc::InlineObject;
     let field = |s: &Session| {
         let p = s.doc.para_at(&Pos::body(0, 0)).unwrap();
         p.objects.iter().find_map(|o| match o {
@@ -7226,8 +7226,8 @@ fn enclose_characters_make_an_eq_field_and_come_back_out() {
 
     // Word's structure in the .docx: no result, the symbol and the text in runs of their own
     // sizes; reading it back gives the same fields, styles included.
-    let bytes = wordcraft_docx::write(&s.doc).unwrap();
-    let back = wordcraft_docx::read(&bytes).unwrap();
+    let bytes = docufy_docx::write(&s.doc).unwrap();
+    let back = docufy_docx::read(&bytes).unwrap();
     let bp = back.para_at(&Pos::body(0, 0)).unwrap();
     let back_codes: Vec<(String, String)> = bp
         .objects
@@ -7273,7 +7273,7 @@ fn list_buttons_follow_the_paragraphs_own_level() {
     assert_eq!(state(&s), ListButtons { bullets: true, numbering: false, multilevel: false });
     // A bulleted list whose second level is numbered: at level 2 the paragraph is numbered.
     let num = s.doc.para_at(&s.sel.focus).unwrap().props.numbering.unwrap().num;
-    let numbered = wordcraft_doc::numbering::Level { text: "%2.".into(), ..Default::default() };
+    let numbered = docufy_doc::numbering::Level { text: "%2.".into(), ..Default::default() };
     s.doc.numbering.nums.iter_mut().find(|n| n.id == num).unwrap().level_overrides.push((1, numbered));
     run(&mut s, "para.listLevel", json!({"level": 1}));
     assert_eq!(state(&s), ListButtons { bullets: false, numbering: true, multilevel: false });
@@ -7356,11 +7356,11 @@ fn convert_text_to_table_refuses_to_drop_content() {
 fn convert_text_to_table_keeps_inline_content() {
     // Issue #3751: the cells were rebuilt from plain text, losing formatting, pictures, links
     // and tracked deletions.
-    use wordcraft_doc::para::InlineObject;
+    use docufy_doc::para::InlineObject;
     let mut s = s();
     run(&mut s, "document.setText", json!({"text": "Name\t\tLink\tOld"}));
     {
-        let p = s.doc.para_mut(StoryRef::Body, &wordcraft_doc::Path::top(0)).unwrap();
+        let p = s.doc.para_mut(StoryRef::Body, &docufy_doc::Path::top(0)).unwrap();
         p.format(0, 4, &|c| c.bold = Some(true)).unwrap();
         p.format(6, 10, &|c| c.link = Some("https://example.com".into())).unwrap();
         p.format(11, 14, &|c| c.del = Some(1)).unwrap();
@@ -7425,7 +7425,7 @@ fn convert_to_text_takes_each_separator() {
         assert!(s.doc.body.iter().all(|b| b.as_table().is_none()), "{params}");
     }
     // U+FFFC marks an object in a paragraph's text, so it cannot be the separator.
-    let obj = wordcraft_doc::para::OBJ.to_string();
+    let obj = docufy_doc::para::OBJ.to_string();
     for bad in [
         json!({"separator": "other"}),
         json!({"separator": "other", "char": "\n"}),
@@ -7457,7 +7457,7 @@ fn convert_to_text_converts_the_selected_rows() {
     let head = s.doc.body[at].as_table().unwrap();
     let tail = s.doc.body[at + 4].as_table().unwrap();
     assert_eq!((head.rows.len(), tail.rows.len()), (1, 2));
-    use wordcraft_doc::props::VMerge;
+    use docufy_doc::props::VMerge;
     let merges: Vec<VMerge> = tail.rows.iter().map(|r| r.cells.last().unwrap().props.vmerge).collect();
     assert_eq!(merges, [VMerge::Restart, VMerge::Continue], "the merge starts again in the first row left");
     assert_eq!(s.sel.focus.path.0, [t + 1], "the caret goes to the converted text");
@@ -7476,8 +7476,8 @@ fn convert_to_text_converts_the_selected_rows() {
     // A floating table keeps its place in the part above; the part below goes in the text flow.
     let mut s = typed_table(2, &["a", "b", "c", "d", "e", "f"]);
     let t = s.doc.body.iter().position(|b| b.as_table().is_some()).unwrap() as u32;
-    let float = wordcraft_doc::props::TableFloat { x: 100.0, y: 200.0, overlap: true, ..Default::default() };
-    s.doc.table_mut(StoryRef::Body, &wordcraft_doc::Path(vec![t])).unwrap().props.float = Some(float);
+    let float = docufy_doc::props::TableFloat { x: 100.0, y: 200.0, overlap: true, ..Default::default() };
+    s.doc.table_mut(StoryRef::Body, &docufy_doc::Path(vec![t])).unwrap().props.float = Some(float);
     run(&mut s, "select.range", json!({"anchor": cell_at(t, 1, 0), "focus": cell_at(t, 1, 1)}));
     run(&mut s, "table.toText", json!({}));
     let at = t as usize;
@@ -7494,14 +7494,14 @@ fn convert_to_text_converts_the_selected_rows() {
 /// or every row become text.
 #[test]
 fn convert_to_text_keeps_a_content_control_around_the_table() {
-    use wordcraft_doc::{ContentControl, ControlWrap, InlineObject};
-    let has = |p: &wordcraft_doc::Paragraph, start: bool| {
+    use docufy_doc::{ContentControl, ControlWrap, InlineObject};
+    let has = |p: &docufy_doc::Paragraph, start: bool| {
         p.objects.iter().any(|o| if start { matches!(o, InlineObject::ControlStart { .. }) } else { matches!(o, InlineObject::ControlEnd) })
     };
     for rows in [Some((0, 0)), Some((2, 2)), None] {
         let mut s = typed_table(2, &["a", "b", "c", "d", "e", "f"]);
         let t = s.doc.body.iter().position(|b| b.as_table().is_some()).unwrap() as u32;
-        s.doc.table_mut(StoryRef::Body, &wordcraft_doc::Path(vec![t])).unwrap().controls =
+        s.doc.table_mut(StoryRef::Body, &docufy_doc::Path(vec![t])).unwrap().controls =
             ControlWrap { open: vec![ContentControl { tag: "wrap".into(), ..Default::default() }], close: 1 };
         assert!(!s.doc.has_unbalanced_controls());
         match rows {
@@ -7525,7 +7525,7 @@ fn convert_to_text_keeps_a_content_control_around_the_table() {
     let mut s = typed_table(2, &["a", "b", "c", "d", "e", "f", "g", "h"]);
     let t = s.doc.body.iter().position(|b| b.as_table().is_some()).unwrap() as u32;
     {
-        let table = s.doc.table_mut(StoryRef::Body, &wordcraft_doc::Path(vec![t])).unwrap();
+        let table = s.doc.table_mut(StoryRef::Body, &docufy_doc::Path(vec![t])).unwrap();
         table.rows[0].controls.open = vec![ContentControl { id: Some(7), tag: "rows".into(), ..Default::default() }];
         table.rows[3].controls.close = 1;
     }
@@ -7551,11 +7551,11 @@ fn convert_to_text_keeps_formatting_and_nested_tables() {
     run(&mut s, "select.range", json!({"anchor": first, "focus": end}));
     run(&mut s, "format.bold", json!({}));
     // A table nested in the second cell, after its text.
-    s.sel = crate::Selection::caret(wordcraft_doc::Pos { story: StoryRef::Body, path: wordcraft_doc::Path(vec![t, 0, 1, 0]), off: 1 });
+    s.sel = crate::Selection::caret(docufy_doc::Pos { story: StoryRef::Body, path: docufy_doc::Path(vec![t, 0, 1, 0]), off: 1 });
     run(&mut s, "text.newParagraph", json!({}));
     run(&mut s, "insert.table", json!({"rows": 1, "cols": 1}));
     run(&mut s, "text.insert", json!({"text": "Inner"}));
-    s.sel = crate::Selection::caret(wordcraft_doc::Pos { story: StoryRef::Body, path: wordcraft_doc::Path(vec![t, 0, 0, 0]), off: 0 });
+    s.sel = crate::Selection::caret(docufy_doc::Pos { story: StoryRef::Body, path: docufy_doc::Path(vec![t, 0, 0, 0]), off: 0 });
     run(&mut s, "table.toText", json!({}));
     let at = t as usize;
     let line = s.doc.body[at].as_para().unwrap();
@@ -7569,19 +7569,19 @@ fn convert_to_text_keeps_formatting_and_nested_tables() {
     // text, not back into the table above.
     let mut s = typed_table(2, &["A", "B", "", "D"]);
     let t = s.doc.body.iter().position(|b| b.as_table().is_some()).unwrap() as u32;
-    s.sel = crate::Selection::caret(wordcraft_doc::Pos { story: StoryRef::Body, path: wordcraft_doc::Path(vec![t, 1, 0, 0]), off: 0 });
+    s.sel = crate::Selection::caret(docufy_doc::Pos { story: StoryRef::Body, path: docufy_doc::Path(vec![t, 1, 0, 0]), off: 0 });
     run(&mut s, "insert.table", json!({"rows": 1, "cols": 1}));
     let row = &s.doc.body[t as usize].as_table().unwrap().rows[1];
     assert!(row.cells[0].blocks.first().is_some_and(|b| b.as_table().is_some()), "the cell starts with the nested table");
     run(&mut s, "select.range", json!({"anchor": cell_at(t, 1, 1), "focus": cell_at(t, 1, 1)}));
-    s.sel.anchor = wordcraft_doc::Pos { story: StoryRef::Body, path: wordcraft_doc::Path(vec![t, 1, 0, 1]), off: 0 };
+    s.sel.anchor = docufy_doc::Pos { story: StoryRef::Body, path: docufy_doc::Path(vec![t, 1, 0, 1]), off: 0 };
     run(&mut s, "table.toText", json!({}));
     let at = t as usize;
     assert_eq!(body_outline(&s).get(at..at + 3), Some(&["T", "T", "\tD"].map(String::from)[..]), "{:?}", body_outline(&s));
     assert_eq!(s.sel.focus.path.0, [t + 2], "the caret is on the row's text");
 }
 
-fn table_cell_text(t: &wordcraft_doc::Table) -> String {
+fn table_cell_text(t: &docufy_doc::Table) -> String {
     t.rows.iter().flat_map(|r| &r.cells).flat_map(|c| &c.blocks).filter_map(|b| b.as_para()).map(|p| p.text.clone()).collect()
 }
 
@@ -7609,7 +7609,7 @@ fn split_cells_leaves_the_other_rows_alone() {
     // Issue #432: splitting a cell inserted a grid column with a new cell in every row.
     let spans = |s: &Session| -> Vec<Vec<usize>> {
         let t = s.doc.body.iter().find_map(|b| b.as_table()).expect("a table");
-        t.rows.iter().map(|r| r.cells.iter().map(wordcraft_doc::Cell::span).collect()).collect()
+        t.rows.iter().map(|r| r.cells.iter().map(docufy_doc::Cell::span).collect()).collect()
     };
     let mut s = table_from("Left\nA");
     let width: f32 = s.doc.body.iter().find_map(|b| b.as_table()).unwrap().total_width();
@@ -7627,10 +7627,10 @@ fn split_cells_leaves_the_other_rows_alone() {
 
 fn table_spans(s: &Session) -> Vec<Vec<usize>> {
     let t = s.doc.body.iter().find_map(|b| b.as_table()).expect("a table");
-    t.rows.iter().map(|r| r.cells.iter().map(wordcraft_doc::Cell::span).collect()).collect()
+    t.rows.iter().map(|r| r.cells.iter().map(docufy_doc::Cell::span).collect()).collect()
 }
 
-fn table_vmerge(s: &Session) -> Vec<Vec<wordcraft_doc::props::VMerge>> {
+fn table_vmerge(s: &Session) -> Vec<Vec<docufy_doc::props::VMerge>> {
     let t = s.doc.body.iter().find_map(|b| b.as_table()).expect("a table");
     t.rows.iter().map(|r| r.cells.iter().map(|c| c.props.vmerge).collect()).collect()
 }
@@ -7639,7 +7639,7 @@ fn table_vmerge(s: &Session) -> Vec<Vec<wordcraft_doc::props::VMerge>> {
 /// other cells merging down over them; one undo puts the table back.
 #[test]
 fn split_cells_into_columns_and_rows() {
-    use wordcraft_doc::props::VMerge::{Continue, None as No, Restart};
+    use docufy_doc::props::VMerge::{Continue, None as No, Restart};
     let mut s = table_from("A\tB\nC\tD");
     let depth = s.undo_depth();
     run(&mut s, "table.split", json!({"columns": 2, "rows": 2}));
@@ -7661,7 +7661,7 @@ fn split_cells_into_columns_and_rows() {
 /// it every selected cell is split on its own.
 #[test]
 fn split_cells_merge_before_split() {
-    use wordcraft_doc::props::VMerge::None as No;
+    use docufy_doc::props::VMerge::None as No;
     let cell = |r: u32, c: u32| json!({"story": "body", "path": [0, r, c, 0], "off": 0});
     let mut s = table_from("A\tB\nC\tD");
     run(&mut s, "select.range", json!({"anchor": cell(0, 0), "focus": cell(1, 1)}));
@@ -7697,7 +7697,7 @@ fn split_cells_merge_before_split() {
 /// refused without changing anything.
 #[test]
 fn split_cells_of_a_vertically_merged_cell() {
-    use wordcraft_doc::props::VMerge::{Continue, None as No, Restart};
+    use docufy_doc::props::VMerge::{Continue, None as No, Restart};
     let cell = |r: u32, c: u32| json!({"story": "body", "path": [0, r, c, 0], "off": 0});
     let merged = || {
         let mut s = table_from("A\tB\nC\tD\nE\tF\nG\tH");
@@ -7732,7 +7732,7 @@ fn split_cells_of_a_vertically_merged_cell() {
 /// covers, and every other selected cell in two.
 #[test]
 fn split_cells_one_by_one_with_a_merged_cell() {
-    use wordcraft_doc::props::VMerge::{Continue, None as No, Restart};
+    use docufy_doc::props::VMerge::{Continue, None as No, Restart};
     let cell = |r: u32, c: u32| json!({"story": "body", "path": [0, r, c, 0], "off": 0});
     let merged = || {
         let mut s = table_from("A\tB\nC\tD");
@@ -7835,7 +7835,7 @@ fn convert_text_to_table_initial_column_width() {
         .items
         .iter()
         .filter_map(|it| match it {
-            wordcraft_layout::Placed::Cell { rect, row: 0, .. } => Some(rect.w),
+            docufy_layout::Placed::Cell { rect, row: 0, .. } => Some(rect.w),
             _ => None,
         })
         .sum();
@@ -7862,7 +7862,7 @@ fn convert_text_to_table_initial_column_width() {
 /// nothing changes, also when neighbours are merged with it first.
 #[test]
 fn split_cells_of_a_merged_cell_follow_word() {
-    use wordcraft_doc::props::VMerge::{Continue, None as No, Restart};
+    use docufy_doc::props::VMerge::{Continue, None as No, Restart};
     let cell = |r: u32, c: u32| json!({"story": "body", "path": [0, r, c, 0], "off": 0});
     let merged = || {
         let mut s = table_from("A\tB\nC\tD\nE\tF\nG\tH");
@@ -7917,7 +7917,7 @@ fn split_cells_of_a_merged_cell_follow_word() {
     run(&mut s, "select.range", json!({"anchor": cell(0, 0), "focus": cell(1, 1)}));
     run(&mut s, "table.split", json!({"columns": 1, "rows": 1}));
     assert_eq!(table_spans(&s), [[2], [2]]);
-    assert_eq!(table_vmerge(&s), [[wordcraft_doc::props::VMerge::Restart], [wordcraft_doc::props::VMerge::Continue]]);
+    assert_eq!(table_vmerge(&s), [[docufy_doc::props::VMerge::Restart], [docufy_doc::props::VMerge::Continue]]);
     // The merged cell and its neighbours, merged first: the limit is the selection's height.
     let mut s = merged();
     run(&mut s, "select.range", json!({"anchor": cell(0, 0), "focus": cell(1, 1)}));
@@ -7942,7 +7942,7 @@ fn split_cells_across_columns_into_equal_parts() {
     for (across, parts) in [(2, 3), (3, 2), (2, 2)] {
         let mut s = table_from("A\tB\tC\nD\tE\tF");
         // Unequal columns, as in a real document.
-        s.doc.table_mut(StoryRef::Body, &wordcraft_doc::Path(vec![0])).unwrap().grid = vec![100.0, 50.0, 150.0];
+        s.doc.table_mut(StoryRef::Body, &docufy_doc::Path(vec![0])).unwrap().grid = vec![100.0, 50.0, 150.0];
         run(&mut s, "select.range", json!({"anchor": cell(1, 0), "focus": cell(1, across - 1)}));
         run(&mut s, "table.merge", json!({}));
         let (top, old) = (widths(&s)[0].clone(), widths(&s)[1][0]);
@@ -7971,8 +7971,8 @@ fn split_cells_across_columns_into_equal_parts() {
 /// in one step.
 #[test]
 fn note_options_per_section_and_convert_notes() {
-    use wordcraft_doc::PartKind;
-    use wordcraft_doc::para::{InlineObject, NoteKind};
+    use docufy_doc::PartKind;
+    use docufy_doc::para::{InlineObject, NoteKind};
     let mut s = s();
     run(&mut s, "text.insert", json!({"text": "One"}));
     let a = run(&mut s, "references.footnote", json!({"text": "First", "mark": "*"}))["id"].as_u64().unwrap() as u32;
@@ -8009,7 +8009,7 @@ fn note_options_per_section_and_convert_notes() {
     assert_eq!(run(&mut s, "references.convertNotes", json!({"to": "endnote"}))["converted"], 2);
     assert_eq!(kinds(&s), vec![NoteKind::Endnote, NoteKind::Endnote]);
     assert!([a, b].iter().all(|id| s.doc.parts[id].kind == PartKind::Endnote));
-    let note = s.doc.para(StoryRef::Part(a), &wordcraft_doc::Path::top(0)).unwrap();
+    let note = s.doc.para(StoryRef::Part(a), &docufy_doc::Path::top(0)).unwrap();
     assert_eq!(note.props.style.as_deref(), Some("EndnoteText"));
     assert!(matches!(&note.objects[0], InlineObject::NoteRef { kind: NoteKind::Endnote, custom, .. } if custom == "*"));
     run(&mut s, "edit.undo", json!({}));
@@ -8041,7 +8041,7 @@ fn next_footnote_skips_endnotes() {
 /// A tiny synthetic Polish Hunspell dictionary (written for these tests). Real dictionaries are
 /// installed on the system, never bundled; every Polish test installs this same one.
 fn polish_test_dictionary() {
-    wordcraft_proof::pl::install_dictionary(POLISH_TEST_AFF, POLISH_TEST_DIC).unwrap();
+    docufy_proof::pl::install_dictionary(POLISH_TEST_AFF, POLISH_TEST_DIC).unwrap();
 }
 
 const POLISH_TEST_AFF: &str = "SET UTF-8\nTRY aioeznrwcyszżtkpdmłjlubąęgh\nMAP 2\nMAP oó\nMAP zż\nREP 2\nREP ż rz\nREP rz ż\n";
@@ -8050,7 +8050,7 @@ const POLISH_TEST_DIC: &str = "12\npłynie\nrzeka\na\nto\nwiem\nże\ntak\nw\nog�
 /// A tiny synthetic Portuguese Hunspell dictionary (written for these tests). Real dictionaries
 /// are installed on the system, never bundled; every Portuguese test installs this same one.
 fn portuguese_test_dictionary() {
-    wordcraft_proof::pt::install_dictionary(PORTUGUESE_TEST_AFF, PORTUGUESE_TEST_DIC).unwrap();
+    docufy_proof::pt::install_dictionary(PORTUGUESE_TEST_AFF, PORTUGUESE_TEST_DIC).unwrap();
 }
 
 const PORTUGUESE_TEST_AFF: &str =
@@ -8150,7 +8150,7 @@ fn portuguese_proofing_through_the_review_commands() {
 }
 
 fn indonesian_test_dictionary() {
-    wordcraft_proof::id::install_dictionary(INDONESIAN_TEST_AFF, INDONESIAN_TEST_DIC).unwrap();
+    docufy_proof::id::install_dictionary(INDONESIAN_TEST_AFF, INDONESIAN_TEST_DIC).unwrap();
 }
 
 // Hand-written synthetic fixture (no system dictionary data).
@@ -8239,7 +8239,7 @@ fn english_dialects_through_the_review_commands() {
     // Add to Dictionary overrules the dialect.
     run(&mut s, "review.addToDictionary", json!({"word": "analyze"}));
     assert!(spelling_with_first_suggestion(&mut s).is_empty());
-    wordcraft_proof::remove_word("analyze");
+    docufy_proof::remove_word("analyze");
 }
 
 /// A British document keeps its languages through .docx (`w:lang` in the defaults and on a run)
@@ -8275,7 +8275,7 @@ fn english_dialects_survive_a_docx_round_trip() {
 #[test]
 fn new_documents_follow_the_regions_english() {
     let mut s = s();
-    s.system_region = wordcraft_geom::Region::from_tag("en_GB.UTF-8");
+    s.system_region = docufy_geom::Region::from_tag("en_GB.UTF-8");
     assert_eq!(s.region_english().as_deref(), Some("en-GB"));
     let tag = s.region_english();
     s.set_editing_language(tag.as_deref());
@@ -8289,7 +8289,7 @@ fn new_documents_follow_the_regions_english() {
         run(&mut s, "file.options", json!({"region": tag}));
         assert_eq!(s.region_english().as_deref(), english, "{tag}");
     }
-    s.system_region = wordcraft_geom::Region::from_tag("fr-FR");
+    s.system_region = docufy_geom::Region::from_tag("fr-FR");
     assert_eq!(s.region_english(), None);
 }
 
@@ -8298,12 +8298,12 @@ fn new_documents_follow_the_regions_english() {
 #[test]
 fn new_documents_follow_the_regions_spanish() {
     let mut s = s();
-    s.system_region = wordcraft_geom::Region::from_tag("es_UY.UTF-8");
+    s.system_region = docufy_geom::Region::from_tag("es_UY.UTF-8");
     assert_eq!(s.region_spanish(), "es-UY");
     // The ISO 639-2 code is Spanish too (CodeRabbit review on #3562).
-    s.system_region = wordcraft_geom::Region::from_tag("spa_MX.UTF-8");
+    s.system_region = docufy_geom::Region::from_tag("spa_MX.UTF-8");
     assert_eq!(s.region_spanish(), "es-MX");
-    s.system_region = wordcraft_geom::Region::from_tag("es_UY.UTF-8");
+    s.system_region = docufy_geom::Region::from_tag("es_UY.UTF-8");
     s.set_editing_language(Some(&s.region_spanish()));
     assert_eq!(s.doc.styles.default_chr.lang.as_deref(), Some("es-UY"), "the untouched document follows");
     for (tag, spanish) in [("es-MX", "es-MX"), ("es-419", "es-419"), ("es-ES", "es-ES"), ("en-US", "es-ES"), ("fr-FR", "es-ES"), ("auto", "es-UY")] {
@@ -8320,9 +8320,9 @@ const SPANISH_TEST_DIC: &str = "10\nesto\nes\nuna\nprueba/S\ndel\ncorrector\ntam
 const URUGUAYAN_TEST_DIC: &str = "10\nesto\nes\nuna\nprueba/S\ndel\ncorrector\ntambién\ntener\nvenir\ndecir\n";
 
 fn spanish_test_dictionaries() {
-    use wordcraft_proof::ProofLang;
+    use docufy_proof::ProofLang;
     for (lang, dic) in [(ProofLang::Es, SPANISH_TEST_DIC), (ProofLang::EsUy, URUGUAYAN_TEST_DIC)] {
-        wordcraft_proof::es::install_dictionary(lang, SPANISH_TEST_AFF, dic).unwrap();
+        docufy_proof::es::install_dictionary(lang, SPANISH_TEST_AFF, dic).unwrap();
     }
 }
 
@@ -8384,7 +8384,7 @@ fn add_and_ignore_all_accept_both_normalization_forms() {
     run(&mut s, "select.all", json!({}));
     run(&mut s, "review.language", json!({"lang": "es-ES"}));
     assert!(run(&mut s, "review.issues", json!({})).as_array().unwrap().is_empty());
-    wordcraft_proof::remove_word("zqanadédo");
+    docufy_proof::remove_word("zqanadédo");
 }
 
 /// Uruguayan Spanish accepts the `vos` forms, imperatives included, that Spain's flags.
@@ -8449,7 +8449,7 @@ const ITALIAN_TEST_AFF: &str = "SET UTF-8\nTRY aeiortnsclcaffèéè\nMAP 2\nMAP 
 const ITALIAN_TEST_DIC: &str = "6\ncasa\ncaffè\nroma\ndisse\ne\nper\n";
 
 fn italian_test_dictionary() {
-    wordcraft_proof::it::install_dictionary(ITALIAN_TEST_AFF, ITALIAN_TEST_DIC).unwrap();
+    docufy_proof::it::install_dictionary(ITALIAN_TEST_AFF, ITALIAN_TEST_DIC).unwrap();
 }
 
 /// Review › Language and the proofing commands work in Italian end to end: the language makes
@@ -8631,7 +8631,7 @@ fn default_proofing_language_survives_a_restart() {
     run(&mut second, "file.open", json!({"path": "note.txt", "data": data}));
     assert_eq!(second.doc.styles.default_chr.lang.as_deref(), Some("fr-FR"));
 
-    let mut english = wordcraft_doc::Document::from_text("English document");
+    let mut english = docufy_doc::Document::from_text("English document");
     english.styles.default_chr.lang = Some("en-GB".into());
     let bytes = crate::io::save_bytes("english.docx", &english).unwrap();
     let data = crate::cmd::insert::base64_encode(&bytes);
@@ -8662,7 +8662,7 @@ fn default_proofing_language_ignores_damaged_preferences() {
 #[test]
 fn rejected_default_proofing_language_does_not_survive_a_restart() {
     for saved in [None, Some("pl-PL")] {
-        let mut session = Session::new(wordcraft_doc::Document::from_text("Locked intro.\nEditable text.\nLocked end."));
+        let mut session = Session::new(docufy_doc::Document::from_text("Locked intro.\nEditable text.\nLocked end."));
         session.prefs.default_language = saved.map(str::to_string);
         session.set_editing_language(Some("en-US"));
         run(&mut session, "select.text", json!({"text": "Editable text."}));
@@ -8723,13 +8723,13 @@ fn hide_white_space_toggles_view_state_only() {
 fn select_graphic(s: &mut Session) {
     let (path, off) = (0..s.doc.body.len() as u32)
         .find_map(|b| {
-            let p = s.doc.para(StoryRef::Body, &wordcraft_doc::Path(vec![b]))?;
-            let off = p.object_offsets().into_iter().find(|o| matches!(p.object_at(*o), Some(wordcraft_doc::InlineObject::Graphic { .. })))?;
-            Some((wordcraft_doc::Path(vec![b]), off))
+            let p = s.doc.para(StoryRef::Body, &docufy_doc::Path(vec![b]))?;
+            let off = p.object_offsets().into_iter().find(|o| matches!(p.object_at(*o), Some(docufy_doc::InlineObject::Graphic { .. })))?;
+            Some((docufy_doc::Path(vec![b]), off))
         })
         .expect("a graphic");
     let at = Pos { story: StoryRef::Body, path, off };
-    let end = Pos { off: off + wordcraft_doc::para::OBJ.len_utf8(), ..at.clone() };
+    let end = Pos { off: off + docufy_doc::para::OBJ.len_utf8(), ..at.clone() };
     s.sel = crate::Selection { anchor: at, focus: end };
 }
 
@@ -8762,7 +8762,7 @@ fn smart_art_round_trips_through_docx() {
     let again = crate::io::save_bytes("sa.docx", &s2.doc).unwrap();
     let mut s3 = Session::new(crate::io::open_bytes("sa.docx", &again).unwrap());
     select_graphic(&mut s3);
-    assert_eq!(cmd::smart_art::selected_smart_art(&s3).map(|g| g.layout), Some(wordcraft_doc::smart_art::SmartArtLayout::Venn));
+    assert_eq!(cmd::smart_art::selected_smart_art(&s3).map(|g| g.layout), Some(docufy_doc::smart_art::SmartArtLayout::Venn));
     // A data part another program rewrote: shown, not editable.
     let mut zip = zip::ZipArchive::new(std::io::Cursor::new(&again)).unwrap();
     let mut out = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
@@ -8802,7 +8802,7 @@ fn smart_art_edits_undo_one_step_each() {
     run(&mut s, "smartArt.colors", json!({"variant": "accent4"}));
     run(&mut s, "smartArt.layout", json!({"layout": "pyramid"}));
     run(&mut s, "edit.undo", json!({}));
-    assert_eq!(cmd::smart_art::selected_smart_art(&s).unwrap().layout, wordcraft_doc::smart_art::SmartArtLayout::Process);
+    assert_eq!(cmd::smart_art::selected_smart_art(&s).unwrap().layout, docufy_doc::smart_art::SmartArtLayout::Process);
     for _ in 0..5 {
         run(&mut s, "edit.undo", json!({}));
     }
@@ -8814,7 +8814,7 @@ fn smart_art_edits_undo_one_step_each() {
 /// #497: hostile SmartArt params are capped or refused, never a panic.
 #[test]
 fn smart_art_hostile_params_are_capped() {
-    use wordcraft_doc::smart_art::{MAX_ITEMS, MAX_LEVEL, MAX_TEXT};
+    use docufy_doc::smart_art::{MAX_ITEMS, MAX_LEVEL, MAX_TEXT};
     let mut s = s();
     let many: Vec<serde_json::Value> = (0..MAX_ITEMS * 3).map(|i| json!({"text": "x".repeat(10_000), "level": i * 1000})).collect();
     run(&mut s, "insert.smartArt", json!({"layout": "hierarchy", "items": many, "width": 1e30, "height": -5}));
@@ -8870,7 +8870,7 @@ fn laid_out_blocks(s: &mut Session) -> Vec<u32> {
         .items
         .iter()
         .filter_map(|it| match it {
-            wordcraft_layout::Placed::Lines { story: StoryRef::Body, path, .. } => path.0.first().copied(),
+            docufy_layout::Placed::Lines { story: StoryRef::Body, path, .. } => path.0.first().copied(),
             _ => None,
         })
         .collect();
@@ -8970,9 +8970,9 @@ fn outline_collapse_hides_descendants_and_expand_restores() {
 fn outline_many_collapsed_headings_stay_fast_after_edits() {
     const N: usize = 8000;
     let text: Vec<String> = (0..N).flat_map(|i| [format!("Heading {i}"), format!("body {i}")]).collect();
-    let mut d = wordcraft_doc::Document::from_text(&text.join("\n"));
+    let mut d = docufy_doc::Document::from_text(&text.join("\n"));
     for i in 0..N {
-        let p = d.para_mut(StoryRef::Body, &wordcraft_doc::Path::top(2 * i)).unwrap();
+        let p = d.para_mut(StoryRef::Body, &docufy_doc::Path::top(2 * i)).unwrap();
         p.props.style = Some("Heading1".into());
     }
     let mut s = Session::new(d);
@@ -9007,13 +9007,13 @@ fn imported_pictures_fit_the_text_width() {
             .unwrap();
         cmd::insert::base64_encode(&b)
     };
-    let sizes = |doc: &wordcraft_doc::Document| -> Vec<(f32, f32)> {
+    let sizes = |doc: &docufy_doc::Document| -> Vec<(f32, f32)> {
         doc.body
             .iter()
             .filter_map(|b| b.as_para())
             .flat_map(|p| p.objects.iter())
             .filter_map(|o| match o {
-                wordcraft_doc::InlineObject::Image { w, h, .. } => Some((*w, *h)),
+                docufy_doc::InlineObject::Image { w, h, .. } => Some((*w, *h)),
                 _ => None,
             })
             .collect()
@@ -9028,7 +9028,7 @@ fn imported_pictures_fit_the_text_width() {
     assert!((got[1].0 - 30.0).abs() < 0.01 && (got[1].1 - 15.0).abs() < 0.01, "small picture keeps its size: {got:?}");
 
     // Pasting HTML fits our text width too.
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     let html = format!("<p><img src=\"data:image/png;base64,{}\"></p>", png(1200, 300));
     s.run("edit.pasteSpecial", &json!({"as": "html", "html": html})).unwrap();
     let max_w = crate::io::text_width(&s.doc);
@@ -9043,7 +9043,7 @@ fn format_font_sets_the_asian_and_latin_fonts_separately() {
     run(&mut s, "document.setText", json!({"text": "Hello 你好"}));
     run(&mut s, "select.all", json!({}));
     let fonts = |s: &Session| {
-        let c = s.doc.para(StoryRef::Body, &wordcraft_doc::Path::top(0)).unwrap().props_of_char(0).clone();
+        let c = s.doc.para(StoryRef::Body, &docufy_doc::Path::top(0)).unwrap().props_of_char(0).clone();
         (c.font, c.font_ea)
     };
     let before = fonts(&s);
@@ -9065,7 +9065,7 @@ fn format_font_sets_the_asian_and_latin_fonts_separately() {
 fn formula_result(s: &Session, r: usize, c: usize) -> Option<String> {
     let t = s.doc.body.iter().find_map(|b| b.as_table())?;
     t.rows.get(r)?.cells.get(c)?.blocks.iter().filter_map(|b| b.as_para()).flat_map(|p| p.objects.iter()).find_map(|o| match o {
-        wordcraft_doc::InlineObject::Field { instr, result, .. } if instr.starts_with('=') => Some(result.clone()),
+        docufy_doc::InlineObject::Field { instr, result, .. } if instr.starts_with('=') => Some(result.clone()),
         _ => None,
     })
 }
@@ -9227,7 +9227,7 @@ fn table_and_paragraph_sort_use_polish_alphabet() {
     let mut s = column_table("pl-PL", &["Zakopane", "Łódź", "Kraków"]);
     run(&mut s, "table.sort", json!({"column": 0, "header": false}));
     assert_eq!(column_texts(&s), ["Kraków", "Łódź", "Zakopane"]);
-    let mut s = Session::new(wordcraft_doc::Document::from_text("zebra\nćma\ndom"));
+    let mut s = Session::new(docufy_doc::Document::from_text("zebra\nćma\ndom"));
     run(&mut s, "review.language", json!({"lang": "pl-PL", "default": true}));
     run(&mut s, "select.all", json!({}));
     run(&mut s, "para.sort", json!({}));
@@ -9245,7 +9245,7 @@ fn table_and_paragraph_sort_use_polish_alphabet() {
 /// `Ł` heading between `K` and `Z` in Polish.
 #[test]
 fn index_sorts_polish_entries_and_headings() {
-    let mut s = Session::new(wordcraft_doc::Document::from_text("Zakopane.\nŁódź.\nKraków."));
+    let mut s = Session::new(docufy_doc::Document::from_text("Zakopane.\nŁódź.\nKraków."));
     run(&mut s, "review.language", json!({"lang": "pl-PL", "default": true}));
     for w in ["Zakopane", "Łódź", "Kraków"] {
         run(&mut s, "select.text", json!({"text": w}));
@@ -9311,9 +9311,9 @@ fn new_documents_follow_the_region() {
     run(&mut s, "file.options", json!({"region": "pl-PL"}));
     run(&mut s, "file.new", json!({}));
     let sp = &s.doc.last_section;
-    assert_eq!(wordcraft_geom::paper_name(sp.page_w, sp.page_h), Some("A4"));
+    assert_eq!(docufy_geom::paper_name(sp.page_w, sp.page_h), Some("A4"));
     assert_eq!(sp.margin_left, 72.0);
-    assert_eq!(s.units(), wordcraft_geom::Unit::Centimeters);
+    assert_eq!(s.units(), docufy_geom::Unit::Centimeters);
     assert_eq!(s.format_length(sp.margin_left), "2,54 cm");
     let o = run(&mut s, "file.options", json!({"pane": "advanced", "units": "auto"}));
     assert_eq!((o["units"].as_str(), o["unitsFromRegion"].as_bool()), (Some("centimeters"), Some(true)));
@@ -9321,16 +9321,16 @@ fn new_documents_follow_the_region() {
 
     // The user's own choice wins over the region, and `auto` gives the region's back.
     run(&mut s, "file.options", json!({"units": "inches"}));
-    assert_eq!(s.units(), wordcraft_geom::Unit::Inches);
+    assert_eq!(s.units(), docufy_geom::Unit::Inches);
     assert_eq!(s.format_length(108.0), "1,5\"");
     run(&mut s, "file.options", json!({"units": "auto"}));
-    assert_eq!(s.units(), wordcraft_geom::Unit::Centimeters);
+    assert_eq!(s.units(), docufy_geom::Unit::Centimeters);
 
     // A chosen region is a saved preference over the system's; `auto` returns to the system's.
     assert_eq!(s.prefs.region.as_deref(), Some("pl-PL"));
     let saved: serde_json::Value = serde_json::to_value(&s.prefs).unwrap();
     assert_eq!(saved["region"], "pl-PL");
-    s.system_region = wordcraft_geom::Region::from_tag("ja-JP");
+    s.system_region = docufy_geom::Region::from_tag("ja-JP");
     assert_eq!(s.region().territory, "PL", "the choice wins over the system");
     let o = run(&mut s, "file.options", json!({"region": "auto"}));
     assert_eq!((o["regionFromSystem"].as_bool(), o["region"]["territory"].as_str()), (Some(true), Some("JP")));
@@ -9341,26 +9341,26 @@ fn new_documents_follow_the_region() {
     assert_eq!(s.prefs.region, None);
 
     // The United States: Letter and inches.
-    let mut us = Session::new(wordcraft_doc::Document::new());
+    let mut us = Session::new(docufy_doc::Document::new());
     run(&mut us, "file.options", json!({"region": "en-US"}));
     run(&mut us, "file.new", json!({"template": "blank"}));
     let sp = &us.doc.last_section;
     assert_eq!((sp.page_w, sp.page_h), (612.0, 792.0));
-    assert_eq!(us.units(), wordcraft_geom::Unit::Inches);
+    assert_eq!(us.units(), docufy_geom::Unit::Inches);
     assert_eq!(us.format_length(72.0), "1\"");
     run(&mut us, "file.options", json!({"units": "centimeters"}));
     assert_eq!(us.format_length(72.0), "2.54 cm");
 
     // Templates keep their own size; a headless session is en-US; junk is refused or read as en-US.
-    let mut t = Session::new(wordcraft_doc::Document::new());
+    let mut t = Session::new(docufy_doc::Document::new());
     run(&mut t, "file.options", json!({"region": "de-DE"}));
     run(&mut t, "file.new", json!({"template": "letter"}));
     assert_eq!(t.doc.last_section.page_w, crate::sample::letter().last_section.page_w);
-    assert_eq!(Session::new(wordcraft_doc::Document::new()).blank_document().last_section.page_w, 612.0);
+    assert_eq!(Session::new(docufy_doc::Document::new()).blank_document().last_section.page_w, 612.0);
     assert!(t.run("file.options", &json!({"region": 7})).is_err());
     assert!(t.run("file.options", &json!({"units": "furlongs"})).is_err());
     run(&mut t, "file.options", json!({"region": "\u{0}\u{FFFF}-zz-ZZZZZZZZ"}));
-    assert_eq!(t.region(), wordcraft_geom::Region::default());
+    assert_eq!(t.region(), docufy_geom::Region::default());
     assert_eq!(t.prefs.region.as_deref(), Some("en-US"), "junk is saved as en-US");
 }
 
@@ -9445,7 +9445,7 @@ fn find_replace_and_go_to_open_like_word() {
 #[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn insert_picture_takes_a_windows_metafile() {
-    use wordcraft_doc::para::InlineObject;
+    use docufy_doc::para::InlineObject;
     // One WMF record: size in words, function, parameters.
     let rec = |func: u16, params: &[i16]| {
         let mut v = ((3 + params.len()) as u32).to_le_bytes().to_vec();
@@ -9474,7 +9474,7 @@ fn insert_picture_takes_a_windows_metafile() {
     let path = dir.join("logo.wmf");
     std::fs::write(&path, &wmf).unwrap();
 
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     let r = run(&mut s, "insert.picture", json!({"path": path.to_string_lossy()}));
     assert_eq!((r["width"].as_f64(), r["height"].as_f64()), (Some(72.0), Some(36.0)), "{r}");
     let key = r["media"].as_str().unwrap().to_string();
@@ -9505,29 +9505,29 @@ fn picture_change_keeps_the_replacement_format() {
     let second = dir.join("second.jpg");
     std::fs::write(&second, &jpeg).unwrap();
 
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     run(&mut s, "insert.picture", json!({"path": first.to_string_lossy()}));
     run(&mut s, "picture.change", json!({"path": second.to_string_lossy()}));
     let mut media = String::new();
     s.doc.objects_in_reading_order(&mut |o| {
-        if let wordcraft_doc::para::InlineObject::Image { media: m, .. } = o {
+        if let docufy_doc::para::InlineObject::Image { media: m, .. } = o {
             media = m.clone();
         }
     });
     assert!(media.ends_with(".jpeg") || media.ends_with(".jpg"), "the JPEG keeps its format: {media}");
-    let back = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+    let back = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
     assert_eq!(back.media.get(&media).map(|b| b.as_slice()), Some(jpeg.as_slice()), "the saved part is the JPEG");
     let _ = std::fs::remove_dir_all(&dir);
 }
 
 #[test]
 fn json_open_repairs_hostile_run_lengths() {
-    use wordcraft_doc::{Block, Document};
+    use docufy_doc::{Block, Document};
     // "héllo": é is two bytes (1..3); a run ending at 2 splits it, usize::MAX overflows a sum.
     for lens in [vec![2, 4], vec![usize::MAX, usize::MAX], vec![1], vec![], vec![0, 99]] {
         let mut d = Document::from_text("héllo");
         if let Some(Block::Para(p)) = d.body.first_mut().map(std::sync::Arc::make_mut) {
-            p.runs = lens.iter().map(|&len| wordcraft_doc::para::Run { len, props: Default::default() }).collect();
+            p.runs = lens.iter().map(|&len| docufy_doc::para::Run { len, props: Default::default() }).collect();
         }
         let bytes = serde_json::to_vec(&d).unwrap();
         let (doc, _) = crate::io::open_bytes_with("x.json", &bytes, None).unwrap();
@@ -9654,15 +9654,15 @@ fn tracked_field_result_docx() -> Vec<u8> {
 
 #[test]
 fn tracked_deletion_inside_a_field_result_is_a_revision_and_is_saved() {
-    let doc = wordcraft_docx::read(&tracked_field_result_docx()).unwrap();
+    let doc = docufy_docx::read(&tracked_field_result_docx()).unwrap();
     // Revisions with one author and date are shared: one deletion, one insertion.
     let kinds: Vec<_> = doc.revisions.iter().map(|r| r.kind).collect();
-    assert_eq!(kinds, [wordcraft_doc::RevisionKind::Delete, wordcraft_doc::RevisionKind::Insert]);
+    assert_eq!(kinds, [docufy_doc::RevisionKind::Delete, docufy_doc::RevisionKind::Insert]);
     // The deleted `$` is still in the text, marked deleted (not ordinary result text).
     let p = doc.body[0].as_para().unwrap();
-    assert_eq!(p.text.replace(wordcraft_doc::para::OBJ, ""), "$150.00$140.00");
+    assert_eq!(p.text.replace(docufy_doc::para::OBJ, ""), "$150.00$140.00");
     // Saving keeps the deletion inside the result, with its text as delText.
-    let bytes = wordcraft_docx::write(&doc).unwrap();
+    let bytes = docufy_docx::write(&doc).unwrap();
     let mut z = zip::ZipArchive::new(std::io::Cursor::new(bytes)).unwrap();
     let mut xml = String::new();
     std::io::Read::read_to_string(&mut z.by_name("word/document.xml").unwrap(), &mut xml).unwrap();
@@ -9674,12 +9674,12 @@ fn tracked_deletion_inside_a_field_result_is_a_revision_and_is_saved() {
 
 /// Paragraph texts without the field markers' placeholder characters.
 fn visible_texts(s: &Session) -> Vec<String> {
-    body_texts(s).iter().map(|t| t.replace(wordcraft_doc::para::OBJ, "")).collect()
+    body_texts(s).iter().map(|t| t.replace(docufy_doc::para::OBJ, "")).collect()
 }
 
 #[test]
 fn accept_and_reject_all_handle_a_tracked_deletion_inside_a_field_result() {
-    let open = || Session::new(wordcraft_docx::read(&tracked_field_result_docx()).unwrap());
+    let open = || Session::new(docufy_docx::read(&tracked_field_result_docx()).unwrap());
     let mut s = open();
     run(&mut s, "review.acceptAll", json!({}));
     assert_eq!(visible_texts(&s), ["$140.00", "five"]);
@@ -9691,14 +9691,14 @@ fn accept_and_reject_all_handle_a_tracked_deletion_inside_a_field_result() {
 
 #[test]
 fn rename_document_preserves_saved_contents_and_rejects_collisions() {
-    let dir = std::env::temp_dir().join(format!("wordcraft-rename-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-rename-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let original = dir.join("original.docm");
     let renamed = dir.join("Notes.docm");
     let existing = dir.join("existing.docm");
     std::fs::write(&original, b"original bytes").unwrap();
     std::fs::write(&existing, b"keep these bytes").unwrap();
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     s.path = Some(original.clone());
     s.dirty = true;
     assert!(s.run("file.rename", &json!({"name": "existing"})).is_err());
@@ -9750,7 +9750,7 @@ fn rename_document_preserves_saved_contents_and_rejects_collisions() {
 
 #[test]
 fn rename_unsaved_document_names_the_file_not_the_document() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     s.doc.core.title = "Quarterly report".into();
     for name in ["", "  ", "../report", "a/b", "a\\b", "a\nb", "name."] {
         assert!(s.run("file.rename", &json!({"name": name})).is_err(), "{name:?}");
@@ -9778,7 +9778,7 @@ fn rename_unsaved_document_names_the_file_not_the_document() {
 /// document's content into the open one (#1327 follow-up).
 #[test]
 fn a_version_snapshot_does_not_survive_a_document_switch() {
-    let mut s = Session::new(wordcraft_doc::Document::from_text("First document."));
+    let mut s = Session::new(docufy_doc::Document::from_text("First document."));
     s.run("file.versions", &json!({"save": "snapshot"})).unwrap();
     assert_eq!(s.versions.len(), 1);
 
@@ -9807,13 +9807,13 @@ fn a_version_snapshot_does_not_survive_a_document_switch() {
 /// over the comparison result (#1327 follow-up).
 #[test]
 fn a_version_snapshot_does_not_survive_a_comparison() {
-    let dir = std::env::temp_dir().join(format!("wordcraft-compare-versions-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-compare-versions-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let original = dir.join("original.docx");
-    let mut other = Session::new(wordcraft_doc::Document::from_text("Original document."));
+    let mut other = Session::new(docufy_doc::Document::from_text("Original document."));
     other.run("file.save", &json!({"path": original.to_string_lossy()})).unwrap();
 
-    let mut s = Session::new(wordcraft_doc::Document::from_text("Current document."));
+    let mut s = Session::new(docufy_doc::Document::from_text("Current document."));
     s.run("file.versions", &json!({"save": "snapshot"})).unwrap();
     assert_eq!(s.versions.len(), 1);
     s.run("review.compare", &json!({"original": original.to_string_lossy(), "text": "Revised document."})).unwrap();
@@ -9826,7 +9826,7 @@ fn a_version_snapshot_does_not_survive_a_comparison() {
 #[test]
 fn a_version_snapshot_does_not_survive_an_untitled_comparison() {
     for show_in in ["new", "revised"] {
-        let mut s = Session::new(wordcraft_doc::Document::from_text("Current document."));
+        let mut s = Session::new(docufy_doc::Document::from_text("Current document."));
         s.run("file.versions", &json!({"save": "snapshot"})).unwrap();
         s.run("review.compare", &json!({"text": "Revised document.", "showIn": show_in})).unwrap();
         assert!(s.versions.is_empty(), "old snapshots survived a {show_in} comparison");
@@ -9841,13 +9841,13 @@ fn a_version_snapshot_does_not_survive_an_untitled_comparison() {
 /// the same: the `replaces_document` guard keeps its undo step (#4004 review).
 #[test]
 fn a_repeated_comparison_is_still_an_edit() {
-    let dir = std::env::temp_dir().join(format!("wordcraft-compare-twice-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-compare-twice-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let original = dir.join("original.docx");
-    let mut other = Session::new(wordcraft_doc::Document::from_text("Original document."));
+    let mut other = Session::new(docufy_doc::Document::from_text("Original document."));
     other.run("file.save", &json!({"path": original.to_string_lossy()})).unwrap();
 
-    let mut s = Session::new(wordcraft_doc::Document::from_text("Current document."));
+    let mut s = Session::new(docufy_doc::Document::from_text("Current document."));
     let compare = json!({"original": original.to_string_lossy(), "text": "Revised document."});
     s.run("review.compare", &compare).unwrap();
     let depth = s.undo_depth();
@@ -9861,9 +9861,9 @@ fn a_repeated_comparison_is_still_an_edit() {
 /// A rejected comparison leaves the current document and its snapshots together.
 #[test]
 fn a_rejected_comparison_keeps_the_current_versions() {
-    use wordcraft_doc::{CharProps, InlineObject};
+    use docufy_doc::{CharProps, InlineObject};
 
-    let mut s = Session::new(wordcraft_doc::Document::from_text("Editable. Locked."));
+    let mut s = Session::new(docufy_doc::Document::from_text("Editable. Locked."));
     s.path = Some(std::path::PathBuf::from("original.docx"));
     s.file_name = Some("original.docx".into());
     s.run("file.versions", &json!({"save": "snapshot"})).unwrap();
@@ -9885,9 +9885,9 @@ fn a_rejected_comparison_keeps_the_current_versions() {
 /// versions, password and text.
 #[test]
 fn a_mailing_result_beside_a_protected_document_keeps_its_file_identity() {
-    use wordcraft_doc::{CharProps, InlineObject};
+    use docufy_doc::{CharProps, InlineObject};
 
-    let mut s = Session::new(wordcraft_doc::Document::from_text("Protected source."));
+    let mut s = Session::new(docufy_doc::Document::from_text("Protected source."));
     s.path = Some(std::path::PathBuf::from("source.docx"));
     s.file_name = Some("source.docx".into());
     s.run("file.versions", &json!({"save": "snapshot"})).unwrap();
@@ -9920,9 +9920,9 @@ fn a_mailing_result_beside_a_protected_document_keeps_its_file_identity() {
 /// text box — and Remove All deletes exactly that text, in one undo step, through a DOCX save.
 #[test]
 fn inspect_document_hidden_text_in_every_story_and_from_styles() {
-    use wordcraft_doc::props::{CharProps, ParaProps};
-    use wordcraft_doc::styles::{Style, StyleKind};
-    use wordcraft_doc::{Paragraph, PartKind, para_block};
+    use docufy_doc::props::{CharProps, ParaProps};
+    use docufy_doc::styles::{Style, StyleKind};
+    use docufy_doc::{Paragraph, PartKind, para_block};
     let mut s = s();
     run(&mut s, "text.insert", json!({"text": "Body words"}));
     run(&mut s, "review.newComment", json!({"text": "c"}));
@@ -9976,9 +9976,9 @@ fn inspect_document_hidden_text_in_every_story_and_from_styles() {
     };
     s.doc.body.extend(blocks("body"));
     // A table cell in the body, with the same pieces.
-    let mut table = wordcraft_doc::table::Table::new(1, 2, 200.0);
+    let mut table = docufy_doc::table::Table::new(1, 2, 200.0);
     table.rows[0].cells[0].blocks = blocks("cell");
-    s.doc.body.push(std::sync::Arc::new(wordcraft_doc::Block::Table(table)));
+    s.doc.body.push(std::sync::Arc::new(docufy_doc::Block::Table(table)));
     s.doc.body.push(para_block(Paragraph::new()));
     let mut tags = vec![("body", "body"), ("cell", "body")];
     for part in s.doc.parts.values_mut() {
@@ -9987,10 +9987,10 @@ fn inspect_document_hidden_text_in_every_story_and_from_styles() {
     }
     tags.sort();
     assert_eq!(tags.iter().map(|t| t.0).collect::<Vec<_>>(), ["body", "cell", "comment", "endnote", "footer", "footnote", "header", "textBox"]);
-    let stories = |d: &wordcraft_doc::Document| std::iter::once(StoryRef::Body).chain(d.parts.keys().map(|k| StoryRef::Part(*k))).collect::<Vec<_>>();
-    let para_counts = |d: &wordcraft_doc::Document| stories(d).into_iter().map(|st| (st, d.para_paths(st).len())).collect::<Vec<_>>();
+    let stories = |d: &docufy_doc::Document| std::iter::once(StoryRef::Body).chain(d.parts.keys().map(|k| StoryRef::Part(*k))).collect::<Vec<_>>();
+    let para_counts = |d: &docufy_doc::Document| stories(d).into_iter().map(|st| (st, d.para_paths(st).len())).collect::<Vec<_>>();
     let counts_before = para_counts(&s.doc);
-    let all_text = |d: &wordcraft_doc::Document| -> String {
+    let all_text = |d: &docufy_doc::Document| -> String {
         std::iter::once(StoryRef::Body).chain(d.parts.keys().map(|k| StoryRef::Part(*k))).map(|st| d.plain_text(st)).collect::<Vec<_>>().join("\n")
     };
 
@@ -10033,22 +10033,22 @@ fn inspect_document_hidden_text_in_every_story_and_from_styles() {
     assert_eq!(run(&mut s, "file.inspect", json!({}))["found"]["hiddenText"], false);
 
     // Save and reopen: none of the hidden strings is in the file.
-    let back = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+    let back = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
     let reopened = all_text(&back);
     assert!(!reopened.contains("hide-"), "hidden text in the saved file:\n{reopened}");
     assert!(reopened.contains("keep-header-4") && reopened.contains("keep-comment-3"), "{reopened}");
     assert!(reopened.contains("keep-endnote-2") && reopened.contains("keep-cell-4"), "{reopened}");
 }
 
-fn hidden_props() -> wordcraft_doc::props::CharProps {
-    wordcraft_doc::props::CharProps { hidden: Some(true), ..Default::default() }
+fn hidden_props() -> docufy_doc::props::CharProps {
+    docufy_doc::props::CharProps { hidden: Some(true), ..Default::default() }
 }
 
 /// #1344: document defaults that hide text hide it everywhere they aren't overridden.
 #[test]
 fn inspect_document_removes_text_hidden_by_document_defaults() {
-    use wordcraft_doc::props::CharProps;
-    use wordcraft_doc::{Paragraph, para_block};
+    use docufy_doc::props::CharProps;
+    use docufy_doc::{Paragraph, para_block};
     let mut s = s();
     s.doc.styles.default_chr.hidden = Some(true);
     s.doc.body = vec![
@@ -10066,9 +10066,9 @@ fn inspect_document_removes_text_hidden_by_document_defaults() {
 /// #1344: a hidden piece holding a content control's end keeps the marker (its start is outside).
 #[test]
 fn inspect_document_keeps_content_control_markers() {
-    use wordcraft_doc::para::InlineObject;
-    use wordcraft_doc::props::CharProps;
-    use wordcraft_doc::{Paragraph, para_block};
+    use docufy_doc::para::InlineObject;
+    use docufy_doc::props::CharProps;
+    use docufy_doc::{Paragraph, para_block};
     let mut s = s();
     let mut p = Paragraph::with_text("keep-a ", CharProps::default());
     let plain = CharProps::default();
@@ -10081,7 +10081,7 @@ fn inspect_document_keeps_content_control_markers() {
     s.doc.body = vec![para_block(p)];
     let out = run(&mut s, "file.inspect", json!({"remove": ["hidden"]}));
     assert_eq!(out["residual"], json!([]), "{out}");
-    let p = s.doc.para(StoryRef::Body, &wordcraft_doc::Path::top(0)).unwrap();
+    let p = s.doc.para(StoryRef::Body, &docufy_doc::Path::top(0)).unwrap();
     assert_eq!(p.text.replace('\u{FFFC}', ""), "keep-a keep-cc  keep-b");
     let objs: Vec<_> = p.object_offsets().into_iter().filter_map(|o| p.object_at(o)).collect();
     assert!(matches!(objs.as_slice(), [InlineObject::ControlStart { .. }, InlineObject::ControlEnd]), "{objs:?}");
@@ -10091,7 +10091,7 @@ fn inspect_document_keeps_content_control_markers() {
 /// is listed as unsupported and the removal's residual isn't empty.
 #[test]
 fn inspect_document_lists_tables_whose_style_hides_text() {
-    use wordcraft_doc::styles::{Style, StyleKind, TableStyleParts};
+    use docufy_doc::styles::{Style, StyleKind, TableStyleParts};
     let mut s = s();
     s.doc.styles.upsert(Style {
         id: "HideHeader".into(),
@@ -10100,9 +10100,9 @@ fn inspect_document_lists_tables_whose_style_hides_text() {
         table: Some(TableStyleParts { header_chr: hidden_props(), ..Default::default() }),
         ..Default::default()
     });
-    let mut table = wordcraft_doc::table::Table::new(2, 2, 200.0);
+    let mut table = docufy_doc::table::Table::new(2, 2, 200.0);
     table.props.style = Some("HideHeader".into());
-    s.doc.body.insert(0, std::sync::Arc::new(wordcraft_doc::Block::Table(table)));
+    s.doc.body.insert(0, std::sync::Arc::new(docufy_doc::Block::Table(table)));
     let found = run(&mut s, "file.inspect", json!({}))["found"].clone();
     let unsupported = found["unsupported"].as_array().cloned().unwrap_or_default();
     assert!(unsupported.iter().any(|u| u["object"] == "table" && u["story"] == "body" && u["style"] == "HideHeader"), "{found}");
@@ -10114,11 +10114,11 @@ fn inspect_document_lists_tables_whose_style_hides_text() {
 /// and reports the note's text.
 #[test]
 fn inspect_document_removes_the_note_of_a_hidden_reference() {
-    use wordcraft_doc::PartKind;
+    use docufy_doc::PartKind;
     let mut s = s();
     run(&mut s, "text.insert", json!({"text": "Body"}));
     let id = run(&mut s, "references.footnote", json!({"text": "note-visible"}))["id"].as_u64().unwrap() as u32;
-    let path = wordcraft_doc::Path::top(0);
+    let path = docufy_doc::Path::top(0);
     let p = s.doc.para_mut(StoryRef::Body, &path).unwrap();
     let off = p.object_offsets()[0];
     p.format(off, off + '\u{FFFC}'.len_utf8(), &|c| c.hidden = Some(true)).unwrap();
@@ -10128,7 +10128,7 @@ fn inspect_document_removes_the_note_of_a_hidden_reference() {
     let notes = out["removedNotes"].as_array().cloned().unwrap_or_default();
     assert!(notes.iter().any(|n| n["kind"] == "footnote" && n["text"].as_str().is_some_and(|t| t.contains("note-visible"))), "{out}");
     assert_eq!(text(&s), "Body");
-    let back = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+    let back = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
     assert!(!back.parts.values().any(|p| p.kind == PartKind::Footnote), "note in the saved file");
     assert_eq!(back.plain_text(StoryRef::Body), "Body");
 }
@@ -10137,8 +10137,8 @@ fn inspect_document_removes_the_note_of_a_hidden_reference() {
 /// found list is capped.
 #[test]
 fn inspect_document_removes_thousands_of_hidden_pieces() {
-    use wordcraft_doc::props::CharProps;
-    use wordcraft_doc::{Paragraph, para_block};
+    use docufy_doc::props::CharProps;
+    use docufy_doc::{Paragraph, para_block};
     let mut s = s();
     s.doc.body = (0..2000)
         .map(|i| {
@@ -10164,21 +10164,21 @@ fn inspect_document_removes_thousands_of_hidden_pieces() {
 /// tables would join into one when the file is reopened.
 #[test]
 fn inspect_document_keeps_a_hidden_paragraph_between_tables() {
-    use wordcraft_doc::{Block, Paragraph, para_block};
+    use docufy_doc::{Block, Paragraph, para_block};
     let mut s = s();
-    let table = || std::sync::Arc::new(Block::Table(wordcraft_doc::table::Table::new(1, 1, 100.0)));
+    let table = || std::sync::Arc::new(Block::Table(docufy_doc::table::Table::new(1, 1, 100.0)));
     let mut p = Paragraph::with_text("hide-between", hidden_props());
     p.mark.hidden = Some(true);
     s.doc.body = vec![table(), para_block(p), table(), para_block(Paragraph::with_text("keep-end", Default::default()))];
     let out = run(&mut s, "file.inspect", json!({"remove": ["hidden"]}));
     assert_eq!(out["residual"], json!([]), "{out}");
-    let kinds = |d: &wordcraft_doc::Document| d.body.iter().map(|b| matches!(**b, Block::Table(_))).collect::<Vec<_>>();
+    let kinds = |d: &docufy_doc::Document| d.body.iter().map(|b| matches!(**b, Block::Table(_))).collect::<Vec<_>>();
     assert_eq!(kinds(&s.doc), [true, false, true, false]);
-    let kept = s.doc.para(StoryRef::Body, &wordcraft_doc::Path::top(1)).unwrap();
+    let kept = s.doc.para(StoryRef::Body, &docufy_doc::Path::top(1)).unwrap();
     assert!(kept.is_empty() && kept.mark.hidden == Some(true), "emptied, mark still hidden: {kept:?}");
     assert!(!s.doc.plain_text(StoryRef::Body).contains("hide-"));
     assert_eq!(run(&mut s, "file.inspect", json!({}))["found"]["hiddenText"], false);
-    let back = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+    let back = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
     assert_eq!(kinds(&back).iter().filter(|t| **t).count(), 2, "the tables stay apart");
 }
 
@@ -10212,21 +10212,21 @@ di revisione annuale da parte del comitato per la valutazione dei sinistri.</p>
 </body></html>"##;
 
 /// The first table's grid width in points.
-fn first_table_width(doc: &wordcraft_doc::Document) -> f32 {
-    doc.body.iter().find_map(|b| if let wordcraft_doc::Block::Table(t) = &**b { Some(t.grid.iter().sum::<f32>()) } else { None }).unwrap()
+fn first_table_width(doc: &docufy_doc::Document) -> f32 {
+    doc.body.iter().find_map(|b| if let docufy_doc::Block::Table(t) = &**b { Some(t.grid.iter().sum::<f32>()) } else { None }).unwrap()
 }
 
 #[test]
 fn opened_html_text_and_markdown_get_the_region_paper() {
     // #1381: a file that gives no page size opens on the region's paper, as a new blank document
     // does (#838): A4 in Italy, Letter in the US. Tables fit that page.
-    let dir = std::env::temp_dir().join(format!("wordcraft-region-paper-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-region-paper-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let html = dir.join("S05.html");
     std::fs::write(&html, SAMPLE_1381).unwrap();
     for (tag, size) in [("it-IT", (595.28, 841.89)), ("en-US", (612.0, 792.0))] {
         let mut s = s();
-        s.system_region = wordcraft_geom::Region::from_tag(tag);
+        s.system_region = docufy_geom::Region::from_tag(tag);
         // By path (pictures load from beside the file) and by bytes (the web, MCP).
         run(&mut s, "file.open", json!({"path": html.to_string_lossy()}));
         let sp = s.doc.last_section.clone();
@@ -10246,13 +10246,13 @@ fn opened_html_text_and_markdown_get_the_region_paper() {
 fn opened_documents_with_their_own_page_size_keep_it() {
     // #1381: only files without a page size take the region's paper.
     for (w, h) in [(500.0, 700.0), (612.0, 792.0)] {
-        let mut doc = wordcraft_doc::Document::from_text("Own size");
+        let mut doc = docufy_doc::Document::from_text("Own size");
         doc.last_section.page_w = w;
         doc.last_section.page_h = h;
         for name in ["own.docx", "own.rtf", "own.odt"] {
             let bytes = crate::io::save_bytes(name, &doc).unwrap();
             let mut s = s();
-            s.system_region = wordcraft_geom::Region::from_tag("it-IT");
+            s.system_region = docufy_geom::Region::from_tag("it-IT");
             run(&mut s, "file.open", json!({"path": name, "data": crate::cmd::insert::base64_encode(&bytes)}));
             let sp = &s.doc.last_section;
             assert_eq!((sp.page_w.round(), sp.page_h.round()), (w, h), "{name}");
@@ -10262,7 +10262,7 @@ fn opened_documents_with_their_own_page_size_keep_it() {
 
 #[test]
 fn html_converted_to_docx_keeps_bold_headers_and_right_aligned_cells() {
-    // #1381: `wordcraft-cli convert S05.html out.docx`: the <th> runs are bold and the
+    // #1381: `docufy-cli convert S05.html out.docx`: the <th> runs are bold and the
     // `text-align:right` cells' paragraphs carry `w:jc w:val="right"`.
     use std::io::Read;
     let mut s = s();
@@ -10289,15 +10289,15 @@ fn html_converted_to_docx_keeps_bold_headers_and_right_aligned_cells() {
 
 #[test]
 fn exported_page_images_draw_headers_at_full_strength() {
-    // file.exportPng (and `wordcraft-cli render`) drew headers and footers dimmed, as the screen
-    // does while the body is edited; Word's exported pages and WordCraft's PDF don't.
+    // file.exportPng (and `docufy-cli render`) drew headers and footers dimmed, as the screen
+    // does while the body is edited; Word's exported pages and Docufy's PDF don't.
     let mut s = s();
     run(&mut s, "text.insert", json!({"text": "Body"}));
-    let mut hp = wordcraft_doc::Paragraph::with_text("HEADER", wordcraft_doc::props::CharProps { size: Some(28.0), ..Default::default() });
-    hp.props.align = Some(wordcraft_doc::props::Align::Left);
-    let id = s.doc.add_part(wordcraft_doc::PartKind::Header, vec![wordcraft_doc::para_block(hp)]);
+    let mut hp = docufy_doc::Paragraph::with_text("HEADER", docufy_doc::props::CharProps { size: Some(28.0), ..Default::default() });
+    hp.props.align = Some(docufy_doc::props::Align::Left);
+    let id = s.doc.add_part(docufy_doc::PartKind::Header, vec![docufy_doc::para_block(hp)]);
     s.doc.last_section.headers.default = Some(id);
-    let dir = std::env::temp_dir().join(format!("wordcraft-png-header-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-png-header-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("p.png");
     s.run("file.exportPng", &json!({"path": path.to_string_lossy(), "scale": 1.0})).unwrap();
@@ -10314,8 +10314,8 @@ fn exported_page_images_draw_headers_at_full_strength() {
 /// are clamped; the old `{"color"}` form still works.
 #[test]
 fn shape_fill_transparency_and_gradients() {
-    use wordcraft_doc::fill::{Fill, GradientKind, PathShape};
-    use wordcraft_doc::props::Rgb;
+    use docufy_doc::fill::{Fill, GradientKind, PathShape};
+    use docufy_doc::props::Rgb;
     let mut s = s();
     run(&mut s, "insert.shape", json!({"kind": "rectangle"}));
     run(&mut s, "select.collapse", json!({"end": true}));
@@ -10326,7 +10326,7 @@ fn shape_fill_transparency_and_gradients() {
         cmd::objects::all_objects(s)
             .into_iter()
             .map(|(_, o)| match o {
-                wordcraft_doc::InlineObject::Shape { fill, .. } => fill,
+                docufy_doc::InlineObject::Shape { fill, .. } => fill,
                 o => panic!("{o:?}"),
             })
             .collect()
@@ -10379,7 +10379,7 @@ fn steps_since_a_mark_merge_into_one_undo_step() {
     let mut s = s();
     run(&mut s, "insert.shape", json!({"kind": "rectangle"}));
     let fill = |s: &Session| match cmd::objects::selected(s) {
-        Some((_, wordcraft_doc::InlineObject::Shape { fill, .. })) => fill,
+        Some((_, docufy_doc::InlineObject::Shape { fill, .. })) => fill,
         o => panic!("{o:?}"),
     };
     let before = fill(&s);
@@ -10430,7 +10430,7 @@ fn odt_inserted_then_deleted_text_round_trips() {
         z.write_all(data.as_bytes()).unwrap();
     }
     let doc = crate::io::open_bytes("t.odt", &z.finish().unwrap().into_inner()).unwrap();
-    let doc = crate::io::open_bytes("t.odt", &wordcraft_formats::odt::export(&doc).unwrap()).unwrap();
+    let doc = crate::io::open_bytes("t.odt", &docufy_formats::odt::export(&doc).unwrap()).unwrap();
     for cmd in ["review.rejectAll", "review.acceptAll"] {
         let mut s = Session::new(doc.clone());
         run(&mut s, cmd, json!({}));
@@ -10489,7 +10489,7 @@ fn odt_deleted_mark_inside_an_insertion_survives_reject_all() {
         z.write_all(data.as_bytes()).unwrap();
     }
     let doc = crate::io::open_bytes("t.odt", &z.finish().unwrap().into_inner()).unwrap();
-    let saved = crate::io::open_bytes("t.odt", &wordcraft_formats::odt::export(&doc).unwrap()).unwrap();
+    let saved = crate::io::open_bytes("t.odt", &docufy_formats::odt::export(&doc).unwrap()).unwrap();
     for d in [doc, saved] {
         let mut s = Session::new(d);
         run(&mut s, "review.rejectAll", json!({}));
@@ -10502,7 +10502,7 @@ fn odt_deleted_mark_inside_an_insertion_survives_reject_all() {
 /// for `layout.pageSetup` keeps its names.
 #[test]
 fn vertical_align_command_sets_justified() {
-    use wordcraft_doc::section::PageVAlign;
+    use docufy_doc::section::PageVAlign;
     let mut s = s();
     let va = |s: &Session| crate::cmd::page::sect(s).valign;
     for (value, want) in [
@@ -10559,7 +10559,7 @@ fn draft_keeps_its_column_after_web_layout() {
 /// (its glossary, kept in the file); saving with `"in": "document"` is undoable.
 #[test]
 fn quick_parts_use_the_documents_building_blocks() {
-    use wordcraft_doc::{BuildingBlock, CharProps, Paragraph, para_block};
+    use docufy_doc::{BuildingBlock, CharProps, Paragraph, para_block};
     let entry = |name: &str, gallery: &str, text: &str| BuildingBlock {
         name: name.into(),
         gallery: gallery.into(),
@@ -10567,9 +10567,9 @@ fn quick_parts_use_the_documents_building_blocks() {
         blocks: vec![para_block(Paragraph::with_text(text, CharProps::default()))],
         ..Default::default()
     };
-    let mut d = wordcraft_doc::Document::new();
+    let mut d = docufy_doc::Document::new();
     d.glossary = vec![entry("Signature", "docParts", "Kind regards, Ann"), entry("Disclaimer", "autoTxt", "No warranty.")];
-    let bytes = wordcraft_docx::write(&d).unwrap();
+    let bytes = docufy_docx::write(&d).unwrap();
     let mut s = Session::new(crate::io::open_bytes("glossary.docx", &bytes).unwrap());
     let listed = run(&mut s, "insert.quickParts", json!({}));
     assert_eq!(listed["document"], json!(["Signature"]), "{listed}");
@@ -10590,7 +10590,7 @@ fn quick_parts_use_the_documents_building_blocks() {
     run(&mut s, "edit.undo", json!({}));
     assert!(!s.doc.glossary.iter().any(|e| e.name == "Closing"));
     run(&mut s, "edit.redo", json!({}));
-    let back = crate::io::open_bytes("glossary.docx", &wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+    let back = crate::io::open_bytes("glossary.docx", &docufy_docx::write(&s.doc).unwrap()).unwrap();
     let closing = back.glossary.iter().find(|e| e.name == "Closing").expect("saved entry");
     assert_eq!(closing.gallery, "docParts");
     assert_eq!(closing.blocks.iter().filter_map(|b| b.as_para()).map(|p| p.text.as_str()).collect::<String>(), "Kind regards");
@@ -10609,8 +10609,8 @@ fn quick_parts_use_the_documents_building_blocks() {
 
 #[test]
 fn toc_collects_cell_headings() {
+    use docufy_doc::{Block, CharProps, InlineObject, Paragraph, Path, Table, para_block};
     use std::sync::Arc;
-    use wordcraft_doc::{Block, CharProps, InlineObject, Paragraph, Path, Table, para_block};
     let mut earlier = Table::new(1, 1, 180.0);
     earlier.rows[0].cells[0].blocks = vec![para_block(Paragraph::with_text("Earlier", CharProps::default()).styled("Heading1"))];
     let mut nested = Table::new(1, 1, 180.0);
@@ -10634,14 +10634,14 @@ fn toc_collects_cell_headings() {
         &CharProps::default(),
     )
     .unwrap();
-    let mut d = wordcraft_doc::Document::new();
+    let mut d = docufy_doc::Document::new();
     d.body = vec![
         Arc::new(Block::Table(earlier)),
         para_block(toc),
         para_block(Paragraph::with_text("\u{000C}", CharProps::default())),
         Arc::new(Block::Table(table)),
     ];
-    let mut s = Session::new(wordcraft_docx::read(&wordcraft_docx::write(&d).unwrap()).unwrap());
+    let mut s = Session::new(docufy_docx::read(&docufy_docx::write(&d).unwrap()).unwrap());
     for command in ["references.updateFields", "references.updateToc"] {
         run(&mut s, command, json!({}));
         let entries: Vec<_> = s
@@ -10680,21 +10680,21 @@ fn toc_collects_cell_headings() {
 
 #[test]
 fn toc_keeps_direct_number_tabs() {
-    use wordcraft_doc::props::{CharProps, NumRef, TabAlign, TabLeader, TabStop};
+    use docufy_doc::props::{CharProps, NumRef, TabAlign, TabLeader, TabStop};
     let left = TabStop { pos: 24.0, align: TabAlign::Left, leader: TabLeader::None };
     let right = TabStop { pos: 179.5, align: TabAlign::Right, leader: TabLeader::Dot };
-    let mut d = wordcraft_doc::Document::from_text("Contents\n\n1.\tAlpha\t9\nAlpha\nBeta");
+    let mut d = docufy_doc::Document::from_text("Contents\n\n1.\tAlpha\t9\nAlpha\nBeta");
     d.last_section.page_w = 220.0;
     d.last_section.margin_left = 20.0;
     d.last_section.margin_right = 20.0;
     d.styles.get_mut("TOC2").unwrap().para.tabs = Some(vec![right]);
-    let num = d.numbering.add_list(wordcraft_doc::ListKind::Numbered);
+    let num = d.numbering.add_list(docufy_doc::ListKind::Numbered);
     {
-        let p = d.para_mut(StoryRef::Body, &wordcraft_doc::Path::top(0)).unwrap();
+        let p = d.para_mut(StoryRef::Body, &docufy_doc::Path::top(0)).unwrap();
         p.props.style = Some("TOCHeading".into());
         p.insert_object(
             p.len(),
-            wordcraft_doc::InlineObject::Field {
+            docufy_doc::InlineObject::Field {
                 instr: r#"TOC \o "1-2""#.into(),
                 result: String::new(),
                 locked: false,
@@ -10705,20 +10705,20 @@ fn toc_keeps_direct_number_tabs() {
             &CharProps::default(),
         )
         .unwrap();
-        let p = d.para_mut(StoryRef::Body, &wordcraft_doc::Path::top(1)).unwrap();
+        let p = d.para_mut(StoryRef::Body, &docufy_doc::Path::top(1)).unwrap();
         p.props.style = Some("TOC2".into());
         p.props.tabs = Some(vec![right]);
-        let p = d.para_mut(StoryRef::Body, &wordcraft_doc::Path::top(2)).unwrap();
+        let p = d.para_mut(StoryRef::Body, &docufy_doc::Path::top(2)).unwrap();
         p.props.style = Some("TOC2".into());
         p.props.tabs = Some(vec![left, right]);
     }
     for i in [3, 4] {
-        let p = d.para_mut(StoryRef::Body, &wordcraft_doc::Path::top(i)).unwrap();
+        let p = d.para_mut(StoryRef::Body, &docufy_doc::Path::top(i)).unwrap();
         p.props.style = Some("Heading2".into());
         p.props.numbering = Some(NumRef { num, level: 0 });
     }
-    let bytes = wordcraft_docx::write(&d).unwrap();
-    let mut s = Session::new(wordcraft_docx::read(&bytes).unwrap());
+    let bytes = docufy_docx::write(&d).unwrap();
+    let mut s = Session::new(docufy_docx::read(&bytes).unwrap());
     for command in ["references.updateFields", "references.updateToc", "references.toc"] {
         run(&mut s, command, json!({}));
         let layout = s.layout();
@@ -10763,7 +10763,7 @@ fn drop_cap_options_set_position_lines_distance_and_font() {
     run(&mut s, "edit.undo", json!({}));
     assert_eq!(cap(&s), (Some(3), Some(true), None, None), "one undo step");
     run(&mut s, "insert.dropCap", json!({"lines": 99, "distance": 1e30, "font": "  "}));
-    assert_eq!(cap(&s), (Some(10), None, Some(wordcraft_doc::resolve::MAX_DROP_CAP_DISTANCE), None), "clamped");
+    assert_eq!(cap(&s), (Some(10), None, Some(docufy_doc::resolve::MAX_DROP_CAP_DISTANCE), None), "clamped");
     run(&mut s, "insert.dropCap", json!({"lines": -4, "distance": -3, "position": "sideways"}));
     assert_eq!(cap(&s), (Some(1), None, None, None), "junk falls back to the nearest valid value");
     run(&mut s, "insert.dropCap", json!({"font": "Liberation Mono", "distance": 3}));
@@ -10787,7 +10787,7 @@ fn drop_cap_options_set_position_lines_distance_and_font() {
 #[test]
 fn rtf_list_round_trip_keeps_text() {
     for cmd in ["para.bullets", "para.numbering", "para.multilevel", "para.defineBullet"] {
-        let mut s = Session::new(wordcraft_doc::Document::from_text("first\nsecond"));
+        let mut s = Session::new(docufy_doc::Document::from_text("first\nsecond"));
         run(&mut s, "select.all", json!({}));
         run(&mut s, cmd, json!({}));
         let bytes = crate::io::save_bytes("x.rtf", &s.doc).unwrap();
@@ -10978,8 +10978,8 @@ fn text_insert_marks_automatic_rewrites_as_transformed() {
 
 #[test]
 fn style_set_keeps_imported_styles_latent_styles_and_defaults() {
-    use wordcraft_doc::props::{Rgb, TextColor};
-    use wordcraft_doc::styles::{Style, StyleKind};
+    use docufy_doc::props::{Rgb, TextColor};
+    use docufy_doc::styles::{Style, StyleKind};
     for name in ["basic", "lines", "shaded", "casual", "centered", "minimalist", "title"] {
         let mut s = s();
         let mut body = s.doc.styles.get("Normal").unwrap().clone();
@@ -11061,8 +11061,8 @@ fn scale_font_sizes_percent_and_clamp_and_errors() {
 
 #[test]
 fn scale_font_sizes_reaches_char_table_and_cs_sizes_and_unset_default() {
-    use wordcraft_doc::props::CharProps;
-    use wordcraft_doc::{Style, StyleKind, styles::TablePart};
+    use docufy_doc::props::CharProps;
+    use docufy_doc::{Style, StyleKind, styles::TablePart};
     let mut s = s();
     s.doc.styles.default_chr.size = None;
     s.doc.styles.default_chr.size_cs = Some(10.0);
@@ -11070,7 +11070,7 @@ fn scale_font_sizes_reaches_char_table_and_cs_sizes_and_unset_default() {
     ch.chr.size = Some(20.0);
     ch.chr.size_cs = Some(22.0);
     let mut tb = Style { id: "Grid".into(), name: "Grid".into(), kind: StyleKind::Table, ..Default::default() };
-    let mut parts = wordcraft_doc::styles::TableStyleParts::default();
+    let mut parts = docufy_doc::styles::TableStyleParts::default();
     parts.header_chr.size = Some(14.0);
     parts.regions.entry(TablePart::Band2Horz).or_default().chr.size = Some(8.0);
     tb.table = Some(parts);

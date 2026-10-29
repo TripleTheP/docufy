@@ -2,11 +2,11 @@
 //! GB/T 7714, GOST, SIST02), source manager, index, table of figures, cross-references, table
 //! of authorities, footnote options.
 
+use docufy_doc::collate::{SortKey, heading_letter, sort_key};
+use docufy_doc::para::InlineObject;
+use docufy_doc::props::{CharProps, TabAlign, TabLeader, TabStop};
+use docufy_doc::{Block, Document, Paragraph, Path, Pos, Source, StoryRef};
 use serde_json::{Value, json};
-use wordcraft_doc::collate::{SortKey, heading_letter, sort_key};
-use wordcraft_doc::para::InlineObject;
-use wordcraft_doc::props::{CharProps, TabAlign, TabLeader, TabStop};
-use wordcraft_doc::{Block, Document, Paragraph, Path, Pos, Source, StoryRef};
 
 use super::references::FieldCode;
 use super::{delete_selection, sel_result};
@@ -87,7 +87,7 @@ pub fn specs() -> Vec<CommandSpec> {
             r#"{"kind"?: "footnote|endnote", "pos"?: "pageBottom|beneathText" (footnotes) | "sectEnd|docEnd" (endnotes), "numFmt"?: "decimal|lowerRoman|upperRoman|lowerLetter|upperLetter|…", "numStart"?: 1-32767, "numRestart"?: "continuous|eachSect|eachPage" (each page: footnotes only), "scope"?: "document|section", "footnoteFormat"?: …, "endnoteFormat"?: …} — no settings: the options in effect at the caret"#,
         ),
         CommandSpec::new("references.researcher", "Researcher", "References › Research", |s, _| {
-            s.status = "Researcher needs an online service; WordCraft keeps your documents offline.".into();
+            s.status = "Researcher needs an online service; Docufy keeps your documents offline.".into();
             Ok(json!({"available": false}))
         })
         .pure(),

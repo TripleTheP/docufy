@@ -93,7 +93,7 @@ pub fn show(app: &mut WordApp, ui: &mut Ui) {
         app.ui.tab = prev;
     }
     // Outline view brings up the Outlining tab; closing it goes back.
-    if app.session.view.mode == wordcraft_layout::ViewMode::Outline {
+    if app.session.view.mode == docufy_layout::ViewMode::Outline {
         if app.outline_prev_tab.is_none() {
             app.outline_prev_tab = Some(app.ui.tab.clone());
             app.ui.tab = "Outlining".into();
@@ -156,7 +156,7 @@ pub fn show(app: &mut WordApp, ui: &mut Ui) {
                         text_w: ui.ctx().fonts_mut(|f| f.layout_no_wrap(shown.to_string(), medium(12.5), t.text).size().x),
                         file: tab == "File",
                         active: *tab == app.ui.tab,
-                        contextual: !custom && wordcraft_engine::ribbon::CONTEXTUAL_TABS.contains(&tab.as_str()),
+                        contextual: !custom && docufy_engine::ribbon::CONTEXTUAL_TABS.contains(&tab.as_str()),
                     })
                     .collect();
                 let plan = plan_strip(&specs, button_levels, ui.available_width(), MORE_TABS_W + 2.0);
@@ -217,7 +217,7 @@ pub fn show(app: &mut WordApp, ui: &mut Ui) {
                         // The tabs that don't fit go into a » menu at the end of the strip (#897, #2026).
                         for (i, ((tab, custom), _)) in tabs.iter().zip(&plan.fits).enumerate().filter(|(_, (_, fits))| **fits) {
                             let (tab, custom) = (tab.as_str(), *custom);
-                            let contextual = !custom && wordcraft_engine::ribbon::CONTEXTUAL_TABS.contains(&tab);
+                            let contextual = !custom && docufy_engine::ribbon::CONTEXTUAL_TABS.contains(&tab);
                             // A custom tab's name is the user's own text: shown as typed.
                             let shown = if custom { tab } else { tl!(tab) };
                             let w = plan.widths.get(i).copied().unwrap_or(0.0) - 2.0;

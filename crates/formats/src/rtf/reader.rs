@@ -112,7 +112,7 @@ impl Reader {
     }
 
     /// The border of the cell side being described, else of the paragraph side.
-    pub(super) fn cell_border_slot(&mut self) -> Option<&mut Option<wordcraft_doc::props::Border>> {
+    pub(super) fn cell_border_slot(&mut self) -> Option<&mut Option<docufy_doc::props::Border>> {
         let (b, side) = match self.cell_side {
             Some(c) => (&mut self.def_cur.borders, c),
             None => (&mut self.st.borders, self.st.border_side?),
@@ -166,7 +166,7 @@ impl Reader {
     /// A section formatting word: applied to the current section, unless it's inside a header
     /// or footer (whose `\sectd` isn't the body's). False when `w` isn't one.
     pub(super) fn section_word(&mut self, w: &str, p: Option<i32>) -> bool {
-        use wordcraft_doc::section::{NumFormat, SectionStart};
+        use docufy_doc::section::{NumFormat, SectionStart};
         let on = p != Some(0);
         let pv = p.unwrap_or(0);
         // Inside a header or footer the word is read into a scratch copy and dropped.
@@ -385,7 +385,7 @@ impl Reader {
             }
             out.push(c);
         }
-        if !out.is_empty() && self.table.len() < wordcraft_doc::table::MAX_ROWS {
+        if !out.is_empty() && self.table.len() < docufy_doc::table::MAX_ROWS {
             rights.truncate(out.len());
             self.table.push(out);
             self.table_rights.push(rights);

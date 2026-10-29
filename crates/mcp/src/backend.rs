@@ -13,7 +13,7 @@ use crate::server::{BoundedLine, read_bounded_line};
 const MAX_REPLY_LINE: usize = 256 << 20;
 
 /// Something that answers control-channel methods (`engine.execute`, `document.inspect`,
-/// `ui.pointer`, `ui.render`, …). See `wordcraft_ui_egui::control` for the full list.
+/// `ui.pointer`, `ui.render`, …). See `docufy_ui_egui::control` for the full list.
 pub trait Backend {
     /// Call one method. `Ok` carries the `result`, `Err` the error message.
     fn call(&mut self, method: &str, params: Value) -> Result<Value, String>;
@@ -26,7 +26,7 @@ pub trait Backend {
 /// Looks up the control key for an address (`HOST:PORT`).
 type KeyFinder = Box<dyn Fn(&str) -> Result<String, String> + Send>;
 
-/// A running WordCraft app, reached through its loopback control port.
+/// A running Docufy app, reached through its loopback control port.
 pub struct Remote {
     addr: String,
     conn: Option<(BufReader<TcpStream>, TcpStream)>,
@@ -40,29 +40,29 @@ pub struct Remote {
     find_key: KeyFinder,
 }
 
-/// The control key: `env` (`WORDCRAFT_CONTROL_KEY`) when set, else the app's key file for
+/// The control key: `env` (`DOCUFY_CONTROL_KEY`) when set, else the app's key file for
 /// `port` in `settings`. The error says where it looked.
 fn lookup_key(env: Option<String>, settings: Option<&Path>, port: Option<u16>) -> Result<String, String> {
     if let Some(k) = env.map(|k| k.trim().to_string()).filter(|k| !k.is_empty()) {
         return Ok(k);
     }
     let (Some(settings), Some(port)) = (settings, port) else {
-        return Err("no control key: set WORDCRAFT_CONTROL_KEY (no settings folder or port to find the key file)".to_string());
+        return Err("no control key: set DOCUFY_CONTROL_KEY (no settings folder or port to find the key file)".to_string());
     };
-    let path = wordcraft_control_key::key_path(settings, port);
+    let path = docufy_control_key::key_path(settings, port);
     match std::fs::read_to_string(&path).map(|k| k.trim().to_string()) {
         Ok(k) if !k.is_empty() => Ok(k),
-        _ => Err(format!("no control key: set WORDCRAFT_CONTROL_KEY, or start the app with --control {port} (it writes {})", path.display())),
+        _ => Err(format!("no control key: set DOCUFY_CONTROL_KEY, or start the app with --control {port} (it writes {})", path.display())),
     }
 }
 
 /// The key for the app at `addr`, from the environment or the app's key file.
 fn find_key(addr: &str) -> Result<String, String> {
     let port = addr.rsplit_once(':').and_then(|(_, p)| p.parse().ok());
-    lookup_key(std::env::var("WORDCRAFT_CONTROL_KEY").ok(), wordcraft_control_key::settings_dir().as_deref(), port)
+    lookup_key(std::env::var("DOCUFY_CONTROL_KEY").ok(), docufy_control_key::settings_dir().as_deref(), port)
 }
 
-/// The only address the app's control server binds (`apps/wordcraft/src/control_server.rs`).
+/// The only address the app's control server binds (`apps/docufy/src/control_server.rs`).
 const APP_IP: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
 
 /// The host part of `addr` (`HOST:PORT`, `[V6]:PORT`), without brackets.
@@ -203,7 +203,7 @@ impl Remote {
     fn exchange(&mut self, id: u64, method: &str, params: &Value) -> Result<Value, String> {
         let unreachable = |addr: &str, e: std::io::Error, connected: bool| {
             let retry = if connected { String::new() } else { "; will retry on each call".to_string() };
-            format!("WordCraft app at {addr} is not reachable: {e}{retry}")
+            format!("Docufy app at {addr} is not reachable: {e}{retry}")
         };
         let mut first = true;
         let reply = loop {
@@ -252,12 +252,7 @@ impl Backend for Remote {
         } else if unauthorized(&v) {
             self.conn = None;
             Err(self.key_warning().map_or_else(
-                || {
-                    format!(
-                        "unauthorized: the WordCraft app at {} refused the control key (from WORDCRAFT_CONTROL_KEY or the app's key file)",
-                        self.addr
-                    )
-                },
+                || format!("unauthorized: the Docufy app at {} refused the control key (from DOCUFY_CONTROL_KEY or the app's key file)", self.addr),
                 |w| format!("unauthorized: {w}"),
             ))
         } else {
@@ -271,9 +266,9 @@ impl Backend for Remote {
 
     fn describe(&self) -> String {
         if self.connected {
-            format!("connected to the WordCraft app at {}", self.addr)
+            format!("connected to the Docufy app at {}", self.addr)
         } else {
-            format!("will connect to the WordCraft app at {} when it opens", self.addr)
+            format!("will connect to the Docufy app at {} when it opens", self.addr)
         }
     }
 }
@@ -289,13 +284,13 @@ mod tests {
 
     #[test]
     fn key_from_env_then_key_file() {
-        let dir = std::env::temp_dir().join(format!("wordcraft-mcp-key-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("docufy-mcp-key-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
-        let path = wordcraft_control_key::key_path(&dir, 7981);
+        let path = docufy_control_key::key_path(&dir, 7981);
         // Neither: the error names the variable and the file it looked for.
         let e = lookup_key(None, Some(&dir), Some(7981)).unwrap_err();
-        assert!(e.contains("WORDCRAFT_CONTROL_KEY") && e.contains(&path.display().to_string()), "{e}");
+        assert!(e.contains("DOCUFY_CONTROL_KEY") && e.contains(&path.display().to_string()), "{e}");
         // The key file, trimmed; an empty variable does not count.
         std::fs::write(&path, "  file-key\n").unwrap();
         assert_eq!(lookup_key(None, Some(&dir), Some(7981)).unwrap(), "file-key");

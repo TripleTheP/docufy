@@ -4,14 +4,14 @@ use super::*;
 /// now drawn with a face read for the preview alone: installed families stay unloaded.
 #[test]
 fn font_menu_entries_leave_installed_families_unloaded() {
-    let db = wordcraft_fonts::FontDb::global();
+    let db = docufy_fonts::FontDb::global();
     let ink = |img: &egui::ColorImage| img.pixels.iter().filter(|p| p.r() < 128).count();
     assert!(ink(&font_entry_image("Source Sans 3", 1.0)) > 20, "the bundled face draws");
     assert!(ink(&font_entry_image("No Such Font 848", 1.0)) > 20, "an unknown font shows in the default face");
     // Tests running alongside share this database and may load a fallback (a math font for
     // an equation, a font for a script) at any time: leave the math fonts out, and allow a
     // stray load or two. Before #848 every family previewed was loaded.
-    let shared = |f: &str| wordcraft_fonts::math::MATH_SUBSTITUTES.iter().any(|n| f.eq_ignore_ascii_case(n));
+    let shared = |f: &str| docufy_fonts::math::MATH_SUBSTITUTES.iter().any(|n| f.eq_ignore_ascii_case(n));
     let unloaded: Vec<String> = db.families().into_iter().filter(|f| !db.is_loaded(f) && !shared(f)).take(25).collect();
     let mut loaded = Vec::new();
     for f in &unloaded {
@@ -26,13 +26,13 @@ fn font_menu_entries_leave_installed_families_unloaded() {
 
 /// A window whose Styles gallery lists `style` first: runs the gallery for a few frames and
 /// returns the painted shapes of the last one and every texture picture uploaded on the way.
-fn run_gallery(mut doc: Document, style: wordcraft_doc::styles::Style) -> (Vec<egui::epaint::ClippedShape>, Vec<egui::ColorImage>) {
+fn run_gallery(mut doc: Document, style: docufy_doc::styles::Style) -> (Vec<egui::epaint::ClippedShape>, Vec<egui::ColorImage>) {
     // Only the style under test is in the gallery.
     for other in &mut doc.styles.styles {
         other.quick = false;
     }
     doc.styles.upsert(style);
-    let mut app = WordApp::new(wordcraft_engine::Session::new(doc), Default::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(doc), Default::default());
     app.ui.language = "en".into();
     let ctx = egui::Context::default();
     let mut shapes = Vec::new();
@@ -60,8 +60,8 @@ fn run_gallery(mut doc: Document, style: wordcraft_doc::styles::Style) -> (Vec<e
     (shapes, images)
 }
 
-fn gallery_style(name: &str) -> wordcraft_doc::styles::Style {
-    wordcraft_doc::styles::Style { id: "Backfill".into(), name: name.into(), quick: true, priority: Some(0), ..Default::default() }
+fn gallery_style(name: &str) -> docufy_doc::styles::Style {
+    docufy_doc::styles::Style { id: "Backfill".into(), name: name.into(), quick: true, priority: Some(0), ..Default::default() }
 }
 
 /// Regression test for #2: a style gallery label longer than its tile was painted at full width
@@ -154,7 +154,7 @@ fn font_menu_previews_render_defer_and_reuse_without_deadlocking() {
 /// #817: equation pictures were black on white; they are now an ink mask (white, transparent paper).
 #[test]
 fn math_pictures_are_ink_masks() {
-    use wordcraft_doc::math::parse_linear;
+    use docufy_doc::math::parse_linear;
     let img = math_image(&parse_linear("x/y"), false, 12.0, 40.0, 34.0, 1.0).expect("renders");
     assert!(img.pixels.iter().any(|p| p.a() == 0), "paper is transparent");
     assert!(img.pixels.iter().any(|p| p.a() > 0), "ink is kept");
@@ -162,9 +162,9 @@ fn math_pictures_are_ink_masks() {
 }
 
 /// Every picture the Equation tab and Insert › Equation draw: (key, nodes, display, pt, tile size).
-fn equation_pictures() -> Vec<(String, wordcraft_doc::math::Arg, bool, f32, egui::Vec2)> {
-    use wordcraft_doc::math::{MNode, MRun, parse_linear};
-    use wordcraft_engine::math_gallery::{BUILT_INS, STRUCTURES, SYMBOL_SETS};
+fn equation_pictures() -> Vec<(String, docufy_doc::math::Arg, bool, f32, egui::Vec2)> {
+    use docufy_doc::math::{MNode, MRun, parse_linear};
+    use docufy_engine::math_gallery::{BUILT_INS, STRUCTURES, SYMBOL_SETS};
     let mut out = Vec::new();
     for g in STRUCTURES {
         let pic = crate::equation_tab::button_picture(g.id);
@@ -219,7 +219,7 @@ fn equation_pictures_follow_the_theme() {
 #[test]
 fn equation_pictures_share_one_texture() {
     let ctx = egui::Context::default();
-    let mut app = WordApp::new(wordcraft_engine::Session::new(Document::new()), crate::Services::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(Document::new()), crate::Services::default());
     let pictures = equation_pictures();
     // Symbols repeat across sets (∀, ≠…): each is drawn once.
     let unique = pictures.iter().map(|(key, _, _, pt, size)| format!("{key}:{pt}:{size:?}")).collect::<std::collections::HashSet<_>>().len();
@@ -306,11 +306,11 @@ fn math_atlas_never_wipes_a_page_drawn_from_this_frame() {
 /// (a single page used to start over every frame: flicker and constant re-rendering).
 #[test]
 fn builtin_menu_at_scale_3_fits_without_wiping() {
-    use wordcraft_doc::math::parse_linear;
-    use wordcraft_engine::math_gallery::BUILT_INS;
+    use docufy_doc::math::parse_linear;
+    use docufy_engine::math_gallery::BUILT_INS;
     let ctx = egui::Context::default();
     ctx.set_pixels_per_point(3.0);
-    let mut app = WordApp::new(wordcraft_engine::Session::new(Document::new()), crate::Services::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(Document::new()), crate::Services::default());
     let builtins: Vec<_> = BUILT_INS.iter().map(|(id, _, lin)| (format!("builtin:{id}"), parse_linear(lin))).collect();
     let draw = |app: &mut WordApp| {
         let mut got = Vec::new();

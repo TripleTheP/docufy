@@ -107,7 +107,7 @@ pub const DEFAULT_CORNER: f32 = 0.16;
 /// The corner radius, in points, of a `w` × `h` rounded rectangle with `corner` (see
 /// [`ShapeExtra::corner`]).
 pub fn corner_radius(corner: Option<u32>, w: f32, h: f32) -> f32 {
-    let side = wordcraft_geom::finite(w).min(wordcraft_geom::finite(h)).max(0.0);
+    let side = docufy_geom::finite(w).min(docufy_geom::finite(h)).max(0.0);
     side * corner.map_or(DEFAULT_CORNER, |c| c.min(MAX_CORNER) as f32 / 100_000.0)
 }
 
@@ -136,7 +136,7 @@ impl ShapeKind {
 /// The connection sites of a `kind` shape `w` × `h`, in its own unrotated frame, by index. The
 /// order follows the preset shapes' connection lists (for a rectangle: top, left, bottom, right).
 pub fn sites(kind: ShapeKind, w: f32, h: f32) -> Vec<(f32, f32)> {
-    let (w, h) = (wordcraft_geom::finite(w), wordcraft_geom::finite(h));
+    let (w, h) = (docufy_geom::finite(w), docufy_geom::finite(h));
     let (cx, cy) = (w / 2.0, h / 2.0);
     match kind {
         ShapeKind::Ellipse => {
@@ -154,7 +154,7 @@ pub fn sites(kind: ShapeKind, w: f32, h: f32) -> Vec<(f32, f32)> {
 
 /// Site `site` of a `kind` shape with frame `rect` (x, y, w, h) on the page, turned and flipped by
 /// `spin` about its centre. `None` for a site the shape doesn't have.
-pub fn site_point(kind: ShapeKind, rect: [f32; 4], spin: wordcraft_geom::Spin, site: u32) -> Option<(f32, f32)> {
+pub fn site_point(kind: ShapeKind, rect: [f32; 4], spin: docufy_geom::Spin, site: u32) -> Option<(f32, f32)> {
     let [x, y, w, h] = rect;
     let (sx, sy) = *sites(kind, w, h).get(site as usize)?;
     let (cx, cy) = (x + w / 2.0, y + h / 2.0);
@@ -164,7 +164,7 @@ pub fn site_point(kind: ShapeKind, rect: [f32; 4], spin: wordcraft_geom::Spin, s
 
 /// The site of a `kind` shape (frame `rect`, `spin`) nearest to page point `at`: its index, point
 /// and distance.
-pub fn nearest_site(kind: ShapeKind, rect: [f32; 4], spin: wordcraft_geom::Spin, at: (f32, f32)) -> Option<(u32, (f32, f32), f32)> {
+pub fn nearest_site(kind: ShapeKind, rect: [f32; 4], spin: docufy_geom::Spin, at: (f32, f32)) -> Option<(u32, (f32, f32), f32)> {
     let n = sites(kind, rect[2], rect[3]).len() as u32;
     (0..n)
         .filter_map(|i| site_point(kind, rect, spin, i).map(|p| (i, p, ((p.0 - at.0).powi(2) + (p.1 - at.1).powi(2)).sqrt())))
@@ -184,7 +184,7 @@ pub struct Frame {
 
 /// The frame of a connector from `start` to `end`.
 pub fn route(start: (f32, f32), end: (f32, f32)) -> Frame {
-    let f = wordcraft_geom::finite;
+    let f = docufy_geom::finite;
     let (x0, y0, x1, y1) = (f(start.0), f(start.1), f(end.0), f(end.1));
     Frame { x: x0.min(x1), y: y0.min(y1), w: (x1 - x0).abs(), h: (y1 - y0).abs(), flip_h: x1 < x0, flip_v: y1 < y0 }
 }
@@ -200,7 +200,7 @@ pub fn ends(x: f32, y: f32, w: f32, h: f32, flip_h: bool, flip_v: bool) -> ((f32
 /// bottom-right corner (flips are the frame's turn): straight, an elbow through the middle (out
 /// horizontally, across, in horizontally), or an S-curve. `None` for other kinds.
 pub fn connector_segs(kind: ShapeKind, w: f32, h: f32) -> Option<Vec<PathSeg>> {
-    let (w, h) = (wordcraft_geom::finite(w), wordcraft_geom::finite(h));
+    let (w, h) = (docufy_geom::finite(w), docufy_geom::finite(h));
     let mx = w / 2.0;
     Some(match kind {
         ShapeKind::StraightConnector => vec![PathSeg::Move(0.0, 0.0), PathSeg::Line(w, h)],
@@ -235,11 +235,11 @@ pub fn end_direction(kind: ShapeKind, w: f32, h: f32, at_end: bool) -> (f32, f32
 /// fallback are unchanged.
 pub fn reroute_group(group: &mut InlineObject) -> bool {
     let InlineObject::Group { w, h, ch_w, ch_h, children, .. } = group else { return false };
-    let fin = wordcraft_geom::finite;
+    let fin = docufy_geom::finite;
     // Match group_rects: invalid child extents use unit scale; invalid display extents become zero.
     let sx = if fin(*ch_w) > 0.0 { fin(*w) / *ch_w } else { 1.0 };
     let sy = if fin(*ch_h) > 0.0 { fin(*h) / *ch_h } else { 1.0 };
-    let shapes: Vec<(u32, ShapeKind, [f32; 4], wordcraft_geom::Spin)> = children
+    let shapes: Vec<(u32, ShapeKind, [f32; 4], docufy_geom::Spin)> = children
         .iter()
         .filter_map(|c| match &c.obj {
             InlineObject::Shape { kind, w, h, float, extra, .. } if extra.id != 0 => Some((extra.id, *kind, [c.x, c.y, *w, *h], float.spin())),

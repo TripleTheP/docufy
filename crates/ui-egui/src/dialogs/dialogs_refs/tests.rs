@@ -1,12 +1,12 @@
+use docufy_doc::{InlineObject, StoryRef};
+use docufy_engine::Session;
 use serde_json::json;
-use wordcraft_doc::{InlineObject, StoryRef};
-use wordcraft_engine::Session;
 
 use super::*;
 use crate::Services;
 
 fn app(text: &str) -> WordApp {
-    WordApp::new(Session::new(wordcraft_doc::Document::from_text(text)), Services::default())
+    WordApp::new(Session::new(docufy_doc::Document::from_text(text)), Services::default())
 }
 
 fn form(a: &WordApp) -> RefsDialog {
@@ -278,7 +278,7 @@ fn table_of_figures_dialog_picks_the_caption_label() {
     assert!(h.state().dialog.is_none(), "OK closes the dialog");
     let mut a = h.into_state();
     assert!(instrs(&a).contains(&r#"TOC \c "Table""#.to_string()), "{:?}", instrs(&a));
-    let entries: Vec<(String, Option<wordcraft_doc::props::TabLeader>)> = a
+    let entries: Vec<(String, Option<docufy_doc::props::TabLeader>)> = a
         .session
         .doc
         .body
@@ -287,7 +287,7 @@ fn table_of_figures_dialog_picks_the_caption_label() {
         .filter(|p| p.props.style.as_deref() == Some("ListEntry"))
         .map(|p| (p.plain_text(), p.props.tabs.as_ref().and_then(|t| t.last()).map(|t| t.leader)))
         .collect();
-    assert_eq!(entries, [("Table 1: Press\t1".to_string(), Some(wordcraft_doc::props::TabLeader::Underscore))]);
+    assert_eq!(entries, [("Table 1: Press\t1".to_string(), Some(docufy_doc::props::TabLeader::Underscore))]);
     a.run("caret.docEnd", json!({})).unwrap();
     a.run("ui.dialog", json!({"name": "tableOfFigures"})).unwrap();
     let RefsDialog::Figures(mut f) = form(&a) else { panic!() };

@@ -62,7 +62,7 @@ fn landing(s: &Session, pos: &Pos, to: &Pos) -> Result<Pos, CmdError> {
 /// Returns the object's position afterwards.
 fn move_in_text(s: &mut Session, pos: Pos, to: &Pos) -> Result<Pos, CmdError> {
     let to = landing(s, &pos, to)?;
-    let len = wordcraft_doc::para::OBJ.len_utf8();
+    let len = docufy_doc::para::OBJ.len_utf8();
     let same_para = to.path == pos.path;
     if same_para && (to.off == pos.off || to.off == pos.off + len) {
         return Ok(pos);
@@ -85,7 +85,7 @@ fn move_in_text(s: &mut Session, pos: Pos, to: &Pos) -> Result<Pos, CmdError> {
 /// original in place and the clipboard alone. The copy is selected.
 pub(super) fn copy_to(s: &mut Session, v: &Value) -> CmdResult {
     let (pos, obj) = selected(s).ok_or_else(|| CmdError::Disabled("no picture or shape selected".into()))?;
-    let len = wordcraft_doc::para::OBJ.len_utf8();
+    let len = docufy_doc::para::OBJ.len_utf8();
     let end = Pos { off: pos.off + len, ..pos.clone() };
     if let Some(to) = text_target(v, &obj)? {
         if p::f32(v, "x").is_some() || p::f32(v, "y").is_some() {
@@ -146,7 +146,7 @@ pub(super) fn move_object(s: &mut Session, pos: Pos, page: Option<u64>, x: f32, 
 /// [`move_object`]'s one placement: move the object's character to the anchor under (x, y) on
 /// `page` and offset it from there.
 fn move_object_once(s: &mut Session, pos: &Pos, page: usize, x: f32, y: f32, (w, h): (f32, f32)) -> Result<Pos, CmdError> {
-    use wordcraft_doc::para::Anchor;
+    use docufy_doc::para::Anchor;
     if pos.path.depth() > 0 || !movable_story(s, pos.story) {
         return Err(CmdError::Disabled("only objects in the body text, headers and footers can be moved".into()));
     }
@@ -166,14 +166,14 @@ fn move_object_once(s: &mut Session, pos: &Pos, page: usize, x: f32, y: f32, (w,
         pos.clone()
     } else {
         let obj = s.doc.para_at(pos).and_then(|p| p.object_at(pos.off)).cloned().ok_or_else(|| CmdError::Failed("object vanished".into()))?;
-        let len = wordcraft_doc::para::OBJ.len_utf8();
+        let len = docufy_doc::para::OBJ.len_utf8();
         s.doc.delete_range(pos, &Pos { off: pos.off + len, ..pos.clone() })?;
         let mut at = anchor;
         if at.story == pos.story && at.path == pos.path && at.off > pos.off {
             at.off = at.off.saturating_sub(len);
         }
         let at = s.doc.clamp(&at);
-        s.doc.insert_object(&at, obj, &wordcraft_doc::CharProps::default())?;
+        s.doc.insert_object(&at, obj, &docufy_doc::CharProps::default())?;
         at
     };
     // First on the page where it was dropped, so the text wraps around it as it will in the end.
@@ -206,7 +206,7 @@ fn move_object_once(s: &mut Session, pos: &Pos, page: usize, x: f32, y: f32, (w,
 /// Turn the selected floating object's alignment (left, centred, …) into an offset from its
 /// column / paragraph that keeps it where it is, so it can be moved by an offset.
 pub(super) fn unalign(s: &mut Session) -> Result<(), CmdError> {
-    use wordcraft_doc::para::Anchor;
+    use docufy_doc::para::Anchor;
     let (pos, obj) = selected(s).ok_or_else(|| CmdError::Disabled("no picture or shape selected".into()))?;
     let Some((_, _, float)) = obj.frame() else { return Ok(()) };
     if float.h_align.is_none() && float.v_align.is_none() {
@@ -233,14 +233,14 @@ pub(super) fn unalign(s: &mut Session) -> Result<(), CmdError> {
 /// follows its paragraph (as layout places any anchor but the page and its margins), rather than
 /// being fixed on the page ("Fix Position on Page").
 pub fn moves_with_text(f: &Float) -> bool {
-    use wordcraft_doc::para::Anchor;
+    use docufy_doc::para::Anchor;
     !matches!(f.v_rel, Anchor::Page | Anchor::Margin | Anchor::TopMargin | Anchor::BottomMargin | Anchor::InsideMargin | Anchor::OutsideMargin)
 }
 
 /// Arrange › Wrap Text › Move with Text / Fix Position on Page: anchor the selected floating
 /// object's vertical position to its paragraph or to the page, keeping it where it is now.
 pub(super) fn move_with_text(s: &mut Session, with_text: bool) -> CmdResult {
-    use wordcraft_doc::para::Anchor;
+    use docufy_doc::para::Anchor;
     let (pos, obj) = selected(s).ok_or_else(|| CmdError::Disabled("no picture or shape selected".into()))?;
     let Some((_, _, float)) = obj.frame() else { return Err(CmdError::Disabled("select a floating picture or shape first".into())) };
     if moves_with_text(float) == with_text {
@@ -266,27 +266,27 @@ pub(super) fn move_with_text(s: &mut Session, with_text: bool) -> CmdResult {
 /// earlier column) can't wrap around it. (Nor do lines continuing a paragraph from the column
 /// before: layout breaks them once, in the column the paragraph starts in.)
 pub(crate) fn anchor_paragraph(
-    doc: &wordcraft_doc::Document,
-    layout: &wordcraft_layout::DocLayout,
+    doc: &docufy_doc::Document,
+    layout: &docufy_layout::DocLayout,
     page: usize,
     (x, y): (f32, f32),
     story: StoryRef,
-) -> Option<wordcraft_doc::Path> {
+) -> Option<docufy_doc::Path> {
     let pg = layout.pages.get(page)?;
-    let items: Box<dyn Iterator<Item = &wordcraft_layout::Placed> + '_> = match story {
+    let items: Box<dyn Iterator<Item = &docufy_layout::Placed> + '_> = match story {
         StoryRef::Body => Box::new(pg.items.iter()),
         StoryRef::Part(_) => Box::new(pg.header.iter().chain(pg.footer.iter())),
     };
     // Top-level text on the page: (path, left, top, starts the paragraph).
-    let pieces: Vec<(&wordcraft_doc::Path, f32, f32, bool)> = items
+    let pieces: Vec<(&docufy_doc::Path, f32, f32, bool)> = items
         .filter_map(|it| match it {
-            wordcraft_layout::Placed::Lines { story: s, path, l0, x, y: top, .. } if *s == story && path.depth() == 0 => {
+            docufy_layout::Placed::Lines { story: s, path, l0, x, y: top, .. } if *s == story && path.depth() == 0 => {
                 Some((path, *x, *top, *l0 == 0))
             }
             _ => None,
         })
         .collect();
-    let starts: Vec<(&wordcraft_doc::Path, f32)> = pieces.iter().filter(|p| p.3).map(|p| (p.0, p.2)).collect();
+    let starts: Vec<(&docufy_doc::Path, f32)> = pieces.iter().filter(|p| p.3).map(|p| (p.0, p.2)).collect();
     // The page's columns (left, right), from its section's column geometry (headers and footers
     // span the text area); the column under `x` is the rightmost one starting at or left of it.
     let boxes = match story {
@@ -298,16 +298,16 @@ pub(crate) fn anchor_paragraph(
     cols.sort_by(|a, b| a.0.total_cmp(&b.0));
     let col_of = |px: f32| cols.iter().rposition(|c| c.0 <= px + 0.5).unwrap_or(0);
     let col = col_of(x);
-    let in_col: Vec<(&wordcraft_doc::Path, f32)> = pieces.iter().filter(|p| p.3 && col_of(p.1) == col).map(|p| (p.0, p.2)).collect();
-    let pick = |v: &[(&wordcraft_doc::Path, f32)]| v.iter().rev().find(|(_, top)| *top <= y + 0.5).or(v.first()).map(|(p, _)| (*p).clone());
+    let in_col: Vec<(&docufy_doc::Path, f32)> = pieces.iter().filter(|p| p.3 && col_of(p.1) == col).map(|p| (p.0, p.2)).collect();
+    let pick = |v: &[(&docufy_doc::Path, f32)]| v.iter().rev().find(|(_, top)| *top <= y + 0.5).or(v.first()).map(|(p, _)| (*p).clone());
     pick(&in_col).or_else(|| pick(&starts))
 }
 
 /// The start of the top-level line of `story` on `page` nearest to `y`.
-pub(crate) fn nearest_line(layout: &wordcraft_layout::DocLayout, page: usize, y: f32, story: StoryRef) -> Option<Pos> {
-    let lines = wordcraft_layout::hit::page_lines(layout.pages.get(page)?, story);
+pub(crate) fn nearest_line(layout: &docufy_layout::DocLayout, page: usize, y: f32, story: StoryRef) -> Option<Pos> {
+    let lines = docufy_layout::hit::page_lines(layout.pages.get(page)?, story);
     let best = lines.iter().filter(|l| l.path.depth() == 0).min_by(|a, b| {
-        let d = |l: &wordcraft_layout::hit::LineHit| if y < l.top { l.top - y } else { (y - l.bottom).max(0.0) };
+        let d = |l: &docufy_layout::hit::LineHit| if y < l.top { l.top - y } else { (y - l.bottom).max(0.0) };
         d(a).total_cmp(&d(b))
     })?;
     let off = best.para.lines.get(best.li)?.start;

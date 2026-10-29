@@ -77,7 +77,7 @@ fn heading_level(s: &Session, props: &ParaProps) -> Option<u8> {
 
 /// Give paragraph `path` Heading `level` (1–9), or make it body text (`None`: the default
 /// paragraph style); its own outline level goes, so the style's counts.
-pub(crate) fn set_heading(s: &mut Session, story: wordcraft_doc::StoryRef, path: &wordcraft_doc::Path, level: Option<u8>) -> Result<(), CmdError> {
+pub(crate) fn set_heading(s: &mut Session, story: docufy_doc::StoryRef, path: &docufy_doc::Path, level: Option<u8>) -> Result<(), CmdError> {
     let style = level.map(|n| ensure_heading_style(s, n.clamp(1, 9)));
     let para = s.doc.para_mut(story, path)?;
     para.props.style = style;
@@ -91,7 +91,7 @@ pub(crate) fn set_heading(s: &mut Session, story: wordcraft_doc::StoryRef, path:
 pub(crate) fn ensure_heading_style(s: &mut Session, n: u8) -> String {
     let id = format!("Heading{n}");
     if s.doc.styles.get(&id).is_none() {
-        let builtin = wordcraft_doc::styles::StyleSheet::builtin();
+        let builtin = docufy_doc::styles::StyleSheet::builtin();
         for sid in [id.clone(), format!("{id}Char")] {
             if s.doc.styles.get(&sid).is_none()
                 && let Some(st) = builtin.get(&sid).cloned()
@@ -156,7 +156,7 @@ pub(super) fn outline_step(s: &mut Session, promote: bool) -> CmdResult {
     for (j, h) in carried {
         let n = if promote { h.saturating_sub(1).max(1) } else { (h + 1).min(9) };
         if n != h {
-            set_heading(s, wordcraft_doc::StoryRef::Body, &wordcraft_doc::Path::top(j), Some(n))?;
+            set_heading(s, docufy_doc::StoryRef::Body, &docufy_doc::Path::top(j), Some(n))?;
         }
     }
     sel_result(s)

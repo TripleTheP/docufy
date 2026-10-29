@@ -9,9 +9,9 @@ use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
-use wordcraft_doc::para::{Float, InlineObject, Wrap};
-use wordcraft_doc::wrap::{ALPHA_GRID, MAX_WRAP_POINTS, alpha_outline, shape_outline};
-use wordcraft_geom::{Rect, finite};
+use docufy_doc::para::{Float, InlineObject, Wrap};
+use docufy_doc::wrap::{ALPHA_GRID, MAX_WRAP_POINTS, alpha_outline, shape_outline};
+use docufy_geom::{Rect, finite};
 
 /// A wrap outline placed on the page, in the coordinates of its wrap area's top-left corner
 /// (see [`crate::para::Exclusion`]).
@@ -240,7 +240,7 @@ impl Alphas {
 /// past [`MAX_DECODED_PIXELS`]. Pictures whose header says they're opaque cost nothing.
 fn decode_alpha(bytes: &[u8], decoded: &mut u64) -> Result<Option<Alpha>, OverBudget> {
     use image::ImageDecoder;
-    let Ok(pic) = wordcraft_geom::picture::probe(bytes) else { return Ok(None) };
+    let Ok(pic) = docufy_geom::picture::probe(bytes) else { return Ok(None) };
     // Formats that can't be transparent aren't decoded.
     if pic.format == image::ImageFormat::Jpeg || pic.width > MAX_PICTURE_SIDE || pic.height > MAX_PICTURE_SIDE {
         return Ok(None);
@@ -253,7 +253,7 @@ fn decode_alpha(bytes: &[u8], decoded: &mut u64) -> Result<Option<Alpha>, OverBu
     }
     let pixels = u64::from(pic.width) * u64::from(pic.height);
     *decoded = decoded.checked_add(pixels).filter(|t| *t <= MAX_DECODED_PIXELS).ok_or(OverBudget)?;
-    let Ok(img) = pic.decode(wordcraft_geom::MAX_DECODED_BYTES) else { return Ok(None) };
+    let Ok(img) = pic.decode(docufy_geom::MAX_DECODED_BYTES) else { return Ok(None) };
     let img = img.into_rgba8();
     let (w, h) = img.dimensions();
     Ok(Some(Alpha { w, h, a: img.pixels().map(|p| p.0[3]).collect() }))
@@ -263,7 +263,7 @@ fn decode_alpha(bytes: &[u8], decoded: &mut u64) -> Result<Option<Alpha>, OverBu
 fn alpha_in_crop(img: &Alpha, crop: [f32; 4]) -> Option<Vec<(f32, f32)>> {
     let (iw, ih) = (img.w, img.h);
     // The part the renderers draw (#1899): a sliver keeps its partly covered pixels.
-    let [cl, ct, vw, vh] = wordcraft_metafile::crop_window(crop);
+    let [cl, ct, vw, vh] = docufy_metafile::crop_window(crop);
     let (fw, fh) = (f64::from(iw), f64::from(ih));
     let x0 = ((fw * cl) as u32).min(iw);
     let y0 = ((fh * ct) as u32).min(ih);
@@ -341,7 +341,7 @@ mod tests {
             image::Rgba([0, 0, 0, if dx * dx + dy * dy < 400.0 { 255 } else { 0 }])
         });
         let pts = picture_outline(&png(disc.clone().into()), [0.0; 4]).unwrap();
-        assert!(pts.len() >= 8 && pts.len() <= wordcraft_doc::wrap::MAX_DERIVED_POINTS);
+        assert!(pts.len() >= 8 && pts.len() <= docufy_doc::wrap::MAX_DERIVED_POINTS);
         assert!(pts.iter().all(|(x, y)| (0.15..=0.85).contains(x) && (0.15..=0.85).contains(y)), "{pts:?}");
         // Cropped to its left half, the disc reaches the right edge.
         let half = picture_outline(&png(disc.into()), [0.0, 0.0, 0.5, 0.0]).unwrap();

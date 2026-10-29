@@ -218,7 +218,7 @@ pub fn handle(app: &mut WordApp, ctx: &egui::Context, req: &ControlRequest) -> O
             Err(e) => err(e),
         },
         "ui.inspect" => ok(inspect(app, ctx)),
-        "ui.parity" => ok(wordcraft_engine::catalog::parity(&app.session.registry)),
+        "ui.parity" => ok(docufy_engine::catalog::parity(&app.session.registry)),
         "ui.click" => {
             let (Some(x), Some(y)) = (f("x"), f("y")) else { return err("missing x/y") };
             let button = match s("button") {

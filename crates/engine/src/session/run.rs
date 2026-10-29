@@ -35,7 +35,7 @@ impl Session {
             && (id.starts_with("text.") || id.starts_with("caret.") || id.starts_with("select.") || id.starts_with("edit.paste"))
             && let Some(m) = self.math.take()
         {
-            let off = m.at.off + wordcraft_doc::para::OBJ.len_utf8();
+            let off = m.at.off + docufy_doc::para::OBJ.len_utf8();
             self.sel = Selection::caret(Pos { off, ..m.at });
         }
     }

@@ -333,7 +333,7 @@ mod ui_tests {
     use serde_json::json;
 
     fn harness(width: f32) -> egui_kittest::Harness<'static, WordApp> {
-        let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_engine::sample::sample_document()), crate::Services::default());
+        let mut app = WordApp::new(docufy_engine::Session::new(docufy_engine::sample::sample_document()), crate::Services::default());
         app.run("ui.tab", json!({"tab": "Home"})).unwrap();
         let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(width, 900.0)).build_ui_state(
             |ui, app: &mut WordApp| {
@@ -393,7 +393,7 @@ mod ui_tests {
         // The item's accessible name carries its shortcut.
         h.get_by_label_contains("UPPERCASE").click();
         h.run_steps(3);
-        let text = h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body);
+        let text = h.state().session.doc.plain_text(docufy_doc::StoryRef::Body);
         assert!(!text.chars().any(|c| c.is_lowercase()), "UPPERCASE ran");
         assert!(shown(&h, "Increase Font Size"), "a menu inside counts as inside");
         h.get_by_role_and_label(Role::Button, "Font").click();

@@ -1,5 +1,5 @@
 //! Comment times in the user's own time zone. A document keeps a comment's time as written, and
-//! its UTC time beside it when it knows it (`w16cex:dateUtc`, which WordCraft writes for the
+//! its UTC time beside it when it knows it (`w16cex:dateUtc`, which Docufy writes for the
 //! comments it stamps). The Comments pane and the balloons show it in local time, as Word does.
 
 /// Minutes to add to UTC for local time at Unix time `secs` (east of Greenwich is positive).
@@ -25,7 +25,7 @@ fn offset_minutes(secs: i64) -> i32 {
 /// offset (`±HH:MM`) and shown as written when it doesn't. A `Z` on `date` alone doesn't count:
 /// Word writes local time there with a `Z` it doesn't mean, and files from before `dateUtc` have
 /// nothing else. Empty when neither is a date.
-pub(crate) fn comment_time(c: &wordcraft_doc::Comment) -> String {
+pub(crate) fn comment_time(c: &docufy_doc::Comment) -> String {
     stamp(&c.date, c.date_utc.as_deref(), offset_minutes)
 }
 
@@ -41,7 +41,7 @@ fn stamp(date: &str, date_utc: Option<&str>, offset: impl Fn(i64) -> i32) -> Str
         }
         None => t.secs,
     };
-    let (y, m, d) = wordcraft_engine::cmd::civil_from_days(local.div_euclid(86_400));
+    let (y, m, d) = docufy_engine::cmd::civil_from_days(local.div_euclid(86_400));
     if !t.timed {
         return format!("{y:04}-{m:02}-{d:02}");
     }
@@ -129,7 +129,7 @@ fn days_in_month(y: u32, m: u32) -> u32 {
 }
 
 /// Days since 1970-01-01 of a proleptic Gregorian date (the inverse of
-/// [`wordcraft_engine::cmd::civil_from_days`]).
+/// [`docufy_engine::cmd::civil_from_days`]).
 fn days_from_civil(y: i64, m: u32, d: u32) -> i64 {
     let y = if m <= 2 { y - 1 } else { y };
     let era = if y >= 0 { y } else { y - 399 } / 400;
@@ -147,13 +147,13 @@ mod tests {
     #[test]
     fn days_round_trip() {
         for days in [-800_000, -1, 0, 1, 19_000, 20_376, 2_932_896] {
-            let (y, m, d) = wordcraft_engine::cmd::civil_from_days(days);
+            let (y, m, d) = docufy_engine::cmd::civil_from_days(days);
             assert_eq!(days_from_civil(y, m, d), days);
         }
         assert_eq!(days_from_civil(2026, 10, 12), 20_738);
     }
 
-    /// WordCraft's own comments carry their UTC time: shown in the user's zone, across a date
+    /// Docufy's own comments carry their UTC time: shown in the user's zone, across a date
     /// line too.
     #[test]
     fn utc_times_show_in_local_time() {

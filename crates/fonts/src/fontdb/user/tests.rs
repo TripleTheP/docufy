@@ -415,7 +415,7 @@ fn stored_names_are_safe_and_unique() {
 fn a_link_planted_at_the_temporary_name_is_not_written_through() {
     // #3703 review: the temporary file is created afresh, so a planted link can't carry the
     // font bytes to a file outside the folder.
-    let root = std::env::temp_dir().join(format!("wordcraft-font-part-{}", std::process::id()));
+    let root = std::env::temp_dir().join(format!("docufy-font-part-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
     let dir = root.join("fonts");
     std::fs::create_dir_all(&dir).unwrap();
@@ -437,7 +437,7 @@ fn a_link_planted_at_the_temporary_name_is_not_written_through() {
 #[test]
 fn fonts_stored_at_once_under_one_name_each_get_their_own_file() {
     // #3703 review: concurrent adds of one name never share a temporary or a destination.
-    let dir = std::env::temp_dir().join(format!("wordcraft-font-race-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-font-race-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     let paths: Vec<_> = (0..8u8)
         .map(|i| {

@@ -2,7 +2,7 @@
 //! reader (#863).
 use std::collections::HashSet;
 
-use wordcraft_doc::{Document, Part, PartKind};
+use docufy_doc::{Document, Part, PartKind};
 
 use super::{Body, Ev, FBlock, Pages, SectionProps, Styles, events, get, model};
 

@@ -5,8 +5,8 @@ use super::{Rect, Sense, Stroke, Tokens, Ui, WordApp, big, group, json, menu_but
 /// SmartArt Design: the selected graphic's items (Add Shape, Promote, Demote, Text Pane), its
 /// layout (a gallery of previews), its colours and Reset.
 pub(super) fn smart_art_design(app: &mut WordApp, ui: &mut Ui) {
-    use wordcraft_doc::smart_art::{SmartArtColors, SmartArtLayout};
-    let Some(g) = wordcraft_engine::cmd::smart_art::selected_smart_art(&app.session) else { return };
+    use docufy_doc::smart_art::{SmartArtColors, SmartArtLayout};
+    let Some(g) = docufy_engine::cmd::smart_art::selected_smart_art(&app.session) else { return };
     let theme = app.session.doc.settings.theme_colors.clone();
     // The Text Pane's current item, else the last.
     let current = app.smart_art_item.filter(|i| *i < g.items.len());
@@ -78,7 +78,7 @@ pub(super) fn smart_art_design(app: &mut WordApp, ui: &mut Ui) {
 /// Chart Design: the selected chart's elements (title, legend, data labels), its data and type,
 /// and its size.
 pub(super) fn chart_design(app: &mut WordApp, ui: &mut Ui) {
-    let Some(chart) = wordcraft_engine::cmd::chart::selected_chart(&app.session) else { return };
+    let Some(chart) = docufy_engine::cmd::chart::selected_chart(&app.session) else { return };
     group(ui, "Chart Layouts", None, app, |ui, app| {
         menu_button(ui, app, crate::widgets::MenuButtonOptions::new("chartTitle", Some("Chart Title"), "Chart Title", true, ""), |ui, app| {
             mi_check(ui, app, "None", chart.title.is_none(), "chart.title", json!({"text": null}));
@@ -88,10 +88,10 @@ pub(super) fn chart_design(app: &mut WordApp, ui: &mut Ui) {
         menu_button(ui, app, crate::widgets::MenuButtonOptions::new("legend", Some("Legend"), "Legend", true, ""), |ui, app| {
             mi_check(ui, app, "None", chart.legend.is_none(), "chart.legend", json!({"pos": "none"}));
             for (label, pos) in [
-                ("Right", wordcraft_doc::chart::LegendPos::Right),
-                ("Top", wordcraft_doc::chart::LegendPos::Top),
-                ("Left", wordcraft_doc::chart::LegendPos::Left),
-                ("Bottom", wordcraft_doc::chart::LegendPos::Bottom),
+                ("Right", docufy_doc::chart::LegendPos::Right),
+                ("Top", docufy_doc::chart::LegendPos::Top),
+                ("Left", docufy_doc::chart::LegendPos::Left),
+                ("Bottom", docufy_doc::chart::LegendPos::Bottom),
             ] {
                 mi_check(ui, app, label, chart.legend == Some(pos), "chart.legend", json!({"pos": pos.id()}));
             }

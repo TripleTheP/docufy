@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <?ifndef HasCraftFontLicences ?>
+  <?define HasCraftFontLicences=0 ?>
+  <?endif?>
+  <Package Name="Docufy" Manufacturer="Learning Machines LLC" Version="$(var.Version)" UpgradeCode="075497F9-E861-45D0-9C7F-A74F8C34E6BA" Scope="perUserOrMachine" Compressed="yes" Language="1033">
+    <SummaryInformation Description="Docufy word processor" Manufacturer="Learning Machines LLC" />
+    <?include $(sys.SOURCEFILEDIR)install-policy.wxi?>
+    <!-- Same-version upgrades let successive pre-releases of one X.Y.Z replace each other
+         (MSI versions are numeric, so 1.2.3-rc.1 and 1.2.3-rc.2 are both 1.2.3). -->
+    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of Docufy is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="DocufyIcon.ico" SourceFile="$(var.IconPath)" />
+    <Property Id="ARPPRODUCTICON" Value="DocufyIcon.ico" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/TripleTheP/docufy" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/TripleTheP/docufy" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/TripleTheP/docufy/issues" />
+
+    <!-- Installer UI (#198): WixUI_Minimal is welcome + license, progress, then a finish page so
+         people can see the install worked. Its dialogs and bitmaps are WiX's own
+         (WixToolset.UI.wixext); package.ps1 builds the license RTF from LICENSE-MIT and
+         LICENSE-APACHE. The finish page offers to launch Docufy (ticked by default) through
+         WixShellExec (WixToolset.Util.wixext); silent installs (/qn) never show it. -->
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.LicenseRtf)" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch Docufy" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <Property Id="WixShellExecTarget" Value="[#DocufyExe]" />
+    <CustomAction Id="LaunchDocufy" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixShellExec" Impersonate="yes" Return="ignore" />
+    <UI>
+      <ui:WixUI Id="WixUI_Minimal" />
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchDocufy" Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed" />
+    </UI>
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="CraftSuiteFolder" Name="ArtCraft">
+        <Directory Id="INSTALLFOLDER" Name="Docufy" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+
+    <Feature Id="Main" Title="Docufy" Level="1">
+      <ComponentGroupRef Id="AppNotices" />
+      <?if $(var.HasCraftFontLicences) = 1 ?>
+      <ComponentGroupRef Id="CraftFontLicences" />
+      <?endif?>
+      <ComponentGroupRef Id="DocufyFiles" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <ComponentGroup Id="AppNotices" Directory="INSTALLFOLDER">
+      <Files Include="$(var.AppNoticesDir)\**" />
+    </ComponentGroup>
+    <?if $(var.HasCraftFontLicences) = 1 ?>
+    <ComponentGroup Id="CraftFontLicences" Directory="INSTALLFOLDER">
+      <Files Include="$(var.DocsDir)\**" />
+    </ComponentGroup>
+    <?endif?>
+    <ComponentGroup Id="DocufyFiles" Directory="INSTALLFOLDER">
+      <Component Id="DocufyApp" Guid="855DCEC6-9285-444F-9382-9654B83B34F6">
+        <File Id="DocufyExe" Source="$(var.BinDir)\docufy.exe" KeyPath="yes">
+          <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="Docufy" Description="Docufy word processor" WorkingDirectory="INSTALLFOLDER" Advertise="yes" Icon="DocufyIcon.ico" IconIndex="0" />
+        </File>
+
+        <RegistryValue Root="HKMU" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\docufy.exe" Value="[#DocufyExe]" Type="string" />
+      <RegistryValue Root="HKMU" Key="Software\Docufy" Name="InstallDir" Value="[INSTALLFOLDER]" Type="string" />
+      </Component>
+
+      <!-- File associations (#295). Each document type gets a Docufy ProgId (name, icon, open
+           command) and is listed under the extension's OpenWithProgids, so Docufy shows in
+           Explorer's "Open with". The Word, RTF and ODT types are also Docufy's Capabilities
+           (RegisteredApplications), so it appears in Settings › Default apps, where the user
+           makes it the default (File › Options › General opens that page). Nothing here sets an
+           extension's default: the installer never takes over .docx from another app. Markdown and
+           plain text are only "Open with" candidates. Removed again on uninstall. -->
+      <Component Id="DocufyFileTypes" Guid="EFF89E6A-F9B8-49F9-B3AE-E243347484B4">
+        <RegistryValue Root="HKMU" Key="Software\RegisteredApplications" Name="Docufy" Value="Software\Docufy\Capabilities" Type="string" KeyPath="yes" />
+        <RegistryValue Root="HKMU" Key="Software\Docufy\Capabilities" Name="ApplicationName" Value="Docufy" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Docufy\Capabilities" Name="ApplicationDescription" Value="Write and design documents; open and save Word files." Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Docufy\Capabilities" Name="ApplicationIcon" Value="&quot;[#DocufyExe]&quot;,0" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\docufy.exe" Name="FriendlyAppName" Value="Docufy" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\docufy.exe\shell\open\command" Value="&quot;[#DocufyExe]&quot; &quot;%1&quot;" Type="string" />
+
+        <ProgId Id="Docufy.Document" Description="Word Document" Icon="DocufyExe" IconIndex="0" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Docufy.Document\shell\open\command" Value="&quot;[#DocufyExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.docx\OpenWithProgids" Name="Docufy.Document" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\docufy.exe\SupportedTypes" Name=".docx" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Docufy\Capabilities\FileAssociations" Name=".docx" Value="Docufy.Document" Type="string" />
+
+        <ProgId Id="Docufy.DocumentMacroEnabled" Description="Word Macro-Enabled Document" Icon="DocufyExe" IconIndex="0" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Docufy.DocumentMacroEnabled\shell\open\command" Value="&quot;[#DocufyExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.docm\OpenWithProgids" Name="Docufy.DocumentMacroEnabled" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\docufy.exe\SupportedTypes" Name=".docm" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Docufy\Capabilities\FileAssociations" Name=".docm" Value="Docufy.DocumentMacroEnabled" Type="string" />
+
+        <ProgId Id="Docufy.Template" Description="Word Template" Icon="DocufyExe" IconIndex="0" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Docufy.Template\shell\open\command" Value="&quot;[#DocufyExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.dotx\OpenWithProgids" Name="Docufy.Template" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\docufy.exe\SupportedTypes" Name=".dotx" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Docufy\Capabilities\FileAssociations" Name=".dotx" Value="Docufy.Template" Type="string" />
+
+        <ProgId Id="Docufy.TemplateMacroEnabled" Description="Word Macro-Enabled Template" Icon="DocufyExe" IconIndex="0" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Docufy.TemplateMacroEnabled\shell\open\command" Value="&quot;[#DocufyExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.dotm\OpenWithProgids" Name="Docufy.TemplateMacroEnabled" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\docufy.exe\SupportedTypes" Name=".dotm" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Docufy\Capabilities\FileAssociations" Name=".dotm" Value="Docufy.TemplateMacroEnabled" Type="string" />
+
+        <ProgId Id="Docufy.LegacyDocument" Description="Legacy Word Document" Icon="DocufyExe" IconIndex="0" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Docufy.LegacyDocument\shell\open\command" Value="&quot;[#DocufyExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.doc\OpenWithProgids" Name="Docufy.LegacyDocument" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\docufy.exe\SupportedTypes" Name=".doc" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Docufy\Capabilities\FileAssociations" Name=".doc" Value="Docufy.LegacyDocument" Type="string" />
+
+        <ProgId Id="Docufy.LegacyTemplate" Description="Legacy Word Template" Icon="DocufyExe" IconIndex="0" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Docufy.LegacyTemplate\shell\open\command" Value="&quot;[#DocufyExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.dot\OpenWithProgids" Name="Docufy.LegacyTemplate" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\docufy.exe\SupportedTypes" Name=".dot" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Docufy\Capabilities\FileAssociations" Name=".dot" Value="Docufy.LegacyTemplate" Type="string" />
+
+        <ProgId Id="Docufy.RichText" Description="Rich Text Document" Icon="DocufyExe" IconIndex="0" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Docufy.RichText\shell\open\command" Value="&quot;[#DocufyExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.rtf\OpenWithProgids" Name="Docufy.RichText" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\docufy.exe\SupportedTypes" Name=".rtf" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Docufy\Capabilities\FileAssociations" Name=".rtf" Value="Docufy.RichText" Type="string" />
+
+        <ProgId Id="Docufy.OpenDocumentText" Description="OpenDocument Text" Icon="DocufyExe" IconIndex="0" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Docufy.OpenDocumentText\shell\open\command" Value="&quot;[#DocufyExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.odt\OpenWithProgids" Name="Docufy.OpenDocumentText" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\docufy.exe\SupportedTypes" Name=".odt" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Docufy\Capabilities\FileAssociations" Name=".odt" Value="Docufy.OpenDocumentText" Type="string" />
+
+        <ProgId Id="Docufy.Markdown" Description="Markdown Document" Icon="DocufyExe" IconIndex="0" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Docufy.Markdown\shell\open\command" Value="&quot;[#DocufyExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.md\OpenWithProgids" Name="Docufy.Markdown" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\docufy.exe\SupportedTypes" Name=".md" Value="" Type="string" />
+
+        <ProgId Id="Docufy.PlainText" Description="Text Document" Icon="DocufyExe" IconIndex="0" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Docufy.PlainText\shell\open\command" Value="&quot;[#DocufyExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.txt\OpenWithProgids" Name="Docufy.PlainText" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\docufy.exe\SupportedTypes" Name=".txt" Value="" Type="string" />
+      </Component>
+
+      <Component Id="DocufyCli">
+        <File Id="DocufyCliExe" Source="$(var.BinDir)\docufy-cli.exe" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

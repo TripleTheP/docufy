@@ -55,21 +55,21 @@ fn paragraph_borders() {
     // \pard resets them.
     assert!(paras[1].borders.is_none());
     let b = paras[2].borders.unwrap();
-    assert_eq!(b.top.map(|x| x.style), Some(wordcraft_doc::props::BorderStyle::Double));
+    assert_eq!(b.top.map(|x| x.style), Some(docufy_doc::props::BorderStyle::Double));
     assert!(b.left.is_some() && b.right.is_some() && b.bottom.is_none());
     // An empty paragraph with only a bottom border is still a rule.
     assert_eq!(paras[3].kind, Kind::Rule);
     // The document's paragraph carries them.
     let d = import(rtf).unwrap();
-    let first = d.body.iter().find_map(|b| if let wordcraft_doc::Block::Para(p) = &**b { Some(p) } else { None }).unwrap();
+    let first = d.body.iter().find_map(|b| if let docufy_doc::Block::Para(p) = &**b { Some(p) } else { None }).unwrap();
     assert!(first.props.borders.and_then(|b| b.bottom).is_some());
     // Paragraph borders round-trip through export and import.
     let exported = export(&d);
     assert!(exported.contains("\\brdrb\\brdrs\\brdrw10\\brdrcf1"), "{exported}");
     let back = import(exported.as_bytes()).unwrap();
-    let first = back.body.iter().find_map(|b| if let wordcraft_doc::Block::Para(p) = &**b { Some(p) } else { None }).unwrap();
+    let first = back.body.iter().find_map(|b| if let docufy_doc::Block::Para(p) = &**b { Some(p) } else { None }).unwrap();
     let b = first.props.borders.unwrap().bottom.unwrap();
-    assert_eq!((b.style, b.width, b.color), (wordcraft_doc::props::BorderStyle::Single, 0.5, Some(Rgb(216, 216, 216))));
+    assert_eq!((b.style, b.width, b.color), (docufy_doc::props::BorderStyle::Single, 0.5, Some(Rgb(216, 216, 216))));
 }
 
 #[test]
@@ -86,11 +86,7 @@ fn headers_and_footers() {
     assert!(s.title_page);
     let text = |id: Option<u32>| {
         let p = id.and_then(|id| d.parts.get(&id)).unwrap();
-        p.blocks
-            .iter()
-            .filter_map(|b| if let wordcraft_doc::Block::Para(p) = &**b { Some(p.text.clone()) } else { None })
-            .collect::<Vec<_>>()
-            .join("|")
+        p.blocks.iter().filter_map(|b| if let docufy_doc::Block::Para(p) = &**b { Some(p.text.clone()) } else { None }).collect::<Vec<_>>().join("|")
     };
     assert_eq!(text(s.headers.default), "Running head");
     assert_eq!(text(s.headers.first), "First head bold");
@@ -109,7 +105,7 @@ fn headers_and_footers() {
 
 #[test]
 fn paragraph_spacing_and_indents() {
-    use wordcraft_doc::props::LineSpacing;
+    use docufy_doc::props::LineSpacing;
     let rtf = br"{\rtf1\ansi
 \pard\sb120\sa150\sl360\slmult1\li720\ri360\fi-360 a\par
 \pard\sl-280 b\par
@@ -129,7 +125,7 @@ fn paragraph_spacing_and_indents() {
     let d = import(rtf).unwrap();
     assert_eq!(d.styles.default_para.space_after, Some(0.0));
     assert_eq!(d.styles.default_para.line_spacing, Some(LineSpacing::Multiple(1.0)));
-    let first = d.body.iter().find_map(|b| if let wordcraft_doc::Block::Para(p) = &**b { Some(p) } else { None }).unwrap();
+    let first = d.body.iter().find_map(|b| if let docufy_doc::Block::Para(p) = &**b { Some(p) } else { None }).unwrap();
     assert_eq!(first.props.space_after, Some(7.5));
     assert_eq!(first.props.indent_first, Some(-18.0));
 }
@@ -143,7 +139,7 @@ fn default_font_is_deff_or_font_zero() {
     assert_eq!(d.styles.default_chr.font.as_deref(), Some("Arial"));
     // No font table: our default stays.
     let d = import(br"{\rtf1\ansi x\par}").unwrap();
-    assert_eq!(d.styles.default_chr.font, wordcraft_doc::StyleSheet::builtin().default_chr.font);
+    assert_eq!(d.styles.default_chr.font, docufy_doc::StyleSheet::builtin().default_chr.font);
 }
 
 #[test]
@@ -182,7 +178,7 @@ fn page_size_and_margins() {
     assert!(exported.contains("\\landscape"), "exported RTF must include \\landscape: {exported}");
     // Nonsense keeps Word's defaults.
     let d = import(br"{\rtf1\ansi\paperw0\margl99999 x\par}").unwrap();
-    assert_eq!(d.last_section, wordcraft_doc::SectionProps::default());
+    assert_eq!(d.last_section, docufy_doc::SectionProps::default());
 }
 
 #[test]
@@ -207,7 +203,7 @@ fn table_grid_from_cell_edges_and_borders() {
     let b = t.rows[0][0].borders.unwrap();
     assert!(b.top.is_none() && b.left.is_none() && b.right.is_none());
     let bottom = b.bottom.unwrap();
-    assert_eq!((bottom.style, bottom.width, bottom.color), (wordcraft_doc::props::BorderStyle::Single, 0.75, Some(Rgb(174, 174, 174))));
+    assert_eq!((bottom.style, bottom.width, bottom.color), (docufy_doc::props::BorderStyle::Single, 0.75, Some(Rgb(174, 174, 174))));
     // Every side, in different styles, per cell.
     let f = parse(
         br"{\rtf1\ansi\trowd\clbrdrt\brdrdb\clbrdrl\brdrs\brdrw10\clbrdrb\brdrdot\clbrdrr\brdrth\cellx2000\cellx4000\pard\intbl a\cell b\cell\row}",
@@ -215,7 +211,7 @@ fn table_grid_from_cell_edges_and_borders() {
     .unwrap();
     let FBlock::Table(t) = &f.blocks[0] else { panic!() };
     let b = t.rows[0][0].borders.unwrap();
-    use wordcraft_doc::props::BorderStyle as S;
+    use docufy_doc::props::BorderStyle as S;
     assert_eq!(
         [b.top.map(|x| x.style), b.left.map(|x| x.style), b.bottom.map(|x| x.style), b.right.map(|x| x.style)],
         [Some(S::Double), Some(S::Single), Some(S::Dotted), Some(S::Thick)]
@@ -228,7 +224,7 @@ fn table_grid_from_cell_edges_and_borders() {
     assert!(t.rows[0][0].borders.is_none());
     // The document's cells carry them.
     let d = import(br"{\rtf1\ansi\trowd\clbrdrb\brdrs\cellx2000\pard\intbl a\cell\row}").unwrap();
-    let t = d.body.iter().find_map(|b| if let wordcraft_doc::Block::Table(t) = &**b { Some(t) } else { None }).unwrap();
+    let t = d.body.iter().find_map(|b| if let docufy_doc::Block::Table(t) = &**b { Some(t) } else { None }).unwrap();
     assert!(t.props.style.is_none());
     assert!(t.rows[0].cells[0].props.borders.and_then(|b| b.bottom).is_some());
     // Borderless tables export without cell borders and round-trip borderless.
@@ -236,7 +232,7 @@ fn table_grid_from_cell_edges_and_borders() {
     let exported = export(&d);
     assert!(!exported.contains("\\clbrdr"), "{exported}");
     let back = import(exported.as_bytes()).unwrap();
-    let tb = back.body.iter().find_map(|b| if let wordcraft_doc::Block::Table(t) = &**b { Some(t) } else { None }).unwrap();
+    let tb = back.body.iter().find_map(|b| if let docufy_doc::Block::Table(t) = &**b { Some(t) } else { None }).unwrap();
     assert!(tb.props.style.is_none());
     assert!(tb.rows[0].cells[0].props.borders.is_none());
 
@@ -246,13 +242,13 @@ fn table_grid_from_cell_edges_and_borders() {
     let exported = export(&d);
     assert!(exported.contains("\\clbrdrb\\brdrdb\\brdrw15\\brdrcf1"), "{exported}");
     let back = import(exported.as_bytes()).unwrap();
-    let tb = back.body.iter().find_map(|b| if let wordcraft_doc::Block::Table(t) = &**b { Some(t) } else { None }).unwrap();
+    let tb = back.body.iter().find_map(|b| if let docufy_doc::Block::Table(t) = &**b { Some(t) } else { None }).unwrap();
     let b = tb.rows[0].cells[0].props.borders.unwrap().bottom.unwrap();
-    assert_eq!((b.style, b.width, b.color), (wordcraft_doc::props::BorderStyle::Double, 0.75, Some(Rgb(174, 174, 174))));
+    assert_eq!((b.style, b.width, b.color), (docufy_doc::props::BorderStyle::Double, 0.75, Some(Rgb(174, 174, 174))));
 
     // The table sizes to the document's page, not Letter.
     let d = import(br"{\rtf1\ansi\paperw11906\margl1134\margr1134\trowd\cellx4818\cellx9638\pard\intbl a\cell b\cell\row}").unwrap();
-    let t = d.body.iter().find_map(|b| if let wordcraft_doc::Block::Table(t) = &**b { Some(t) } else { None }).unwrap();
+    let t = d.body.iter().find_map(|b| if let docufy_doc::Block::Table(t) = &**b { Some(t) } else { None }).unwrap();
     assert_eq!(t.grid, [240.9, 241.0]);
 }
 
@@ -480,16 +476,16 @@ type Stamp = (String, String);
 
 /// (text, insertion (author, date), deletion (author, date)) of each run of the first paragraph.
 fn tracked_runs(doc: &Document) -> Vec<(String, Option<Stamp>, Option<Stamp>)> {
-    let rev = |i: Option<u32>, kind: wordcraft_doc::RevisionKind| {
+    let rev = |i: Option<u32>, kind: docufy_doc::RevisionKind| {
         i.map(|i| {
             let r = doc.revisions.get(i as usize).unwrap();
             assert_eq!(r.kind, kind);
             (r.author.clone(), r.date.clone())
         })
     };
-    let Some(wordcraft_doc::Block::Para(p)) = doc.body.first().map(|b| &**b) else { panic!("no paragraph") };
+    let Some(docufy_doc::Block::Para(p)) = doc.body.first().map(|b| &**b) else { panic!("no paragraph") };
     p.run_ranges()
-        .map(|(r, cp)| (p.text[r].to_string(), rev(cp.ins, wordcraft_doc::RevisionKind::Insert), rev(cp.del, wordcraft_doc::RevisionKind::Delete)))
+        .map(|(r, cp)| (p.text[r].to_string(), rev(cp.ins, docufy_doc::RevisionKind::Insert), rev(cp.del, docufy_doc::RevisionKind::Delete)))
         .collect()
 }
 
@@ -594,45 +590,45 @@ fn pard_keeps_revision_marks() {
     // Revision marks are character formatting: `\pard` resets paragraph formatting only.
     let rtf = br"{\rtf1{\*\revtbl {Unknown;}{Bob;}}\deleted\revauthdel1 gone\par\pard more\par}";
     let doc = import(rtf).unwrap();
-    let Some(wordcraft_doc::Block::Para(p)) = doc.body.get(1).map(|b| &**b) else { panic!("no second paragraph") };
+    let Some(docufy_doc::Block::Para(p)) = doc.body.get(1).map(|b| &**b) else { panic!("no second paragraph") };
     assert_eq!(p.text, "more");
     let del = p.props_of_char(0).del.and_then(|i| doc.revisions.get(i as usize));
-    assert_eq!(del.map(|r| (r.kind, r.author.as_str())), Some((wordcraft_doc::RevisionKind::Delete, "Bob")));
+    assert_eq!(del.map(|r| (r.kind, r.author.as_str())), Some((docufy_doc::RevisionKind::Delete, "Bob")));
 }
 
 /// The body's paragraphs.
-fn doc_paras(doc: &Document) -> Vec<&wordcraft_doc::Paragraph> {
+fn doc_paras(doc: &Document) -> Vec<&docufy_doc::Paragraph> {
     doc.body
         .iter()
         .filter_map(|b| match &**b {
-            wordcraft_doc::Block::Para(p) => Some(p),
+            docufy_doc::Block::Para(p) => Some(p),
             _ => None,
         })
         .collect()
 }
 
 /// A document of `paras` with `revisions`.
-fn doc_with(paras: Vec<wordcraft_doc::Paragraph>, revisions: Vec<wordcraft_doc::Revision>) -> Document {
+fn doc_with(paras: Vec<docufy_doc::Paragraph>, revisions: Vec<docufy_doc::Revision>) -> Document {
     let mut doc = Document::new();
-    doc.body = paras.into_iter().map(wordcraft_doc::para_block).collect();
+    doc.body = paras.into_iter().map(docufy_doc::para_block).collect();
     doc.revisions = revisions;
     doc
 }
 
 /// Kind, author and date of revision `i`.
-fn rev_of(doc: &Document, i: Option<u32>) -> Option<(wordcraft_doc::RevisionKind, String, String)> {
+fn rev_of(doc: &Document, i: Option<u32>) -> Option<(docufy_doc::RevisionKind, String, String)> {
     i.and_then(|i| doc.revisions.get(i as usize)).map(|r| (r.kind, r.author.clone(), r.date.clone()))
 }
 
 #[test]
 fn character_formatting_change_round_trips() {
-    use wordcraft_doc::props::{CharProps, PropChange};
-    use wordcraft_doc::{Revision, RevisionKind};
+    use docufy_doc::props::{CharProps, PropChange};
+    use docufy_doc::{Revision, RevisionKind};
     // "Bold" was made bold by Alice; before, it was plain italic.
     let old = CharProps { italic: Some(true), ..Default::default() };
     let cp = CharProps { bold: Some(true), fmt_change: PropChange::boxed(0, old), ..Default::default() };
     let doc =
-        doc_with(vec![wordcraft_doc::Paragraph::with_text("Bold", cp)], vec![Revision::new(RevisionKind::Format, "Alice", "2024-03-15T10:30:00Z")]);
+        doc_with(vec![docufy_doc::Paragraph::with_text("Bold", cp)], vec![Revision::new(RevisionKind::Format, "Alice", "2024-03-15T10:30:00Z")]);
     let rtf = export(&doc);
     assert!(rtf.contains("\\crauth1\\crdate-1480361314"), "{rtf}");
     assert!(rtf.contains("{\\*\\oldcprops"), "{rtf}");
@@ -650,10 +646,10 @@ fn character_formatting_change_round_trips() {
 
 #[test]
 fn paragraph_formatting_change_round_trips() {
-    use wordcraft_doc::props::{CharProps, ParaProps, PropChange};
-    use wordcraft_doc::{Align, Revision, RevisionKind};
+    use docufy_doc::props::{CharProps, ParaProps, PropChange};
+    use docufy_doc::{Align, Revision, RevisionKind};
     // Bob centred a right-aligned paragraph.
-    let mut p = wordcraft_doc::Paragraph::with_text("Centred", CharProps::default());
+    let mut p = docufy_doc::Paragraph::with_text("Centred", CharProps::default());
     p.props.align = Some(Align::Center);
     p.props.fmt_change = PropChange::boxed(0, ParaProps { align: Some(Align::Right), ..Default::default() });
     let doc = doc_with(vec![p], vec![Revision::new(RevisionKind::Format, "Bob", "2025-01-02T08:05:00Z")]);
@@ -672,14 +668,14 @@ fn paragraph_formatting_change_round_trips() {
 
 #[test]
 fn paragraph_mark_revisions_round_trip() {
-    use wordcraft_doc::props::CharProps;
-    use wordcraft_doc::{Revision, RevisionKind};
+    use docufy_doc::props::CharProps;
+    use docufy_doc::{Revision, RevisionKind};
     // Bob deleted the mark after "One" (joining it to "Two"); Alice inserted the one after "Two".
-    let mut one = wordcraft_doc::Paragraph::with_text("One", CharProps::default());
+    let mut one = docufy_doc::Paragraph::with_text("One", CharProps::default());
     one.mark.del = Some(0);
-    let mut two = wordcraft_doc::Paragraph::with_text("Two", CharProps::default());
+    let mut two = docufy_doc::Paragraph::with_text("Two", CharProps::default());
     two.mark.ins = Some(1);
-    let three = wordcraft_doc::Paragraph::with_text("Three", CharProps::default());
+    let three = docufy_doc::Paragraph::with_text("Three", CharProps::default());
     let doc = doc_with(
         vec![one, two, three],
         vec![
@@ -706,7 +702,7 @@ fn paragraph_mark_revisions_round_trip() {
 
 #[test]
 fn formatting_revisions_read_as_the_spec_writes_them() {
-    use wordcraft_doc::{Align, RevisionKind};
+    use docufy_doc::{Align, RevisionKind};
     // RTF 1.9.1 "Revision Marks": `\crauth`/`\crdate` with `{\*\oldcprops …}` on a run,
     // `\prauth`/`\prdate` with `{\*\oldpprops …}` on a paragraph, and a `\par` inside a
     // `\revised` group.
@@ -815,7 +811,7 @@ fn heading_formatting_change_has_no_style_formatting_in_the_old_formatting() {
 
 #[test]
 fn word_oldcprops_hold_only_the_changed_properties() {
-    use wordcraft_doc::RevisionKind;
+    use docufy_doc::RevisionKind;
     // Word for Mac 16.113 saving tracked formatting changes as RTF: "beta" made bold,
     // "gamma" (bold) grown from 12 to 16 pt. `\oldcprops` holds only what changed, with
     // `\crauth`/`\crdate` inside the group; the rest of the old formatting is the run's.
@@ -844,7 +840,7 @@ fn word_oldcprops_hold_only_the_changed_properties() {
 
 #[test]
 fn word_oldpprops_hold_the_full_old_paragraph_formatting() {
-    use wordcraft_doc::{Align, RevisionKind};
+    use docufy_doc::{Align, RevisionKind};
     // Word for Mac 16.113: a paragraph centred with tracking on. `\oldpprops` is the full
     // old set from `\pard`; `\prauth`/`\prdate` are on the paragraph.
     let rtf = br"{\rtf1\ansi\deff0{\fonttbl{\f0 Times New Roman;}}{\*\revtbl {Unknown;}{Alice;}}
@@ -864,20 +860,20 @@ fn word_oldpprops_hold_the_full_old_paragraph_formatting() {
 
 #[test]
 fn oldcprops_are_written_as_the_differences() {
-    use wordcraft_doc::props::{CharProps, PropChange};
-    use wordcraft_doc::{Revision, RevisionKind};
+    use docufy_doc::props::{CharProps, PropChange};
+    use docufy_doc::{Revision, RevisionKind};
     let rev = || vec![Revision::new(RevisionKind::Format, "Alice", "2024-03-15T10:30:00Z")];
     // Made bold: the group holds `\b0` and who changed it, nothing else.
     let old = CharProps { font: Some("Arial".into()), size: Some(14.0), ..Default::default() };
     let cp =
         CharProps { bold: Some(true), font: Some("Arial".into()), size: Some(14.0), fmt_change: PropChange::boxed(0, old), ..Default::default() };
-    let rtf = export(&doc_with(vec![wordcraft_doc::Paragraph::with_text("Bold", cp)], rev()));
+    let rtf = export(&doc_with(vec![docufy_doc::Paragraph::with_text("Bold", cp)], rev()));
     assert!(rtf.contains("{\\*\\oldcprops \\b0\\crauth1\\crdate-1480361314}"), "{rtf}");
     // Several changes, on and off, round-trip.
-    let red = wordcraft_doc::props::TextColor::Rgb(wordcraft_doc::props::Rgb(255, 0, 0));
+    let red = docufy_doc::props::TextColor::Rgb(docufy_doc::props::Rgb(255, 0, 0));
     let old = CharProps {
         italic: Some(true),
-        underline: Some(wordcraft_doc::props::Underline::Single),
+        underline: Some(docufy_doc::props::Underline::Single),
         size: Some(14.0),
         color: Some(red),
         font: Some("Arial".into()),
@@ -890,7 +886,7 @@ fn oldcprops_are_written_as_the_differences() {
         fmt_change: PropChange::boxed(0, old.clone()),
         ..Default::default()
     };
-    let rtf = export(&doc_with(vec![wordcraft_doc::Paragraph::with_text("Mixed", cp)], rev()));
+    let rtf = export(&doc_with(vec![docufy_doc::Paragraph::with_text("Mixed", cp)], rev()));
     let back = import(rtf.as_bytes()).unwrap();
     let paras = doc_paras(&back);
     let cp = paras.first().unwrap().props_of_char(0);
@@ -984,8 +980,8 @@ fn run_fmt<'a>(runs: &'a [(String, Fmt)], t: &str) -> &'a Fmt {
 
 #[test]
 fn heading_and_code_runs_take_their_style_formatting_on_import() {
-    // A stylesheet entry without formatting words (WordCraft's older files, minimal
-    // stylesheets): WordCraft's own heading and code formatting stand in for the style's.
+    // A stylesheet entry without formatting words (Docufy's older files, minimal
+    // stylesheets): Docufy's own heading and code formatting stand in for the style's.
     let rtf = br"{\rtf1\ansi{\fonttbl{\f0 Times New Roman;}{\f1 Arial;}{\f2 Courier New;}}{\stylesheet{\s0 Normal;}{\s2 heading 2;}{\s9 Code;}}
 \pard\s2\b\fs32 Head\par
 \pard\s2\b\fs26 Small\par
@@ -1063,7 +1059,7 @@ fn code_runs_in_the_files_code_font_have_no_direct_font() {
 fn hostile_sbasedon_chains_are_harmless() {
     let mut chain = String::new();
     // s100 (heading 5) based on s101 … s139, the last one not bold: past the bound, so
-    // heading 5 takes WordCraft's bold.
+    // heading 5 takes Docufy's bold.
     for i in 100..140 {
         let name = if i == 100 { "heading 5".to_string() } else { format!("x{i}") };
         let b0 = if i == 139 { "\\b0" } else { "" };
@@ -1081,7 +1077,7 @@ fn hostile_sbasedon_chains_are_harmless() {
 \pard\s-2147483648\fs56 title\par}}"
     );
     let runs = text_runs(rtf.as_bytes());
-    // Self-based heading 1: WordCraft's values.
+    // Self-based heading 1: Docufy's values.
     assert_eq!((run_fmt(&runs, "one").size, run_fmt(&runs, "one").bold), (None, false));
     // A loop between heading 3 and 4: both take heading 3's `\b0`.
     assert!(run_fmt(&runs, "three").bold);
@@ -1130,7 +1126,7 @@ fn a_style_chain_without_a_size_has_rtfs_default_size() {
 
 #[test]
 fn a_code_paragraph_round_trips_without_a_direct_code_font() {
-    // WordCraft's Code entry has no `\f` (the code font is on the paragraph): the code font
+    // Docufy's Code entry has no `\f` (the code font is on the paragraph): the code font
     // stands in for the style's.
     let mut code = Para { kind: Kind::Code, ..Default::default() };
     code.push_text("let x", &Fmt::default());
@@ -1210,7 +1206,7 @@ fn hostile_formatting_revisions_never_panic() {
     let f = parse(br"{\rtf1\ansi\trowd\clbrdrt\brdrs\brdrw10{\*\oldpprops \brdrdb\brdrw120\brdrcf1}\cellx2000\pard\intbl a\cell\row}").unwrap();
     let FBlock::Table(t) = &f.blocks[0] else { panic!() };
     let top = t.rows[0][0].borders.and_then(|b| b.top).unwrap();
-    assert_eq!((top.style, top.width, top.color), (wordcraft_doc::props::BorderStyle::Single, 0.5, None));
+    assert_eq!((top.style, top.width, top.color), (docufy_doc::props::BorderStyle::Single, 0.5, None));
     // Unterminated groups and deep nesting.
     for bad in [
         &br"{\rtf1\pard\prauth1\prdate5{\*\oldpprops \pard\qc"[..],
@@ -1250,7 +1246,7 @@ fn sections_keep_their_page_columns_numbering_and_headers() {
     let d = import(rtf).unwrap();
     let secs = d.sections();
     assert_eq!(secs.len(), 4, "{secs:?}");
-    let s: Vec<&wordcraft_doc::SectionProps> = secs.iter().map(|(_, s)| *s).collect();
+    let s: Vec<&docufy_doc::SectionProps> = secs.iter().map(|(_, s)| *s).collect();
     assert_section_geometry(&s);
     assert_section_breaks_and_layout(&s);
     assert_section_headers_and_footers(&d, &s);
@@ -1258,7 +1254,7 @@ fn sections_keep_their_page_columns_numbering_and_headers() {
     assert_section_page_defaults();
 }
 
-fn assert_section_geometry(s: &[&wordcraft_doc::SectionProps]) {
+fn assert_section_geometry(s: &[&docufy_doc::SectionProps]) {
     // Page size and orientation; the document's margins apply to every section.
     for (i, land) in [(0, false), (1, true), (2, true), (3, false)] {
         assert_eq!(s[i].landscape, land, "section {i}");
@@ -1269,8 +1265,8 @@ fn assert_section_geometry(s: &[&wordcraft_doc::SectionProps]) {
     }
 }
 
-fn assert_section_breaks_and_layout(s: &[&wordcraft_doc::SectionProps]) {
-    use wordcraft_doc::section::{NumFormat, SectionStart};
+fn assert_section_breaks_and_layout(s: &[&docufy_doc::SectionProps]) {
+    use docufy_doc::section::{NumFormat, SectionStart};
     assert_eq!(
         s.iter().map(|s| s.start).collect::<Vec<_>>(),
         [SectionStart::NextPage, SectionStart::NextPage, SectionStart::Continuous, SectionStart::OddPage]
@@ -1287,14 +1283,10 @@ fn assert_section_breaks_and_layout(s: &[&wordcraft_doc::SectionProps]) {
     assert!(!s[0].title_page && s[1].title_page && !s[3].title_page);
 }
 
-fn assert_section_headers_and_footers(d: &wordcraft_doc::Document, s: &[&wordcraft_doc::SectionProps]) {
+fn assert_section_headers_and_footers(d: &docufy_doc::Document, s: &[&docufy_doc::SectionProps]) {
     let text = |id: Option<u32>| {
         let p = id.and_then(|id| d.parts.get(&id)).unwrap();
-        p.blocks
-            .iter()
-            .filter_map(|b| if let wordcraft_doc::Block::Para(p) = &**b { Some(p.text.clone()) } else { None })
-            .collect::<Vec<_>>()
-            .join("|")
+        p.blocks.iter().filter_map(|b| if let docufy_doc::Block::Para(p) = &**b { Some(p.text.clone()) } else { None }).collect::<Vec<_>>().join("|")
     };
     assert_eq!(text(s[0].headers.default), "One head");
     assert!(text(s[0].footers.default).starts_with("Page"));
@@ -1307,10 +1299,10 @@ fn assert_section_headers_and_footers(d: &wordcraft_doc::Document, s: &[&wordcra
     }
 }
 
-fn assert_section_body_boundaries(d: &wordcraft_doc::Document, secs: &[(usize, &wordcraft_doc::SectionProps)]) {
+fn assert_section_body_boundaries(d: &docufy_doc::Document, secs: &[(usize, &docufy_doc::SectionProps)]) {
     // Each section ends on its own paragraph, after the text it holds.
     let body_text = |i: usize| match d.body.get(i).map(|b| &**b) {
-        Some(wordcraft_doc::Block::Para(p)) => p.text.clone(),
+        Some(docufy_doc::Block::Para(p)) => p.text.clone(),
         _ => "<table>".into(),
     };
     assert_eq!(body_text(secs[0].0 - 1), "First");
@@ -1330,9 +1322,9 @@ fn assert_section_page_defaults() {
 
 #[test]
 fn export_writes_every_section() {
-    use wordcraft_doc::section::{NumFormat, SectionStart};
-    use wordcraft_doc::{Block, SectionProps};
-    let mut d = wordcraft_doc::Document::from_text("one\ntwo\nthree");
+    use docufy_doc::section::{NumFormat, SectionStart};
+    use docufy_doc::{Block, SectionProps};
+    let mut d = docufy_doc::Document::from_text("one\ntwo\nthree");
     let s1 = SectionProps { margin_left: 90.0, header: 30.0, footer: 40.0, ..Default::default() };
     let mut s2 = SectionProps { start: SectionStart::Continuous, page_w: 792.0, page_h: 612.0, landscape: true, ..Default::default() };
     s2.columns.count = 2;
@@ -1377,14 +1369,14 @@ fn export_writes_every_section() {
     // Each section keeps its text.
     assert_eq!(secs.iter().map(|(i, _)| *i).collect::<Vec<_>>(), [0, 1, 2]);
     // One section: no section break.
-    let one = export(&wordcraft_doc::Document::from_text("a\nb"));
+    let one = export(&docufy_doc::Document::from_text("a\nb"));
     assert!(!one.contains("\\sect\n") && !one.contains("\\sect\\"), "{one}");
 }
 
 #[test]
 fn export_keeps_a_single_sections_formatting() {
-    use wordcraft_doc::SectionProps;
-    let mut d = wordcraft_doc::Document::from_text("a\nb");
+    use docufy_doc::SectionProps;
+    let mut d = docufy_doc::Document::from_text("a\nb");
     d.last_section = SectionProps { title_page: true, ..Default::default() };
     d.last_section.columns.count = 2;
     d.last_section.columns.space = 20.0;
@@ -1396,8 +1388,8 @@ fn export_keeps_a_single_sections_formatting() {
 
 #[test]
 fn export_keeps_a_section_that_ends_the_body() {
-    use wordcraft_doc::{Block, SectionProps};
-    let mut d = wordcraft_doc::Document::from_text("a\nb");
+    use docufy_doc::{Block, SectionProps};
+    let mut d = docufy_doc::Document::from_text("a\nb");
     let s1 = SectionProps { landscape: true, page_w: 792.0, page_h: 612.0, ..Default::default() };
     if let Some(Block::Para(p)) = d.body.get_mut(1).map(std::sync::Arc::make_mut) {
         p.section = Some(Box::new(s1));
@@ -1412,9 +1404,9 @@ fn export_keeps_a_section_that_ends_the_body() {
 
 #[test]
 fn export_writes_no_section_break_inside_a_table() {
-    use wordcraft_doc::{Block, SectionProps};
-    let mut d = wordcraft_doc::Document::from_text("a");
-    let mut t = wordcraft_doc::Table::new(1, 1, 400.0);
+    use docufy_doc::{Block, SectionProps};
+    let mut d = docufy_doc::Document::from_text("a");
+    let mut t = docufy_doc::Table::new(1, 1, 400.0);
     if let Some(Block::Para(p)) =
         t.rows.first_mut().and_then(|r| r.cells.first_mut()).and_then(|c| c.blocks.first_mut()).map(std::sync::Arc::make_mut)
     {
@@ -1499,7 +1491,7 @@ fn distributed_alignment_round_trips() {
 fn table_cell_vertical_alignment() {
     let rtf = br"{\rtf1\ansi\trowd\clvertalt\cellx1000\clvertalc\cellx2000\clvertalb\cellx3000\intbl top\cell center\cell bottom\cell\row}";
     let doc = import(rtf).unwrap();
-    let wordcraft_doc::Block::Table(t) = &*doc.body[0] else { panic!() };
+    let docufy_doc::Block::Table(t) = &*doc.body[0] else { panic!() };
     assert_eq!(t.rows[0].cells[0].props.valign, Some(VAlign::Top));
     assert_eq!(t.rows[0].cells[1].props.valign, Some(VAlign::Center));
     assert_eq!(t.rows[0].cells[2].props.valign, Some(VAlign::Bottom));

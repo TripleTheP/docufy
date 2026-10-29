@@ -20,7 +20,7 @@ fn texts(f: &Flow) -> Vec<String> {
 fn table_style(html: &str) -> Option<String> {
     let doc = crate::model::to_doc(&parse(html));
     doc.body.iter().find_map(|b| match &**b {
-        wordcraft_doc::Block::Table(t) => Some(t.props.style.clone().unwrap_or_default()),
+        docufy_doc::Block::Table(t) => Some(t.props.style.clone().unwrap_or_default()),
         _ => None,
     })
 }
@@ -113,7 +113,7 @@ fn styles_and_links() {
     let f = parse("<p style='text-align:center'><span style=\"color:#ff0000;font-weight:700\">red</span> <a href=\"http://x\">l</a><br>n</p>");
     let FBlock::Para(p) = &f.blocks[0] else { panic!() };
     assert_eq!(p.align, Some(Align::Center));
-    assert!(matches!(&p.inlines[0], Inline::Text(t, f) if t == "red" && f.bold && f.color == Some(wordcraft_doc::Rgb(255,0,0))));
+    assert!(matches!(&p.inlines[0], Inline::Text(t, f) if t == "red" && f.bold && f.color == Some(docufy_doc::Rgb(255,0,0))));
     assert!(p.inlines.iter().any(|i| matches!(i, Inline::Text(t, f) if t == "l" && f.link.as_deref() == Some("http://x"))));
     assert!(p.text().ends_with("l\nn"));
 }
@@ -272,14 +272,14 @@ fn leading_space_survives_round_trip() {
 
 /// A document that reads "I read " then a phonetic guide over `base`, then " daily.".
 fn ruby_doc(base: &str, ruby: &str) -> Document {
-    let props = wordcraft_doc::CharProps::default();
-    let mut p = wordcraft_doc::Paragraph::with_text("I read ", props.clone());
+    let props = docufy_doc::CharProps::default();
+    let mut p = docufy_doc::Paragraph::with_text("I read ", props.clone());
     let n = p.len();
     p.insert_object(n, crate::model::ruby_object(base.into(), ruby.into(), 20.0), &props).unwrap();
     let n = p.len();
     p.insert_text(n, " daily.", &props).unwrap();
     let mut d = Document::new();
-    d.body = vec![wordcraft_doc::para_block(p)];
+    d.body = vec![docufy_doc::para_block(p)];
     d
 }
 
@@ -297,8 +297,8 @@ fn ruby_of(f: &Flow) -> Option<(String, String)> {
 /// The first document ruby: its base text and reading.
 fn doc_ruby(d: &Document) -> Option<(String, String)> {
     d.body.iter().find_map(|b| match &**b {
-        wordcraft_doc::Block::Para(p) => p.objects.iter().find_map(|o| match o {
-            wordcraft_doc::InlineObject::Ruby { base, ruby, .. } => Some((base.clone(), ruby.clone())),
+        docufy_doc::Block::Para(p) => p.objects.iter().find_map(|o| match o {
+            docufy_doc::InlineObject::Ruby { base, ruby, .. } => Some((base.clone(), ruby.clone())),
             _ => None,
         }),
         _ => None,
@@ -306,10 +306,10 @@ fn doc_ruby(d: &Document) -> Option<(String, String)> {
 }
 
 /// The first document ruby: base size, ruby size, raise and alignment.
-fn doc_ruby_attrs(d: &Document) -> Option<(f32, f32, f32, wordcraft_doc::para::RubyAlign)> {
+fn doc_ruby_attrs(d: &Document) -> Option<(f32, f32, f32, docufy_doc::para::RubyAlign)> {
     d.body.iter().find_map(|b| match &**b {
-        wordcraft_doc::Block::Para(p) => p.objects.iter().find_map(|o| match o {
-            wordcraft_doc::InlineObject::Ruby { base_size, size, raise, align, .. } => Some((*base_size, *size, *raise, *align)),
+        docufy_doc::Block::Para(p) => p.objects.iter().find_map(|o| match o {
+            docufy_doc::InlineObject::Ruby { base_size, size, raise, align, .. } => Some((*base_size, *size, *raise, *align)),
             _ => None,
         }),
         _ => None,
@@ -374,12 +374,12 @@ fn ruby_survives_an_html_round_trip() {
 
 #[test]
 fn ruby_keeps_the_run_formatting() {
-    let props = wordcraft_doc::CharProps { bold: Some(true), ..Default::default() };
-    let mut p = wordcraft_doc::Paragraph::with_text("I read ", props.clone());
+    let props = docufy_doc::CharProps { bold: Some(true), ..Default::default() };
+    let mut p = docufy_doc::Paragraph::with_text("I read ", props.clone());
     let n = p.len();
     p.insert_object(n, crate::model::ruby_object("漢字".into(), "かんじ".into(), 20.0), &props).unwrap();
     let mut d = Document::new();
-    d.body = vec![wordcraft_doc::para_block(p)];
+    d.body = vec![docufy_doc::para_block(p)];
     assert!(export(&d).contains("<strong><ruby>漢字<rt>かんじ</rt></ruby></strong>"), "{}", export(&d));
     // Importing it back keeps the formatting for the base text and the reading.
     let f = parse("<p><strong><ruby>漢字<rt>かんじ</rt></ruby></strong></p>");
@@ -436,7 +436,7 @@ fn css_important_casing_and_spacing() {
     assert_eq!(p.align, Some(Align::Center));
     match &p.inlines[0] {
         Inline::Text(_, fmt) => {
-            assert_eq!(fmt.color, Some(wordcraft_doc::props::Rgb(0xFF, 0x00, 0x00)));
+            assert_eq!(fmt.color, Some(docufy_doc::props::Rgb(0xFF, 0x00, 0x00)));
             assert_eq!(fmt.size, Some(16.0));
             assert!(fmt.bold);
         }
@@ -452,7 +452,7 @@ fn table_cell_vertical_alignment() {
     assert_eq!(t.rows[0][1].valign, Some(VAlign::Center));
     assert_eq!(t.rows[0][2].valign, Some(VAlign::Bottom));
     let doc = crate::model::to_doc(&f);
-    let wordcraft_doc::Block::Table(dt) = &*doc.body[0] else { panic!() };
+    let docufy_doc::Block::Table(dt) = &*doc.body[0] else { panic!() };
     assert_eq!(dt.rows[0].cells[0].props.valign, Some(VAlign::Top));
     assert_eq!(dt.rows[0].cells[1].props.valign, Some(VAlign::Center));
     assert_eq!(dt.rows[0].cells[2].props.valign, Some(VAlign::Bottom));

@@ -394,14 +394,14 @@ fn qat_page(app: &mut WordApp, ui: &mut Ui, f: &mut RibbonForm, h: f32) {
 
 #[cfg(test)]
 mod tests {
+    use docufy_engine::Session;
     use serde_json::json;
-    use wordcraft_engine::Session;
 
     use crate::dialogs::Dialog;
     use crate::{Services, WordApp};
 
     fn app() -> WordApp {
-        WordApp::new(Session::new(wordcraft_doc::Document::new()), Services::default())
+        WordApp::new(Session::new(docufy_doc::Document::new()), Services::default())
     }
 
     /// #379: Tools › Customize Ribbon opens the dialog; a custom tab with a group, a hidden tab and

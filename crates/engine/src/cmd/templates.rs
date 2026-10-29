@@ -10,10 +10,10 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
+use docufy_doc::Document;
+use docufy_doc::numbering::{AbstractNum, Num};
+use docufy_doc::styles::{Style, StyleKind};
 use serde_json::{Value, json};
-use wordcraft_doc::Document;
-use wordcraft_doc::numbering::{AbstractNum, Num};
-use wordcraft_doc::styles::{Style, StyleKind};
 
 use super::para::touch_all;
 use crate::{CmdError, CmdResult, CommandSpec, Session, p};
@@ -398,8 +398,8 @@ fn import_num(doc: &mut Document, src: &Document, num: u32, map: &HashMap<String
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wordcraft_doc::numbering::ListKind;
-    use wordcraft_doc::props::{CharProps, NumRef};
+    use docufy_doc::numbering::ListKind;
+    use docufy_doc::props::{CharProps, NumRef};
 
     /// A template built in code: a changed Heading 1, a custom "Callout" based on a custom
     /// "Box" (missing in the document) and a numbered "Steps" style.
@@ -428,14 +428,14 @@ mod tests {
             id: "Steps".into(),
             name: "Steps".into(),
             kind: StyleKind::Paragraph,
-            para: wordcraft_doc::props::ParaProps { numbering: Some(NumRef { num, level: 0 }), ..Default::default() },
+            para: docufy_doc::props::ParaProps { numbering: Some(NumRef { num, level: 0 }), ..Default::default() },
             ..Default::default()
         });
         t
     }
 
     fn save(name: &str, doc: &Document) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("wordcraft-templates-{name}-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("docufy-templates-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("Report.dotx");
@@ -515,7 +515,7 @@ mod tests {
     /// styles from a template named relative to it. Without the bytes, the share is never read.
     #[test]
     fn template_bytes_need_no_local_path() {
-        let data = crate::cmd::insert::base64_encode(&wordcraft_docx::write(&template()).unwrap());
+        let data = crate::cmd::insert::base64_encode(&docufy_docx::write(&template()).unwrap());
         for doc_path in ["//fileserver/share/Letter.docx", "//?/C:/docs/Letter.docx"] {
             let mut s = Session::new(Document::new());
             s.path = Some(PathBuf::from(doc_path));

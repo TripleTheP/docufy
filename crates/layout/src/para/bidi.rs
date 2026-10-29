@@ -29,7 +29,7 @@ pub(super) fn strong_rtl(c: char) -> Option<bool> {
 /// Bidi embedding levels per byte of `text` (UAX #9 rules up to I2), or empty when the
 /// paragraph is left to right and has no right-to-left characters.
 pub fn bidi_levels(text: &str, rtl_para: bool) -> Vec<u8> {
-    if !rtl_para && !text.chars().any(wordcraft_fonts::is_rtl) {
+    if !rtl_para && !text.chars().any(docufy_fonts::is_rtl) {
         return Vec::new();
     }
     let level = if rtl_para { unicode_bidi::Level::rtl() } else { unicode_bidi::Level::ltr() };

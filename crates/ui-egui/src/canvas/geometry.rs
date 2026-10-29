@@ -87,7 +87,7 @@ pub(super) fn floating_comments(app: &WordApp) -> bool {
 /// The comment shown when only the selected one is: the clicked balloon, else the comment whose
 /// range holds the caret.
 pub(super) fn shown_comment(app: &WordApp) -> Option<u32> {
-    app.canvas.balloon.or_else(|| wordcraft_engine::cmd::review::comment_range_at_caret(&app.session))
+    app.canvas.balloon.or_else(|| docufy_engine::cmd::review::comment_range_at_caret(&app.session))
 }
 
 /// Width of the markup area beside each page for comment and revision balloons (points), or 0.
@@ -103,7 +103,7 @@ pub fn markup_width(app: &WordApp) -> f32 {
     let [has_formats, has_moves, has_deletions] = match app.canvas.markup_facts.get() {
         Some((rev, facts)) if rev == (s.document_id(), s.rev()) => facts,
         _ => {
-            use wordcraft_engine::cmd::{moves, review};
+            use docufy_engine::cmd::{moves, review};
             let facts = [review::has_format_changes(&s.doc), moves::has_moves(&s.doc), review::has_deletions(&s.doc)];
             app.canvas.markup_facts.set(Some(((s.document_id(), s.rev()), facts)));
             facts
@@ -168,7 +168,7 @@ pub fn geometry(app: &WordApp, l: &DocLayout, avail: egui::Vec2) -> Geometry {
     let markup = markup_width(app);
     let maxw = l.pages.iter().map(|p| sane_dim(p.w, 1e5)).fold(0.0f32, f32::max).max(72.0) + markup;
     let maxh = l.pages.iter().map(|p| sane_dim(p.h, 20_000.0)).fold(0.0f32, f32::max).max(72.0);
-    let web = v.mode != wordcraft_layout::ViewMode::Print;
+    let web = v.mode != docufy_layout::ViewMode::Print;
     let mut scale = v.zoom.clamp(0.1, 5.0) * PX_PER_PT;
     if v.read_mode {
         scale = v.read_zoom.clamp(0.75, 1.5) * PX_PER_PT;
@@ -201,7 +201,7 @@ pub fn geometry(app: &WordApp, l: &DocLayout, avail: egui::Vec2) -> Geometry {
     };
     let cols = columns_for(avail.x, maxw * scale, l.pages.len(), min_cols, auto);
     let sizes: Vec<(f32, f32)> = l.pages.iter().map(|p| (p.w, p.h)).collect();
-    if v.mode == wordcraft_layout::ViewMode::Web {
+    if v.mode == docufy_layout::ViewMode::Web {
         // The sheet runs from side to side of the work area, no centred page with grey margins.
         let rects: Vec<Rect> = sizes
             .iter()
@@ -218,7 +218,7 @@ pub fn geometry(app: &WordApp, l: &DocLayout, avail: egui::Vec2) -> Geometry {
     let (mut rects, mut size) = place_pages(&sizes, markup, scale, cols, avail);
     let mut bands: Vec<(f32, f32)> = rects.iter().map(|r| (0.0, r.height())).collect();
     let editing_part = matches!(app.session.sel.focus.story, StoryRef::Part(_));
-    if v.hide_white_space && v.mode == wordcraft_layout::ViewMode::Print && !v.read_mode && cols == 1 && !editing_part && rects.len() > 1 {
+    if v.hide_white_space && v.mode == docufy_layout::ViewMode::Print && !v.read_mode && cols == 1 && !editing_part && rects.len() > 1 {
         let bodies: Vec<(f32, f32)> = l.pages.iter().map(|p| (p.body.y, p.body.bottom())).collect();
         let (r, b, h) = collapse_white_space(&rects, &bodies, scale, avail.y);
         (rects, bands) = (r, b);
@@ -233,7 +233,7 @@ pub fn geometry(app: &WordApp, l: &DocLayout, avail: egui::Vec2) -> Geometry {
 /// Page Width jumped to 110% (issue #67).
 pub fn sync_fit_zoom(app: &mut WordApp, scale: f32) {
     let v = &mut app.session.view;
-    if v.fit.is_empty() || v.read_mode || v.mode != wordcraft_layout::ViewMode::Print || !scale.is_finite() {
+    if v.fit.is_empty() || v.read_mode || v.mode != docufy_layout::ViewMode::Print || !scale.is_finite() {
         return;
     }
     v.zoom = (scale / PX_PER_PT).clamp(0.1, 5.0);

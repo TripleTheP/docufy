@@ -130,9 +130,9 @@ pub(super) fn recipients(s: &mut Session, v: &Value) -> CmdResult {
             };
             // A spreadsheet by its contents, or by its name unless it is really text (a CSV or tab-
             // separated export named .xls, as some programs write).
-            let named = ext.as_deref().is_some_and(wordcraft_formats::sheet::is_extension);
-            let text = wordcraft_formats::txt::is_text(&bytes);
-            let spreadsheet = wordcraft_formats::sheet::detect(&bytes).is_some() || (named && !text);
+            let named = ext.as_deref().is_some_and(docufy_formats::sheet::is_extension);
+            let text = docufy_formats::txt::is_text(&bytes);
+            let spreadsheet = docufy_formats::sheet::detect(&bytes).is_some() || (named && !text);
             if named && !spreadsheet {
                 let text = decode(&bytes, v)?;
                 let text = text.trim_start().trim_start_matches('\u{feff}');
@@ -150,7 +150,7 @@ pub(super) fn recipients(s: &mut Session, v: &Value) -> CmdResult {
                 }
             }
             if spreadsheet {
-                use wordcraft_formats::sheet::{Pick, read_rows, sheet_names};
+                use docufy_formats::sheet::{Pick, read_rows, sheet_names};
                 let pick = match v.get("sheet") {
                     Some(Value::String(n)) => Pick::Name(n.as_str()),
                     Some(x) if x.as_u64().is_some_and(|n| n >= 1) => {
@@ -199,7 +199,7 @@ pub(super) fn recipients(s: &mut Session, v: &Value) -> CmdResult {
 /// shape, else the legacy encoding the bytes look like: GBK, Big5, Shift_JIS, Windows-1252…).
 fn decode(bytes: &[u8], v: &Value) -> Result<String, CmdError> {
     match p::str(v, "encoding").map(str::trim).filter(|e| !e.is_empty()) {
-        Some(label) => wordcraft_formats::txt::decode_as(bytes, label).ok_or_else(|| CmdError::Params(format!("unknown `encoding` `{label}`"))),
+        Some(label) => docufy_formats::txt::decode_as(bytes, label).ok_or_else(|| CmdError::Params(format!("unknown `encoding` `{label}`"))),
         None => Ok(crate::io::decode_text(bytes)),
     }
 }
@@ -209,7 +209,7 @@ pub const RECIPIENT_EXTENSIONS: &[&str] = &["csv", "tsv", "txt", "xlsx", "xlsm",
 
 /// Whether a file name is a spreadsheet read as a recipient list (.xlsx, .xlsm, .xls, .ods).
 pub fn is_spreadsheet_name(name: &str) -> bool {
-    std::path::Path::new(name).extension().is_some_and(|e| wordcraft_formats::sheet::is_extension(&e.to_string_lossy()))
+    std::path::Path::new(name).extension().is_some_and(|e| docufy_formats::sheet::is_extension(&e.to_string_lossy()))
 }
 
 /// A file's extension, lower case.
@@ -230,7 +230,7 @@ fn header_split(mut all: Vec<Vec<String>>, headers: bool) -> Result<(Vec<String>
     }
     let fields = if headers {
         let first = all.remove(0);
-        wordcraft_formats::sheet::field_names(&first[..first.len().min(MAX_FIELDS)])
+        docufy_formats::sheet::field_names(&first[..first.len().min(MAX_FIELDS)])
     } else {
         let width = all.iter().map(Vec::len).max().unwrap_or(0).min(MAX_FIELDS);
         (1..=width).map(|i| format!("Column {i}")).collect()

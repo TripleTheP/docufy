@@ -1,7 +1,7 @@
 //! A new session finds the installed system fonts by family name (#22). One test in its own
 //! process, so the process-wide database starts fresh, as it does when the app starts.
 
-use wordcraft_fonts::{FontDb, system_font_dirs};
+use docufy_fonts::{FontDb, system_font_dirs};
 
 #[test]
 fn a_fresh_session_finds_installed_fonts_by_name() {

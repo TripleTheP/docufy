@@ -1,4 +1,5 @@
 use super::RecoveryInfo;
+use docufy_doc::Document;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fs::{self, File, OpenOptions};
@@ -6,7 +7,6 @@ use std::io::{self, BufReader, BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, mpsc};
 use std::time::{Duration, Instant};
-use wordcraft_doc::Document;
 
 const INTERVAL: Duration = Duration::from_secs(10);
 const MAX_BYTES: u64 = 256 << 20;
@@ -495,7 +495,7 @@ impl Recovery {
         let (tx, jobs) = mpsc::sync_channel(1);
         let (events, rx) = mpsc::channel();
         std::thread::Builder::new()
-            .name("wordcraft-recovery".into())
+            .name("docufy-recovery".into())
             .spawn(move || {
                 let mut store = match Store::new(root) {
                     Ok(s) => s,

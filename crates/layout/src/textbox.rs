@@ -10,9 +10,9 @@
 use std::collections::{BTreeSet, HashMap};
 use std::sync::Arc;
 
-use wordcraft_doc::props::{TextDirection, TextVert, VAlign};
-use wordcraft_doc::{Block, Blocks, Path, StoryRef, TextBody};
-use wordcraft_geom::Rect;
+use docufy_doc::props::{TextDirection, TextVert, VAlign};
+use docufy_doc::{Block, Blocks, Path, StoryRef, TextBody};
+use docufy_geom::Rect;
 
 use crate::{BoxInput, Ctx, Placed, fit_box, layout_box};
 
@@ -28,7 +28,7 @@ pub(crate) struct Chains {
 }
 
 impl Chains {
-    fn build(&mut self, doc: &wordcraft_doc::Document) {
+    fn build(&mut self, doc: &docufy_doc::Document) {
         if self.built {
             return;
         }
@@ -57,7 +57,7 @@ pub(crate) fn shown_story(ctx: &mut Ctx, id: u32) -> u32 {
 /// Line length and the depth lines stack in, for a `w` × `h` box whose text runs as `body`
 /// says, inside its internal margins.
 fn frame(body: &TextBody, w: f32, h: f32) -> (f32, f32) {
-    let (w, h) = (wordcraft_geom::finite(w), wordcraft_geom::finite(h));
+    let (w, h) = (docufy_geom::finite(w), docufy_geom::finite(h));
     let [l, t, r, b] = body.insets_pt();
     let (along, across) = match body.vert.turn() {
         TextDirection::Horizontal => (w - l - r, h - t - b),

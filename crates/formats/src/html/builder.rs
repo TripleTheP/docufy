@@ -477,7 +477,7 @@ impl<'r> Builder<'r> {
                     let borderless = !t.bordered;
                     // Keep at most MAX_ROWS rows (the model drops the rest anyway): bounds the
                     // O(rows × rowspan) work of `insert_covered` on a table of millions of `<tr>`.
-                    let rows: Vec<_> = t.rows.into_iter().filter(|r| !r.is_empty()).take(wordcraft_doc::table::MAX_ROWS).collect();
+                    let rows: Vec<_> = t.rows.into_iter().filter(|r| !r.is_empty()).take(docufy_doc::table::MAX_ROWS).collect();
                     let mut ft = FTable { rows, widths: Vec::new(), borderless };
                     if !ft.rows.is_empty() {
                         ft.insert_covered();
@@ -640,10 +640,10 @@ impl<'r> Builder<'r> {
             "sub" => fmt.sub = true,
             "small" => fmt.size = Some(fmt.size.map_or(10.0, |s| (s * 0.833).max(1.0))),
             "big" => fmt.size = Some(fmt.size.map_or(14.0, |s| (s * 1.2).min(1638.0))),
-            "mark" => fmt.background = Some(wordcraft_doc::Rgb(255, 255, 0)),
+            "mark" => fmt.background = Some(docufy_doc::Rgb(255, 255, 0)),
             "font" => apply_font_attributes(attrs, &mut fmt),
             "a" => {
-                if let Some(href) = attr(attrs, "href").filter(|h| wordcraft_doc::link::is_safe_href(h)) {
+                if let Some(href) = attr(attrs, "href").filter(|h| docufy_doc::link::is_safe_href(h)) {
                     fmt.link = model::kept_link(href.trim());
                 }
             }

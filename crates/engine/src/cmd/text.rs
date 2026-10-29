@@ -1,9 +1,9 @@
 //! Typing and deleting.
 
+use docufy_doc::para::{COLUMN_BREAK, NB_HYPHEN, NBSP, OBJ, PAGE_BREAK, SOFT_HYPHEN};
+use docufy_doc::props::{Border, BorderStyle, NumRef};
+use docufy_doc::{Block, ListKind, Path, Pos, StoryRef, Table};
 use serde_json::Value;
-use wordcraft_doc::para::{COLUMN_BREAK, NB_HYPHEN, NBSP, OBJ, PAGE_BREAK, SOFT_HYPHEN};
-use wordcraft_doc::props::{Border, BorderStyle, NumRef};
-use wordcraft_doc::{Block, ListKind, Path, Pos, StoryRef, Table};
 
 use super::{delete_selection, delete_selection_effect, non_mac, sel_result, split_para, type_text, type_text_effect};
 use crate::{CmdError, CmdResult, CommandSpec, Selection, Session, p};

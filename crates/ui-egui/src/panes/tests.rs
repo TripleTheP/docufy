@@ -8,7 +8,7 @@ use egui::vec2;
 fn clipboard_delete_returns_focus_to_the_document() {
     use egui_kittest::kittest::Queryable;
 
-    let mut app = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("Hello")), crate::Services::default());
+    let mut app = crate::WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("Hello")), crate::Services::default());
     app.run("select.all", serde_json::json!({})).unwrap();
     app.run("edit.copy", serde_json::json!({})).unwrap();
     assert_eq!(app.session.clip_history.items().len(), 1);
@@ -37,7 +37,7 @@ fn clipboard_delete_returns_focus_to_the_document() {
 #[test]
 #[cfg(not(target_arch = "wasm32"))]
 fn f6_past_the_last_pane_types_into_the_document() {
-    let mut app = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("")), crate::Services::default());
+    let mut app = crate::WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("")), crate::Services::default());
     app.run("view.navigationPane", serde_json::json!({"value": true})).unwrap();
     app.run("edit.clipboardPane", serde_json::json!({"value": true})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
@@ -61,7 +61,7 @@ fn f6_past_the_last_pane_types_into_the_document() {
     assert!(h.state().canvas.focused, "F6 past the last pane returns to the document");
     h.input_mut().events.push(egui::Event::Text("typed".into()));
     h.run_steps(2);
-    assert_eq!(h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body).trim(), "typed");
+    assert_eq!(h.state().session.doc.plain_text(docufy_doc::StoryRef::Body).trim(), "typed");
 }
 
 fn pane_harness(app: crate::WordApp) -> egui_kittest::Harness<'static, crate::WordApp> {
@@ -88,7 +88,7 @@ fn press(h: &mut egui_kittest::Harness<'static, crate::WordApp>, key: egui::Key,
 #[cfg(not(target_arch = "wasm32"))]
 fn f6_in_an_open_dialog_keeps_focus_there() {
     for panes in [true, false] {
-        let mut app = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("")), crate::Services::default());
+        let mut app = crate::WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("")), crate::Services::default());
         app.run("view.navigationPane", serde_json::json!({"value": panes})).unwrap();
         app.run("ui.dialog", serde_json::json!({"name": "replace"})).unwrap();
         let mut h = pane_harness(app);
@@ -106,7 +106,7 @@ fn f6_in_an_open_dialog_keeps_focus_there() {
 #[test]
 #[cfg(not(target_arch = "wasm32"))]
 fn shortcuts_run_while_a_pane_title_bar_has_focus() {
-    let mut app = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("")), crate::Services::default());
+    let mut app = crate::WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("")), crate::Services::default());
     app.run("view.navigationPane", serde_json::json!({"value": true})).unwrap();
     let mut h = pane_harness(app);
     press(&mut h, egui::Key::F6, egui::Modifiers::NONE);
@@ -129,7 +129,7 @@ fn shortcuts_run_while_a_pane_title_bar_has_focus() {
 fn shortcuts_stay_out_of_the_document_while_a_dialog_button_has_focus() {
     use egui_kittest::kittest::Queryable;
 
-    let mut app = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("")), crate::Services::default());
+    let mut app = crate::WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("")), crate::Services::default());
     app.run("text.insert", serde_json::json!({"text": "kept"})).unwrap();
     app.run("ui.dialog", serde_json::json!({"name": "wordCount"})).unwrap();
     let mut h = pane_harness(app);
@@ -141,7 +141,7 @@ fn shortcuts_stay_out_of_the_document_while_a_dialog_button_has_focus() {
     assert!(!h.state().canvas.focused, "the document gave up the keyboard");
     assert!(!h.ctx.text_edit_focused() && h.ctx.memory(|m| m.focused()).is_some(), "Close has the keyboard");
     press(&mut h, egui::Key::Z, egui::Modifiers::COMMAND);
-    assert_eq!(h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body).trim(), "kept", "Ctrl+Z left the document alone");
+    assert_eq!(h.state().session.doc.plain_text(docufy_doc::StoryRef::Body).trim(), "kept", "Ctrl+Z left the document alone");
     assert_eq!(h.state().dialog.as_ref().map(|d| d.name()), Some("wordCount"));
 }
 
@@ -151,7 +151,7 @@ fn shortcuts_stay_out_of_the_document_while_a_dialog_button_has_focus() {
 fn escape_during_a_pane_drag_keeps_full_screen() {
     use egui_kittest::kittest::Queryable;
 
-    let mut app = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("")), crate::Services::default());
+    let mut app = crate::WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("")), crate::Services::default());
     app.run("view.navigationPane", serde_json::json!({"value": true})).unwrap();
     app.run("view.fullScreen", serde_json::json!({"value": true})).unwrap();
     let mut h = pane_harness(app);
@@ -180,7 +180,7 @@ fn escape_during_a_pane_drag_keeps_full_screen() {
 fn comments_dropped_over_navigations_outer_third_docks_left_of_it() {
     use egui_kittest::kittest::Queryable;
 
-    let mut app = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("")), crate::Services::default());
+    let mut app = crate::WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("")), crate::Services::default());
     app.run("view.navigationPane", serde_json::json!({"value": true})).unwrap();
     app.run("view.commentsPane", serde_json::json!({"value": true})).unwrap();
     let mut h = pane_harness(app);
@@ -206,7 +206,7 @@ fn comments_dropped_over_navigations_outer_third_docks_left_of_it() {
     assert_eq!(super::open(h.state()), vec![Pane::Comments, Pane::Navigation]);
 
     let saved = serde_json::to_vec(&h.state().prefs()).unwrap();
-    let mut next = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut next = crate::WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), crate::Services::default());
     next.apply_prefs(serde_json::from_slice(&saved).unwrap());
     next.session.view.comments_pane = true;
     assert_eq!(super::open(&next), vec![Pane::Comments, Pane::Navigation], "the order is kept");
@@ -217,7 +217,7 @@ fn comments_dropped_over_navigations_outer_third_docks_left_of_it() {
     assert_eq!(super::open(h.state()), vec![Pane::Navigation, Pane::Comments]);
     assert!(panel(&h, Pane::Comments).left() > panel(&h, Pane::Navigation).right(), "back inside Navigation");
 
-    let mut junk = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut junk = crate::WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), crate::Services::default());
     junk.apply_prefs(serde_json::from_str(r#"{"paneOrder": ["comments", 3, "nope", "comments", "navigation"], "navPane": true}"#).unwrap());
     assert_eq!(junk.ui.pane_order, vec!["comments", "navigation"], "unknown and repeated keys are dropped");
     for bad in [serde_json::json!({"pane": "comments", "before": "comments"}), serde_json::json!({"pane": "comments", "before": 7})] {
@@ -233,9 +233,9 @@ fn comments_dropped_over_navigations_outer_third_docks_left_of_it() {
 #[cfg(not(target_arch = "wasm32"))]
 fn a_user_bound_f6_runs_its_command() {
     for key in ["F6", "Shift+F6"] {
-        let mut app = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("")), crate::Services::default());
+        let mut app = crate::WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("")), crate::Services::default());
         app.run("view.navigationPane", serde_json::json!({"value": true})).unwrap();
-        app.session.keymap = wordcraft_engine::keymap::KeyMap::from_value(&serde_json::json!({"assigned": {key: "view.focus"}}));
+        app.session.keymap = docufy_engine::keymap::KeyMap::from_value(&serde_json::json!({"assigned": {key: "view.focus"}}));
         let mut h = pane_harness(app);
         assert!(h.state().canvas.focused);
         let m = if key == "F6" { egui::Modifiers::NONE } else { egui::Modifiers::SHIFT };
@@ -260,7 +260,7 @@ fn a_user_bound_f6_runs_its_command() {
 fn pane_bodies_fit_the_narrowest_pane() {
     // 200 pt less the 10 pt body margins and the frame's 1 pt strokes.
     const BODY: f32 = 178.0;
-    let mut app = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("Hello")), crate::Services::default());
+    let mut app = crate::WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("Hello")), crate::Services::default());
     app.run("select.all", serde_json::json!({})).unwrap();
     app.run("edit.copy", serde_json::json!({})).unwrap();
     app.restrict =
@@ -316,7 +316,7 @@ fn pane_bodies_fit_the_narrowest_pane() {
 fn a_floated_pane_floats_again_after_a_restart() {
     use craft_ui::panes::Place;
     use egui_kittest::kittest::Queryable;
-    let mut app = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("")), crate::Services::default());
+    let mut app = crate::WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("")), crate::Services::default());
     app.run("view.navigationPane", serde_json::json!({"value": true})).unwrap();
     let mut h = pane_harness(app);
     let bar = h.get_by_label_contains("Move Pane: ").rect();
@@ -329,13 +329,13 @@ fn a_floated_pane_floats_again_after_a_restart() {
     let rect = h.state().ui.pane_places.get("navigation").and_then(|p| p.float).expect("the float rect is kept");
 
     let saved = serde_json::to_vec(&h.state().prefs()).unwrap();
-    let mut next = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut next = crate::WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), crate::Services::default());
     next.apply_prefs(serde_json::from_slice(&saved).unwrap());
     let state = super::pane_state(&next, Pane::Navigation);
     assert_eq!((state.place, state.float_rect), (Place::Floating, Some(rect)));
     assert_eq!(super::pane_state(&next, Pane::Clipboard), Pane::Clipboard.default_state(), "other panes keep their defaults");
 
-    let mut junk = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut junk = crate::WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), crate::Services::default());
     junk.apply_prefs(
         serde_json::from_str(
             r#"{"panePlaces": {"navigation": {"dock": "top", "float": [1, "x", 3, 4]}, "clipboard": 7, "nope": {}}, "navPane": true}"#,
@@ -344,7 +344,7 @@ fn a_floated_pane_floats_again_after_a_restart() {
     );
     assert_eq!(super::pane_state(&junk, Pane::Navigation), Pane::Navigation.default_state(), "junk reads as the default");
     assert!(junk.session.view.nav_pane, "the rest of the file still loads");
-    let mut odd = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut odd = crate::WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), crate::Services::default());
     odd.apply_prefs(serde_json::from_str(r#"{"panePlaces": [1, 2], "navPane": true}"#).unwrap());
     assert!(odd.ui.pane_places.is_empty() && odd.session.view.nav_pane);
 }
@@ -355,7 +355,7 @@ fn a_floated_pane_floats_again_after_a_restart() {
 fn pane_dock_command_docks_floats_and_reads_each_pane() {
     use craft_ui::panes::{Edge, Place};
     use serde_json::json;
-    let mut app = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("")), crate::Services::default());
+    let mut app = crate::WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("")), crate::Services::default());
     assert_eq!(app.run("ui.paneDock", json!({"pane": "navigation"})).unwrap(), json!({"pane": "navigation", "dock": "left"}));
     assert_eq!(app.run("ui.paneDock", json!({"pane": "comments"})).unwrap(), json!({"pane": "comments", "dock": "right"}));
     assert_eq!(app.run("ui.paneDock", json!({"pane": "navigation", "dock": "float"})).unwrap()["dock"], "float");
@@ -363,7 +363,7 @@ fn pane_dock_command_docks_floats_and_reads_each_pane() {
     app.run("ui.paneDock", json!({"pane": "comments", "dock": "left"})).unwrap();
     assert_eq!(super::pane_state(&app, Pane::Comments).place, Place::Docked(Edge::Start));
     assert_eq!(app.run("ui.paneDock", json!({"pane": "styles", "dock": "float"})).unwrap(), json!({"pane": "styles", "dock": "float"}));
-    assert_eq!(app.session.view.styles_pane_dock, wordcraft_engine::StylesPaneDock::Floating);
+    assert_eq!(app.session.view.styles_pane_dock, docufy_engine::StylesPaneDock::Floating);
     assert!(!app.ui.pane_places.contains_key("styles"), "Styles keeps its place in the view state");
     for junk in [
         json!({}),
@@ -389,7 +389,7 @@ fn built_in_styles_grey_out_delete_in_the_styles_pane() {
     /// gallery shows the same names — right-click the row, and report whether its Delete is
     /// greyed out.
     fn delete_is_disabled(style: &str) -> bool {
-        let mut app = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("Hello")), crate::Services::default());
+        let mut app = crate::WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("Hello")), crate::Services::default());
         app.run("styles.create", serde_json::json!({"name": "Callout"})).unwrap();
         // The pane writes in the "semibold" family, which the app installs with the rest of the
         // interface fonts (`chrome::title_bar`). Fonts take effect the frame after they are set,

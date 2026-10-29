@@ -9,11 +9,11 @@
 //! While dragging nothing is laid out: the preview is the picture's own source pixels, the part
 //! that would stay visible bright and the rest dimmed.
 
+use docufy_doc::Pos;
+use docufy_doc::para::InlineObject;
+use docufy_layout::DocLayout;
 use egui::{Color32, Painter, Pos2, Rect, Ui, pos2, vec2};
 use serde_json::{Value, json};
-use wordcraft_doc::Pos;
-use wordcraft_doc::para::InlineObject;
-use wordcraft_layout::DocLayout;
 
 use crate::WordApp;
 use crate::frame::{self, Handle};
@@ -120,7 +120,7 @@ pub struct CropDrag {
     flip_v: bool,
     /// The picture's frame where the drag started (page points) and its page.
     page: usize,
-    start: wordcraft_geom::Rect,
+    start: docufy_geom::Rect,
     /// Its display size and crop then.
     w: f32,
     h: f32,
@@ -155,7 +155,7 @@ struct Picture {
 
 fn picture(app: &WordApp) -> Option<Picture> {
     match crate::objects::selected(app)? {
-        (pos, InlineObject::Image { w, h, crop, media, float, .. }) if wordcraft_geom::normalize_degrees(float.rot) == 0.0 => {
+        (pos, InlineObject::Image { w, h, crop, media, float, .. }) if docufy_geom::normalize_degrees(float.rot) == 0.0 => {
             Some(Picture { pos, w: *w, h: *h, crop: *crop, media: media.clone(), flip_h: float.flip_h, flip_v: float.flip_v })
         }
         _ => None,
@@ -210,12 +210,12 @@ pub fn key(app: &mut WordApp, key: egui::Key) -> bool {
     false
 }
 
-fn screen(pages: &[Rect], scale: f32, page: usize, r: wordcraft_geom::Rect) -> Option<Rect> {
+fn screen(pages: &[Rect], scale: f32, page: usize, r: docufy_geom::Rect) -> Option<Rect> {
     pages.get(page).map(|p| frame::to_screen(*p, scale, r))
 }
 
 /// The picture in crop mode, laid out: its frame (page points) and page.
-fn laid_out(app: &WordApp, layout: &DocLayout) -> Option<(usize, wordcraft_geom::Rect)> {
+fn laid_out(app: &WordApp, layout: &DocLayout) -> Option<(usize, docufy_geom::Rect)> {
     let pos = active(app)?;
     layout.object(&pos, app.session.page_hint).map(|o| (o.page, o.rect))
 }
@@ -288,7 +288,7 @@ fn source(app: &WordApp, ctx: &egui::Context, media: &str) -> Option<egui::Textu
     if let Some(t) = ctx.data(|d| d.get_temp::<Option<egui::TextureHandle>>(id)) {
         return t;
     }
-    let tex = wordcraft_geom::picture::decode(bytes, wordcraft_geom::MAX_DECODED_BYTES).ok().map(|img| {
+    let tex = docufy_geom::picture::decode(bytes, docufy_geom::MAX_DECODED_BYTES).ok().map(|img| {
         let img = if img.width().max(img.height()) > SOURCE_MAX_PX { img.thumbnail(SOURCE_MAX_PX, SOURCE_MAX_PX) } else { img };
         let rgba = img.to_rgba8();
         let ci = egui::ColorImage::from_rgba_unmultiplied([rgba.width() as usize, rgba.height() as usize], rgba.as_raw());
@@ -308,7 +308,7 @@ pub fn paint(app: &WordApp, painter: &Painter, t: &Tokens, layout: &DocLayout, p
     let (page, frame_pt, c) = match drag {
         Some(d) => {
             let n = d.now;
-            (d.page, wordcraft_geom::Rect::new(d.start.x + n.dx, d.start.y + n.dy, n.w, n.h), n.crop)
+            (d.page, docufy_geom::Rect::new(d.start.x + n.dx, d.start.y + n.dy, n.w, n.h), n.crop)
         }
         None => (page, rect, crop),
     };
@@ -317,7 +317,7 @@ pub fn paint(app: &WordApp, painter: &Painter, t: &Tokens, layout: &DocLayout, p
     // The whole source, at the picture's scale, around the visible part.
     let fw = frame_pt.w / (1.0 - c[0] - c[2]).max(0.05);
     let fh = frame_pt.h / (1.0 - c[1] - c[3]).max(0.05);
-    let full_pt = wordcraft_geom::Rect::new(frame_pt.x - c[0] * fw, frame_pt.y - c[1] * fh, fw, fh);
+    let full_pt = docufy_geom::Rect::new(frame_pt.x - c[0] * fw, frame_pt.y - c[1] * fh, fw, fh);
     let (Some(f), Some(full)) = (screen(pages, scale, page, frame_pt), screen(pages, scale, page, full_pt)) else { return false };
     let tex = source(app, painter.ctx(), &media);
     // Where a screen rect is in the source (0–1), mirrored as the picture is flipped.
@@ -373,9 +373,9 @@ fn paint_handles(painter: &Painter, t: &Tokens, f: Rect) {
 
 #[cfg(test)]
 mod tests {
+    use docufy_doc::para::{InlineObject, OBJ};
+    use docufy_doc::{Document, Pos};
     use serde_json::json;
-    use wordcraft_doc::para::{InlineObject, OBJ};
-    use wordcraft_doc::{Document, Pos};
 
     use super::*;
     use crate::WordApp;
@@ -489,8 +489,8 @@ mod tests {
 
     /// An app whose first paragraph holds a picture, selected.
     fn app_with_picture(rot: f32) -> WordApp {
-        let mut app = WordApp::new(wordcraft_engine::Session::new(Document::new()), crate::Services::default());
-        let float = wordcraft_doc::para::Float { rot, ..Default::default() };
+        let mut app = WordApp::new(docufy_engine::Session::new(Document::new()), crate::Services::default());
+        let float = docufy_doc::para::Float { rot, ..Default::default() };
         let pic = InlineObject::Image { media: "m".into(), w: 200.0, h: 100.0, alt: String::new(), float, crop: [0.0; 4], ole: None };
         app.session.doc.insert_object(&Pos::body(0, 0), pic, &Default::default()).unwrap();
         let end = Pos::body(0, OBJ.len_utf8());
@@ -520,7 +520,7 @@ mod tests {
 
     #[test]
     fn ui_crop_needs_an_unturned_selected_picture() {
-        let mut app = WordApp::new(wordcraft_engine::Session::new(Document::new()), crate::Services::default());
+        let mut app = WordApp::new(docufy_engine::Session::new(Document::new()), crate::Services::default());
         assert!(!crate::widgets::enabled(&app, "ui.crop"));
         assert!(app.run("ui.crop", json!({})).is_err());
         assert!(active(&app).is_none());
@@ -550,7 +550,7 @@ mod tests {
     /// The whole window with `n` 200×100 pt pictures in the first paragraph, the first one
     /// selected and in crop mode.
     fn crop_window(n: usize) -> H {
-        let mut a = WordApp::new(wordcraft_engine::Session::new(Document::new()), crate::Services::default());
+        let mut a = WordApp::new(docufy_engine::Session::new(Document::new()), crate::Services::default());
         a.session.doc.media.insert("m".into(), std::sync::Arc::new(png(40, 20)));
         for _ in 0..n {
             a.session.doc.insert_object(&Pos::body(0, 0), test_picture(), &Default::default()).unwrap();
@@ -569,7 +569,7 @@ mod tests {
         h
     }
 
-    fn rect_of(h: &mut H, off: usize) -> wordcraft_geom::Rect {
+    fn rect_of(h: &mut H, off: usize) -> docufy_geom::Rect {
         h.state_mut().session.layout().object(&Pos::body(0, off), 0).expect("laid out").rect
     }
 

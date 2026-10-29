@@ -150,7 +150,7 @@ pub enum Inline {
     /// A chart or diagram known here only by its alt text: written where alt text has a place
     /// (an HTML or Markdown image), left out of editable formats so it never turns into body text.
     Figure(String),
-    /// An equation in the linear format WordCraft keeps them in (`x=(-b±√(b^2-4ac))/2a`). Formats
+    /// An equation in the linear format Docufy keeps them in (`x=(-b±√(b^2-4ac))/2a`). Formats
     /// without equations write `linear` as text.
     Equation {
         linear: String,
@@ -215,7 +215,7 @@ pub struct ListInfo {
 pub struct Spacing {
     pub before: Option<f32>,
     pub after: Option<f32>,
-    pub line: Option<wordcraft_doc::props::LineSpacing>,
+    pub line: Option<docufy_doc::props::LineSpacing>,
     pub left: Option<f32>,
     pub right: Option<f32>,
     /// First-line indent; negative = hanging.
@@ -233,9 +233,9 @@ pub struct Para {
     pub inlines: Vec<Inline>,
     pub spacing: Spacing,
     /// Borders the source puts on the paragraph itself (RTF `\brdrb`…).
-    pub borders: Option<wordcraft_doc::props::Borders>,
+    pub borders: Option<docufy_doc::props::Borders>,
     /// The section this paragraph ends (RTF `\sect`), as the document's last paragraph of it.
-    pub section: Option<Box<wordcraft_doc::SectionProps>>,
+    pub section: Option<Box<docufy_doc::SectionProps>>,
     /// Tracked insertion of the paragraph mark.
     pub mark_ins: Option<Box<RevMark>>,
     /// Tracked deletion of the paragraph mark (only [`from_doc_tracked`] and formats that keep
@@ -276,13 +276,13 @@ impl Para {
         s
     }
     /// [`Self::text`] as it reads on screen: text set in a symbol font (Symbol, Wingdings…) as
-    /// its Unicode equivalents ([`wordcraft_doc::symbol_fonts`]), for plain-text export.
+    /// its Unicode equivalents ([`docufy_doc::symbol_fonts`]), for plain-text export.
     pub fn shown_text(&self) -> String {
         let mut s = String::new();
         for i in &self.inlines {
             match i {
                 Inline::Text(t, f) => match f.font.as_deref() {
-                    Some(font) if wordcraft_doc::symbol_fonts::is_symbol_font(font) => s.push_str(&wordcraft_doc::symbol_fonts::map_text(font, t)),
+                    Some(font) if docufy_doc::symbol_fonts::is_symbol_font(font) => s.push_str(&docufy_doc::symbol_fonts::map_text(font, t)),
                     _ => s.push_str(t),
                 },
                 Inline::Equation { linear: t, .. } | Inline::Ruby { base: t, .. } => s.push_str(t),
@@ -335,7 +335,7 @@ pub struct Cell {
     pub header: bool,
     pub shading: Option<Rgb>,
     /// The cell's own borders (RTF `\clbrdr…`), drawn whatever the table's style.
-    pub borders: Option<wordcraft_doc::props::Borders>,
+    pub borders: Option<docufy_doc::props::Borders>,
     pub valign: Option<VAlign>,
 }
 

@@ -15,11 +15,11 @@ mod wordart;
 
 use std::collections::{BTreeMap, HashMap};
 
-use wordcraft_doc::ParaProps;
-use wordcraft_doc::numbering::{Level, LevelSuffix};
-use wordcraft_doc::props::VAlign;
-use wordcraft_doc::styles::{Style, StyleKind, TablePart};
-use wordcraft_doc::{Blocks, Document, PartKind};
+use docufy_doc::ParaProps;
+use docufy_doc::numbering::{Level, LevelSuffix};
+use docufy_doc::props::VAlign;
+use docufy_doc::styles::{Style, StyleKind, TablePart};
+use docufy_doc::{Blocks, Document, PartKind};
 
 use crate::package::{MAX_VBA_RELATED, VBA_PROJECT_PART, VBA_RELATED, rt, zip_entries};
 use crate::xml::{self, W};
@@ -103,7 +103,7 @@ pub(crate) struct Writer<'d> {
     hf: Vec<(u32, String, bool)>,
     /// The headers each slot has so far in body order, with sections' empty slots linked to the
     /// ones before (as layout shows them): where a watermark needs a header of its own.
-    linked_headers: wordcraft_doc::section::HeaderSet,
+    linked_headers: docufy_doc::section::HeaderSet,
     /// The part id standing for a header written only to hold the watermark (no such part).
     wm_header: u32,
     /// The watermark shape to put at the start of the next top-level paragraph (a header's first).
@@ -117,7 +117,7 @@ pub(crate) struct Writer<'d> {
     /// Writing a TOC heading: its TOC field is held back so the entries become the field's result.
     toc_hold_end: bool,
     /// The held TOC field (instruction, locked, props), opened in the first entry as Word does.
-    toc_field: Option<(String, bool, bool, wordcraft_doc::props::CharProps)>,
+    toc_field: Option<(String, bool, bool, docufy_doc::props::CharProps)>,
     /// Open the held TOC field at the start of the paragraph being written.
     toc_begin_here: bool,
     /// Close the open TOC field at the end of the paragraph being written.
@@ -127,7 +127,7 @@ pub(crate) struct Writer<'d> {
     /// Media keys actually referenced by a written drawing.
     used_media: std::collections::BTreeSet<String>,
     /// Bounds writing text boxes inside text boxes (as layout shows them).
-    boxes: wordcraft_doc::BoxBudget,
+    boxes: docufy_doc::BoxBudget,
     /// Text box stories already written: a story shown by many shapes is written once, the other
     /// shapes get an empty box, so the file doesn't grow as shapes × story size.
     written_boxes: std::collections::HashSet<u32>,
@@ -219,15 +219,15 @@ impl Writer<'_> {
         Some(rels.add(if footer { rt::FOOTER } else { rt::HEADER }, &file, false))
     }
 
-    fn take_para_id(&self, p: &wordcraft_doc::Paragraph) -> Option<String> {
+    fn take_para_id(&self, p: &docufy_doc::Paragraph) -> Option<String> {
         self.para_ids.get(&(p as *const _ as usize)).cloned()
     }
 
     /// Whether `p` holds a reference to the note being written.
-    fn holds_own_ref(&self, p: &wordcraft_doc::Paragraph) -> bool {
+    fn holds_own_ref(&self, p: &docufy_doc::Paragraph) -> bool {
         let Some((foot, id)) = self.current_note else { return false };
         p.objects.iter().any(|o| match o {
-            wordcraft_doc::InlineObject::NoteRef { kind, id: nid, .. } => *nid == id && (*kind == wordcraft_doc::para::NoteKind::Footnote) == foot,
+            docufy_doc::InlineObject::NoteRef { kind, id: nid, .. } => *nid == id && (*kind == docufy_doc::para::NoteKind::Footnote) == foot,
             _ => false,
         })
     }

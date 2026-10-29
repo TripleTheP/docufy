@@ -19,7 +19,7 @@
 //! environment nesting is depth-limited and the input size is capped.
 
 use crate::model::{self, Cell, FBlock, FTable, Flow, Fmt, Inline, Kind, ListInfo, Para};
-use wordcraft_doc::{Align, Document, Rgb};
+use docufy_doc::{Align, Document, Rgb};
 
 mod export;
 mod lex;

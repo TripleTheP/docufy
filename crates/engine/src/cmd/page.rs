@@ -1,11 +1,11 @@
 //! Layout tab: page setup (margins, orientation, size, columns), breaks, line numbers, hyphenation.
 
-use serde_json::{Value, json};
-use wordcraft_doc::props::{Border, Borders};
-use wordcraft_doc::section::{
+use docufy_doc::props::{Border, Borders};
+use docufy_doc::section::{
     Columns, DocGrid, DocGridType, LineNumbering, MAX_CHAR_SPACE, MAX_GRID_PITCH, MAX_NOTE_START, MIN_GRID_PITCH, SectionProps, SectionStart,
 };
-use wordcraft_doc::{Block, Pos, StoryRef};
+use docufy_doc::{Block, Pos, StoryRef};
+use serde_json::{Value, json};
 
 use super::sel_result;
 use crate::{CmdError, CmdResult, CommandSpec, Selection, Session, p};
@@ -50,7 +50,7 @@ pub fn specs() -> Vec<CommandSpec> {
         })
         .params(r#"{"section"?: SectionProps} (replaces the whole section, headers and footers included; checked like Size, Margins, Columns, Line Numbers, Footnotes and Page Borders: non-finite numbers and margins that leave no room for text are refused; page sides 7.2–1584 pt, 1–12 columns with 0–300 pt gaps, header/footer/gutter 0–1584 pt, page border width 0.25–6 pt and distance 0–31 pt, note start 1–32767, line numbers start 1–32767, countBy 1–100, distance 0–1584 pt are clamped)"#),
         CommandSpec::new("layout.verticalAlign", "Vertical Alignment", "Layout › Page Setup › Layout", |s, v| {
-            let va = wordcraft_doc::section::PageVAlign::parse(p::str(v, "value").unwrap_or_default());
+            let va = docufy_doc::section::PageVAlign::parse(p::str(v, "value").unwrap_or_default());
             with_sect(s, |x| x.valign = va)
         })
         .params(r#"{"value": "top|center|justify|bottom"} (also both|justified; anything else is top). Justified shares each page's spare room between its paragraphs and tables"#),
@@ -71,7 +71,7 @@ pub fn specs() -> Vec<CommandSpec> {
             sel_result(s)
         }),
         CommandSpec::new("layout.pageNumberFormat", "Format Page Numbers", "Insert › Header & Footer › Page Number", |s, v| {
-            let fmt = p::str(v, "format").map(wordcraft_doc::section::NumFormat::from_ooxml);
+            let fmt = p::str(v, "format").map(docufy_doc::section::NumFormat::from_ooxml);
             with_sect(s, |x| {
                 if let Some(f) = fmt {
                     x.page_num_format = f;
@@ -100,7 +100,7 @@ pub fn specs() -> Vec<CommandSpec> {
 /// Line Numbers: on with a restart mode (`value`), or off (`none`). `start`, `countBy` and
 /// `distance` change the numbering's options and turn it on (keeping its restart mode).
 fn line_numbers(s: &mut Session, v: &Value) -> CmdResult {
-    use wordcraft_doc::section::LineNumberRestart as R;
+    use docufy_doc::section::LineNumberRestart as R;
     let mode = p::str(v, "value");
     if mode == Some("none") {
         return with_sect(s, |x| x.line_numbers = None);
@@ -169,20 +169,20 @@ fn manual_hyphenation(s: &mut Session, v: &Value) -> CmdResult {
         Some(f) if !f.is_null() => super::parse_pos(f).ok_or_else(|| CmdError::Params("bad `from`".into()))?,
         _ => s.sel.ordered().0,
     };
-    let lim = wordcraft_proof::hyphen::Limits::default();
+    let lim = docufy_proof::hyphen::Limits::default();
     let caps = s.doc.settings.hyphenate_caps;
     let layout = s.layout();
     let mut best: Option<(Pos, Value)> = None;
     for page in &layout.pages {
         for it in &page.items {
-            let wordcraft_layout::Placed::Lines { story, path, para, l0, l1, .. } = it else { continue };
+            let docufy_layout::Placed::Lines { story, path, para, l0, l1, .. } = it else { continue };
             if *story != StoryRef::Body {
                 continue;
             }
             let Some(text) = s.doc.para_at(&Pos { story: *story, path: path.clone(), off: 0 }).map(|p| p.text.clone()) else { continue };
             for li in (*l0).max(1)..*l1 {
                 let (Some(prev), Some(line)) = (para.lines.get(li - 1), para.lines.get(li)) else { continue };
-                if prev.end != wordcraft_layout::LineEnd::Wrap || prev.hyphen.is_some() {
+                if prev.end != docufy_layout::LineEnd::Wrap || prev.hyphen.is_some() {
                     continue;
                 }
                 let at = Pos { story: *story, path: path.clone(), off: line.start };
@@ -199,7 +199,7 @@ fn manual_hyphenation(s: &mut Session, v: &Value) -> CmdResult {
                 {
                     continue;
                 }
-                let points = wordcraft_proof::hyphen::hyphen_points(word, &lim);
+                let points = docufy_proof::hyphen::hyphen_points(word, &lim);
                 // The room left at the end of the line above, and the width of each first part.
                 let room = prev.right - prev.end_x();
                 let hyphen_w = para
@@ -229,9 +229,9 @@ fn section_of_part(s: &Session, id: u32) -> usize {
         }
     }
     for (bi, block) in s.doc.body.iter().enumerate() {
-        if let wordcraft_doc::Block::Para(p) = &**block {
+        if let docufy_doc::Block::Para(p) = &**block {
             for o in &p.objects {
-                if matches!(o, wordcraft_doc::para::InlineObject::NoteRef { id: nid, .. } if *nid == id) {
+                if matches!(o, docufy_doc::para::InlineObject::NoteRef { id: nid, .. } if *nid == id) {
                     return s.doc.section_index_of(bi);
                 }
             }
@@ -242,8 +242,8 @@ fn section_of_part(s: &Session, id: u32) -> usize {
 
 pub fn section_index_of_focus(s: &Session) -> usize {
     match s.sel.focus.story {
-        wordcraft_doc::StoryRef::Body => s.doc.section_index_of(s.sel.focus.path.0.first().copied().unwrap_or(0) as usize),
-        wordcraft_doc::StoryRef::Part(id) => section_of_part(s, id),
+        docufy_doc::StoryRef::Body => s.doc.section_index_of(s.sel.focus.path.0.first().copied().unwrap_or(0) as usize),
+        docufy_doc::StoryRef::Part(id) => section_of_part(s, id),
     }
 }
 
@@ -256,7 +256,7 @@ pub fn sect(s: &Session) -> SectionProps {
 fn selected_section_ends(s: &Session) -> Vec<usize> {
     let (a, b) = s.sel.ordered();
     let ends: Vec<usize> = s.doc.sections().iter().map(|(e, _)| *e).collect();
-    if a.story != wordcraft_doc::StoryRef::Body || b.story != wordcraft_doc::StoryRef::Body {
+    if a.story != docufy_doc::StoryRef::Body || b.story != docufy_doc::StoryRef::Body {
         let i = section_index_of_focus(s);
         return vec![ends.get(i).copied().unwrap_or(0)];
     }
@@ -276,7 +276,7 @@ pub(crate) fn with_sect(s: &mut Session, f: impl Fn(&mut SectionProps)) -> CmdRe
 
 /// The text direction Layout › Text Direction would change: the caret cell's, the text box's,
 /// or the section's.
-pub fn text_direction_at(s: &Session) -> wordcraft_doc::props::TextDirection {
+pub fn text_direction_at(s: &Session) -> docufy_doc::props::TextDirection {
     if let Some((tp, r, c)) = s.sel.focus.path.cell() {
         return s.doc.table(s.sel.focus.story, &tp).and_then(|t| t.rows.get(r)?.cells.get(c).map(|cl| cl.props.text_direction)).unwrap_or_default();
     }
@@ -289,7 +289,7 @@ pub fn text_direction_at(s: &Session) -> wordcraft_doc::props::TextDirection {
 /// Layout › Text Direction: like Word's button it works on what the caret is in — the selected
 /// table cells, the text box, or else the section.
 fn text_direction(s: &mut Session, v: &Value) -> CmdResult {
-    use wordcraft_doc::props::{TextDirection, TextVert};
+    use docufy_doc::props::{TextDirection, TextVert};
     let dir = match p::str(v, "value") {
         Some("horizontal" | "lrTb" | "horz") => Some(TextDirection::Horizontal),
         Some("down" | "tbRl" | "vert" | "rotate90") => Some(TextDirection::Down),
@@ -314,7 +314,7 @@ fn text_direction(s: &mut Session, v: &Value) -> CmdResult {
 
 /// The default font size (Normal style), which the character pitch is based on.
 fn grid_font_size(s: &Session) -> f32 {
-    let size = s.doc.styles.resolve_char(Some("Normal"), &wordcraft_doc::CharProps::default()).size;
+    let size = s.doc.styles.resolve_char(Some("Normal"), &docufy_doc::CharProps::default()).size;
     if size.is_finite() { size.clamp(1.0, 1584.0) } else { 10.5 }
 }
 
@@ -548,7 +548,7 @@ pub const MAX_PAGE_SIDE: f32 = 1584.0;
 
 fn size(s: &mut Session, v: &Value) -> CmdResult {
     let (w, h) = if let Some(n) = p::str(v, "name") {
-        let (_, w, h) = wordcraft_geom::PAPER_SIZES
+        let (_, w, h) = docufy_geom::PAPER_SIZES
             .iter()
             .find(|(name, _, _)| name.eq_ignore_ascii_case(n))
             .ok_or_else(|| CmdError::Params(format!("unknown paper `{n}`")))?;
@@ -652,7 +652,7 @@ fn selection_to_sections(s: &mut Session) -> Result<(), CmdError> {
     let after_break = |i: usize| i.checked_sub(1).is_some_and(|j| ends.contains(&j));
     // A selection that took a section break with it ends before that break.
     if b.off == 0 && block(&b) > block(&a) && after_break(block(&b)) {
-        let prev = Pos { path: wordcraft_doc::Path::top(block(&b) - 1), off: 0, ..b.clone() };
+        let prev = Pos { path: docufy_doc::Path::top(block(&b) - 1), off: 0, ..b.clone() };
         b = Pos { off: len(s, &prev), ..prev };
     }
     let last_block = s.doc.body.len().saturating_sub(1);
@@ -717,7 +717,7 @@ fn breaks(s: &mut Session, v: &Value) -> CmdResult {
     // selected text was deleted, so the first section lost its text).
     let old = s.sel.clone();
     let (at, end) = old.ordered();
-    if at.story != wordcraft_doc::StoryRef::Body || at.path.depth() > 0 {
+    if at.story != docufy_doc::StoryRef::Body || at.path.depth() > 0 {
         return Err(CmdError::Failed("section breaks go in the main text".into()));
     }
     // Section break: the paragraph before the caret ends a section with the current props; the

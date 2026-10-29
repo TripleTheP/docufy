@@ -16,7 +16,7 @@ fn big_button_label_lines_fit_their_slot() {
 #[test]
 fn ribbon_menu_offers_show_quick_access_toolbar_only_while_hidden() {
     use egui_kittest::kittest::Queryable;
-    let a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), crate::Services::default());
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
         |ui, app: &mut WordApp| {
             let ctx = ui.ctx().clone();

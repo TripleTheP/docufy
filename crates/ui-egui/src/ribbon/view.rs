@@ -118,7 +118,7 @@ pub(super) fn view(app: &mut WordApp, ui: &mut Ui) {
 /// The Outlining tab (Outline view): outline levels, moving, expanding and collapsing, what is
 /// shown, and closing the view.
 pub(super) fn outlining(app: &mut WordApp, ui: &mut Ui) {
-    use wordcraft_engine::layout::outline::{BODY, para_level};
+    use docufy_engine::layout::outline::{BODY, para_level};
     let o = app.session.view.outline.clone();
     let level = app.session.doc.para_at(&app.session.sel.focus).map(|p| para_level(&app.session.doc, p)).unwrap_or(BODY);
     let name = |l: u8| if l >= BODY { tl!("Body Text").to_string() } else { crate::i18n::fmt(tl!("Level {n}"), &[("n", &l.to_string())]) };

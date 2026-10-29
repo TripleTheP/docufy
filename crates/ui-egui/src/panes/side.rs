@@ -79,8 +79,8 @@ pub(super) fn styles(app: &mut WordApp, ui: &mut Ui) {
         .styles
         .styles
         .iter()
-        .filter(|s| !s.hidden && s.kind != wordcraft_doc::StyleKind::Table)
-        .map(|s| (s.id.clone(), crate::i18n::style_name(s), s.kind == wordcraft_doc::StyleKind::Character, s.builtin))
+        .filter(|s| !s.hidden && s.kind != docufy_doc::StyleKind::Table)
+        .map(|s| (s.id.clone(), crate::i18n::style_name(s), s.kind == docufy_doc::StyleKind::Character, s.builtin))
         .collect();
     list.sort_by_key(|s| s.1.to_lowercase());
     egui::ScrollArea::vertical().show(ui, |ui| {

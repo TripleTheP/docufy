@@ -1,7 +1,7 @@
-//! WordCraft PDF export through the shared `craft-pdf` writer and Krilla drawing primitives.
+//! Docufy PDF export through the shared `craft-pdf` writer and Krilla drawing primitives.
 //!
 //! [`export`] lays the document out and draws each page's display list
-//! ([`wordcraft_layout::display::page_display`]) into a PDF page:
+//! ([`docufy_layout::display::page_display`]) into a PDF page:
 //!
 //! - **Text as real text:** glyph runs are written with embedded, subsetted fonts and a Unicode
 //!   mapping taken from the paragraph text, so text is selectable, searchable and extractable.
@@ -27,6 +27,16 @@ use std::num::NonZeroU16;
 use std::sync::Arc;
 
 use craft_pdf::write::{self, Metadata, WriteError, Writer, backend as krilla};
+use docufy_doc::graphic::GraphicKind;
+use docufy_doc::para::{InlineObject, ShapeKind};
+use docufy_doc::{Document, Path as DocPath, Rgb, StoryRef};
+use docufy_fonts::FaceRef;
+use docufy_geom::Rect;
+use docufy_layout::display::Paint;
+use docufy_layout::display::{DisplayOptions, Draw, ItemDisplay, Stroke as LineStyle};
+use docufy_layout::para::{ClKind, LineEnd};
+use docufy_layout::{DocLayout, LayoutCache, LayoutOptions, NumeralMode, Page, Placed, layout};
+use docufy_metafile::{Picture, PlacedItem};
 use krilla::annotation::{Annotation, LinkAnnotation, Target};
 use krilla::color::rgb;
 use krilla::destination::XyzDestination;
@@ -41,16 +51,6 @@ use krilla::paint::{Fill, FillRule, LineCap, LineJoin, Stroke, StrokeDash};
 use krilla::surface::Surface;
 use krilla::tagging::{Artifact, ArtifactType, ContentTag, Identifier, Node, SpanTag, Tag, TagGroup, TagKind, TagTree};
 use krilla::text::{Font, GlyphId, KrillaGlyph};
-use wordcraft_doc::graphic::GraphicKind;
-use wordcraft_doc::para::{InlineObject, ShapeKind};
-use wordcraft_doc::{Document, Path as DocPath, Rgb, StoryRef};
-use wordcraft_fonts::FaceRef;
-use wordcraft_geom::Rect;
-use wordcraft_layout::display::Paint;
-use wordcraft_layout::display::{DisplayOptions, Draw, ItemDisplay, Stroke as LineStyle};
-use wordcraft_layout::para::{ClKind, LineEnd};
-use wordcraft_layout::{DocLayout, LayoutCache, LayoutOptions, NumeralMode, Page, Placed, layout};
-use wordcraft_metafile::{Picture, PlacedItem};
 
 mod export;
 mod exporter;

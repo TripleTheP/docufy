@@ -1,6 +1,6 @@
-# WordCraft: egui 0.37 migration plan
+# Docufy: egui 0.37 migration plan
 
-**Status:** current-main reconciliation through `b4da59f0c38b506c36629b1d812ad7c0519fc238` passed all eight mandatory CI stages on 2026-10-25: 4,270 passing test executions, zero failures and 4 ignored (`egui037-wordcraft-main-refresh-ci-20261025-0603`). This includes main's encrypted-DOCX integrity requirement and selected-paragraph-mark highlight behavior. The dependency pins and lockfile are unchanged. A fresh review verified that the merge preserves the IME documentation and upstream fixes. Earlier counts and source snapshots below are historical.
+**Status:** current-main reconciliation through `b4da59f0c38b506c36629b1d812ad7c0519fc238` passed all eight mandatory CI stages on 2026-10-25: 4,270 passing test executions, zero failures and 4 ignored (`egui037-docufy-main-refresh-ci-20261025-0603`). This includes main's encrypted-DOCX integrity requirement and selected-paragraph-mark highlight behavior. The dependency pins and lockfile are unchanged. A fresh review verified that the merge preserves the IME documentation and upstream fixes. Earlier counts and source snapshots below are historical.
 
 Read-only comment balloons now consume the explicit `AlignedGalley` result from craft-ui at
 `25da1314d443171b4adeaad2cd9454b273f35c6f`: height comes from the requested reading area,
@@ -14,8 +14,8 @@ phonetic labels and preserved notice/packaging source repair.
 Native GUI/IME/capture/save-reopen traces, package notice verification, paired performance,
 platform/installer execution and app publication remain separate gates. This records local
 work, not publication or complete platform acceptance. Historical notes below remain history.
-**Scope:** the WordCraft checkout at
-`/home/codex/work/CraftApps/egui037-migration-20261022/wordcraft-implementation`.
+**Scope:** the Docufy checkout at
+`/home/codex/work/CraftApps/egui037-migration-20261022/docufy-implementation`.
 **Baseline source:** `3a4770ef8ce037d2650c93e2d5764536549357c7` ("Merge pull request #3286 from
 matstrange/fix/protection-inspect-tracking"), workspace version 0.10.0, edition 2024,
 `rust-version = "1.95"`, resolver 3. Baseline `Cargo.lock` SHA-256
@@ -49,12 +49,12 @@ Earlier baseline and research revisions below remain historical references.
 
 This plan follows the suite contract in
 `craft-libs/docs/egui-037-suite-rollout.md` and the planning contract. It records only
-WordCraft-specific source, behavior and evidence. The shared rollout plan remains the authority
+Docufy-specific source, behavior and evidence. The shared rollout plan remains the authority
 for suite-wide publication order and the shared performance protocol.
 
 ## 1. What is and is not changing
 
-WordCraft already uses the 0.36 `App::logic` / `App::ui` split and an existing root `Ui`.
+Docufy already uses the 0.36 `App::logic` / `App::ui` split and an existing root `Ui`.
 `App::logic` is already called before every UI pass, including repeated passes; `App::ui`
 already receives the root `Ui`. The 0.37 migration must preserve that architecture rather than
 rewriting it. The real work is:
@@ -76,12 +76,12 @@ changed by this migration. The app remains `Session`-driven; egui remains a thin
 `Cargo.toml` declares one workspace, `members = ["crates/*", "apps/*", "xtask"]`, with no nested
 workspace and no vendor directory. `cargo metadata --no-deps` lists these packages:
 
-- application: `wordcraft` (`apps/wordcraft`, native eframe app), `wordcraft-web`
-  (`apps/wordcraft-web`, wasm eframe app), `wordcraft-cli` (no egui dependency).
-- UI: `wordcraft-ui-egui` (`crates/ui-egui`, the only direct egui/eframe consumer in the
+- application: `docufy` (`apps/docufy`, native eframe app), `docufy-web`
+  (`apps/docufy-web`, wasm eframe app), `docufy-cli` (no egui dependency).
+- UI: `docufy-ui-egui` (`crates/ui-egui`, the only direct egui/eframe consumer in the
   workspace). It also depends on `craft-ui` for print-page controls and on `egui_kittest` as a
   dev-dependency.
-- lower layers and stand-alone crates: `wordcraft-{geom,doc,fonts,layout,docx,docbin,formats,
+- lower layers and stand-alone crates: `docufy-{geom,doc,fonts,layout,docx,docbin,formats,
   render,pdf,proof,engine,mcp,zotero,control-key,metafile}`. None may acquire an egui dependency;
   `cargo xtask layers` enforces this (`xtask/src/layers.rs`, `UI_CRATES`).
 - `xtask` itself has no egui dependency.
@@ -92,8 +92,8 @@ Direct egui-family declarations are only:
 |---|---|---|
 | root `Cargo.toml` | `egui = "0.36"`, `egui_extras = { version = "0.36", default-features = false }`, `eframe = { version = "0.36", default-features = false }`, `egui_kittest = "0.36"` | `egui_extras` is currently unused by source; remove it or pin it deliberately. |
 | `crates/ui-egui/Cargo.toml` | `egui = { workspace = true }`; dev: `egui_kittest = { workspace = true, features = ["wgpu", "snapshot"] }` | `egui` is not given `default_fonts` here; production gets it from the app roots' eframe feature, while the UI test root must declare egui's font features itself because kittest's own dev-dependencies do not propagate. |
-| `apps/wordcraft/Cargo.toml` | `eframe` with `default_fonts`, `wgpu`, `accesskit`, `wayland`, `x11`, `links`; `egui`; Linux/BSD `winit = "0.30"` with `x11` | `eframe` is the native renderer; S1 adds `clipboard` to preserve 0.36’s integration-forced OS text clipboard. |
-| `apps/wordcraft-web/Cargo.toml` | `egui`; wasm `eframe` with `default_fonts`, `wgpu`, `accesskit` | web runner and browser download/inbox shell. |
+| `apps/docufy/Cargo.toml` | `eframe` with `default_fonts`, `wgpu`, `accesskit`, `wayland`, `x11`, `links`; `egui`; Linux/BSD `winit = "0.30"` with `x11` | `eframe` is the native renderer; S1 adds `clipboard` to preserve 0.36’s integration-forced OS text clipboard. |
+| `apps/docufy-web/Cargo.toml` | `egui`; wasm `eframe` with `default_fonts`, `wgpu`, `accesskit` | web runner and browser download/inbox shell. |
 
 `craft-libs` is pinned in two places: `craft-ui` and `craft-print` at
 `d27646a5f7c8b4fc85d9dd3213b8c88b58e0088d`, and `craft-pdf` at
@@ -103,11 +103,11 @@ strings look uniform.
 
 ### 2.2 Entry points and examples
 
-- Native: `apps/wordcraft/src/main.rs`. `impl eframe::App for App` at `main.rs:44` implements
+- Native: `apps/docufy/src/main.rs`. `impl eframe::App for App` at `main.rs:44` implements
   `logic`, `raw_input_hook`, `ui` and `on_exit` (`main.rs:45-120`). `NativeOptions` and the
   winit/platform setup are at `main.rs:376-420`; Windows wgpu backend/probe code is
-  `apps/wordcraft/src/graphics.rs:26-180`.
-- Web: `apps/wordcraft-web/src/web.rs`. `WebShell` implements `eframe::App` at `web.rs:117`;
+  `apps/docufy/src/graphics.rs:26-180`.
+- Web: `apps/docufy-web/src/web.rs`. `WebShell` implements `eframe::App` at `web.rs:117`;
   `logic` drains browser drops/messages and calls `WordApp::logic`, `ui` calls `WordApp::ui`;
   `WebOptions`/WebGPU-WebGL2 selection is at `web.rs:35-65`.
 - UI library: `WordApp::logic` at `crates/ui-egui/src/lib.rs:2087`, `WordApp::ui` at
@@ -117,7 +117,7 @@ strings look uniform.
 - Performance probe: `crates/ui-egui/examples/perf_probe.rs` (open, typing, wheel/trackpad
   scrolling, zoom, ribbon tabs, resize, accept-all; returns medians, p95 and max, not p99).
 - Large-table benchmark: `crates/ui-egui/src/tests/perf.rs` (`big_table_scroll_bench`, ignored,
-  2000x8 synthetic table by default, `WORDCRAFT_BENCH_DOCX` override).
+  2000x8 synthetic table by default, `DOCUFY_BENCH_DOCX` override).
 - Control protocol: `crates/ui-egui/src/control.rs`, documented in `docs/control-protocol.md`.
   `ui.screenshot`/`ui.render` reply shapes, request ids, timeouts and paths are public contracts.
 
@@ -127,17 +127,17 @@ Relevant cfgs are all in the UI/app boundary, not in lower layers:
 
 - `cfg(target_os = "linux")`: `zbus = "=5.19.0"` in `crates/ui-egui/Cargo.toml`;
   `desktop_theme.rs` reads the desktop portal. `system_clipboard.rs` and
-  `apps/wordcraft/src/clipboard.rs` use `wl-clipboard-rs` for the **regular** Wayland
+  `apps/docufy/src/clipboard.rs` use `wl-clipboard-rs` for the **regular** Wayland
   clipboard (formats/text/pictures); they do not read or write PRIMARY
   (`ClipboardType::Regular` only, `clipboard.rs:135-160`). Middle-click on the canvas is
-  WordCraft's autoscroll, not a PRIMARY paste (`autoscroll.rs:1-10`).
+  Docufy's autoscroll, not a PRIMARY paste (`autoscroll.rs:1-10`).
 - `cfg(all(unix, not(target_os = "macos")))`: app `winit` X11; XWayland selection is in
   `main.rs:404-413`.
 - `cfg(target_os = "macos")`: `fmv-macos-events`, `objc2-app-kit`, `dispatch2`; termination
   workaround `schedule_macos_terminate` at `main.rs:121-160`; AppKit pasteboard additions in
-  `apps/wordcraft/src/clipboard.rs`.
+  `apps/docufy/src/clipboard.rs`.
 - `cfg(target_os = "windows")`: `open`, `windows` 0.62, `clipboard-win`; wgpu DX12/FXC and
-  backend probe in `apps/wordcraft/src/graphics.rs`.
+  backend probe in `apps/docufy/src/graphics.rs`.
 - `cfg(target_arch = "wasm32")`: `js-sys`, `web-sys`, browser inbox, `font_store.rs`, browser
   downloads; `sys-locale` with `js`.
 
@@ -169,23 +169,23 @@ Required prerequisites, all in the approved revisions above:
   serial for the focused seat, with origin and epoch; only serving/reading is async, using the
   total-deadline (2 s), byte (16 MiB), worker (4 readers, 2 writers, queue 8) bounds. A live
   per-owner completion waker routes only to the still-current request; canceled/stale results
-  are discarded. WordCraft's application clipboard stays regular-only; built-in `TextEdit`
+  are discarded. Docufy's application clipboard stays regular-only; built-in `TextEdit`
   PRIMARY is tested only where the feature graph enables it.
 - **E21b/P7b + winit W27 lifecycle:** the complete shared contract in `egui` plan §6 E21b and
   winit plan §5.2.3/§5.2.2, not a partial restatement. It includes the owner/context generation
   on both Available and Unavailable, distinct explicitly-sent empty Available payloads, cache
   clearing plus a committed disable/enable transition on owner/unavailable changes, the latest
   completed pass (including `None`) as authoritative, and current-epoch serial-mismatch
-  handling that applies incoming edits once while deferring outgoing state. WordCraft's two
+  handling that applies incoming edits once while deferring outgoing state. Docufy's two
   canvas producers need real model adapters.
 - **P7c selected UI-regression fixes:** the fork owns the selected #8763 click-away selection
   fix and #8748 hidden-parent/child fix, with pointer and keyboard regressions. #8764 remains
-  only a proposal input. WordCraft has no child viewports, so #8748 is a dependency-series
+  only a proposal input. Docufy has no child viewports, so #8748 is a dependency-series
   gate rather than app behavior, but no app workaround substitutes for P7c.
 
 The root `[patch.crates-io]` must contain every crate whose crates.io identity would otherwise
 pull a second egui/winit. A dependency's own `[patch]` table is ignored when it is a dependency,
-so the wordcraft root must repeat the patches. At minimum: `egui`, `eframe`, `egui-winit`,
+so the docufy root must repeat the patches. At minimum: `egui`, `eframe`, `egui-winit`,
 `egui-wgpu`, `egui_glow`, `egui_kittest`, `egui_extras`, `epaint`, `emath`, `ecolor`,
 `epaint_default_fonts`, `egui_system_font_provider`, and `winit`. Keep the existing
 `krilla` patch only because `craft-pdf` requires it; it is unrelated to this migration.
@@ -215,18 +215,18 @@ all with the intended `git+...#<sha>` source and no `path` source.
   on the earlier `49190884278f16c9a9f5823d7698a8ffb5deb062` main describe how that base was
   assembled; they are no longer the base to apply. Preserve intervening fixes and provenance,
   and re-run the actual gates; neither PR 199 nor historical checks qualify the resulting
-  tree. WordCraft pins the published CL-1 plus CL-2F revision in the same atomic dependency
+  tree. Docufy pins the published CL-1 plus CL-2F revision in the same atomic dependency
   stage as the egui/winit pins (section 9), never after a 0.37-only first step.
 - **craft-libs #192 / print types** already landed on the path to PR 199: `craft-ui::printing::Printer`
-  gains `label`; `craft-print::Printer` gains `description`. WordCraft must adapt when it moves
+  gains `label`; `craft-print::Printer` gains `description`. Docufy must adapt when it moves
   its `craft-ui`/`craft-print` pin:
-  - `apps/wordcraft/src/print.rs:8` builds `printing::Printer` from
+  - `apps/docufy/src/print.rs:8` builds `printing::Printer` from
     `craft_print::printers()`; add `label: printer.description`.
   - `crates/ui-egui/src/lib.rs:6038` (test) constructs `Printer { name, default }`; add
     `label: String::new()` or `..Default::default()`.
   - `crates/ui-egui/src/printing.rs` continues to re-export the shared types and labels.
 - **craft-libs #198** is a language-support proposal/issue, not a merged dependency. Its
-  requirements that matter to WordCraft are already represented in fork patches E5/E12/E13/E16/E17/
+  requirements that matter to Docufy are already represented in fork patches E5/E12/E13/E16/E17/
   E19/E21: logical text at OS/accessibility boundaries, no double bidi, IME replacement by bytes,
   and Latin shortcut keys on non-Latin layouts. Do not import the proposal's locale/formatting
   roadmap or any prohibited font asset into this migration.
@@ -235,21 +235,21 @@ all with the intended `git+...#<sha>` source and no `path` source.
 
 The fork is a superset of 0.37.0 plus the suite patches documented in its `PATCHES.md`. The
 completed P8 revision retains the whole series; do not delete unrelated patches to reduce the
-diff. WordCraft consumes only that published P8 revision, never the aiongg candidate or an
-intermediate stage. The WordCraft-relevant patches are:
+diff. Docufy consumes only that published P8 revision, never the aiongg candidate or an
+intermediate stage. The Docufy-relevant patches are:
 
-| Patch | Relevance to WordCraft | Decision |
+| Patch | Relevance to Docufy | Decision |
 |---|---|---|
 | E1 eframe viewport hooks | No child viewports today | Retain; do not adopt. |
 | E2+E3 egui-wgpu surface fit/error scopes | Protects large windows and device setup | Retain; test large/high-DPI window and device-error paths. |
-| E4 egui-winit Wayland clipboard | WordCraft reads the regular clipboard through arboard/wl-clipboard-rs; E4 changes egui-winit's own path | Required fork prerequisite with the complete P2b/W15P contract (synchronous pointer-or-keyboard claim, bounded async transfer); test the app's regular clipboard separately and do not assume E4 replaces WordCraft's HTML/RTF/MathML path. Do not add app-level PRIMARY paste. |
-| E5/E12/E16 bidi shaping, direction, caret affinity | Replaces WordCraft's manual `bidi_display`/`visual_row` workarounds | Required. Remove double processing; use logical text and fork layout. |
+| E4 egui-winit Wayland clipboard | Docufy reads the regular clipboard through arboard/wl-clipboard-rs; E4 changes egui-winit's own path | Required fork prerequisite with the complete P2b/W15P contract (synchronous pointer-or-keyboard claim, bounded async transfer); test the app's regular clipboard separately and do not assume E4 replaces Docufy's HTML/RTF/MathML path. Do not add app-level PRIMARY paste. |
+| E5/E12/E16 bidi shaping, direction, caret affinity | Replaces Docufy's manual `bidi_display`/`visual_row` workarounds | Required. Remove double processing; use logical text and fork layout. |
 | E6 IME focus request | Text fields and canvas IME | Retain; test preedit/focus. |
 | E7/E19 Latin keys on non-Latin layouts | App shortcuts use `Event::Key.key`; fork supplies Latin layout characters | Required for shortcut parity; test Russian/Arabic/Hebrew layouts. |
 | E8 TextEdit glyph overshoot | Dialogs and custom combo fields | Retain; visual test combining marks/Thai/Vietnamese. |
-| E9 RTL UI mirroring | WordCraft has no RTL interface catalog yet | Retain as capability; do not enable a half-mirrored UI without a locale. |
+| E9 RTL UI mirroring | Docufy has no RTL interface catalog yet | Retain as capability; do not enable a half-mirrored UI without a locale. |
 | E10 web named keys/language | Browser shortcuts and hidden input | Required for web; test browser workflow. |
-| E11 vello single-threaded glyph rasterization | WordCraft's page renderer is separate; epaint UI glyphs still use it | Retain; no app change unless `vello_cpu` feature use is introduced. |
+| E11 vello single-threaded glyph rasterization | Docufy's page renderer is separate; epaint UI glyphs still use it | Retain; no app change unless `vello_cpu` feature use is introduced. |
 | E13 grapheme editing | Fork TextEdit/caret behavior; app's document editing is engine-owned | Retain; ensure no duplicate grapheme handling; test emoji/combining. |
 | E14 fallback baseline | CJK/Indic UI fallbacks | Retain; test CJK/Indic interface text. |
 | E15 line breaker | egui UI text (ribbon, dialogs); document layout is app-owned | Retain; do not move document layout to epaint. |
@@ -257,14 +257,14 @@ intermediate stage. The WordCraft-relevant patches are:
 | E18 eframe UI language | Could replace app-side `Frame` language plumbing | Evaluate; not required. |
 | E20 widget text language | Dialog/ribbon text layout | Retain; test CJK/Thai line breaking. |
 | E21 `ImeEvent::DeleteSurroundingBytes` | Desktop macOS/Wayland IME replacement | Required. Add a byte-range path alongside the existing char-count web path. |
-| E21b/P7b outgoing IME surrounding text | Canvas/Wayland surrounding-text support; the candidate has incoming deletion only | Required fork prerequisite under the complete E21b/W27 contract (owner generation, empty-Available, serial/epoch rules). TextEdit producer and W27 adapter; both WordCraft canvas producers need real model/preedit/UTF-8 adapters. |
+| E21b/P7b outgoing IME surrounding text | Canvas/Wayland surrounding-text support; the candidate has incoming deletion only | Required fork prerequisite under the complete E21b/W27 contract (owner generation, empty-Available, serial/epoch rules). TextEdit producer and W27 adapter; both Docufy canvas producers need real model/preedit/UTF-8 adapters. |
 
 Winit provenance: the final pin must be the completed, approved, published `storytold/winit`
 revision containing W1-W15 minus W5, plus W17-W27 including W20 as W5’s replacement including the W27 lifecycle revision, and the
 W15P PRIMARY path. The inspected `8b35388` `ai-lang` commit is an aiongg research input, not a production
-pin. WordCraft's existing issue references (#787, #721 and related IME/DPI fixes) depend on
+pin. Docufy's existing issue references (#787, #721 and related IME/DPI fixes) depend on
 W1-W15; do not compare only against upstream 0.30.13 and conclude the patches are new. The patch
-table records the removal condition for each. No wordcraft vendor directory exists, so no vendor
+table records the removal condition for each. No docufy vendor directory exists, so no vendor
 deletion is part of this plan.
 
 ### 3.4 Pin and lock checks
@@ -285,7 +285,7 @@ Proposed checks, to run through the managed `task.py` workflow after the plans l
    that is not reachable from the approved fork ref. This turns the manual checks into a
    regression.
 5. Feature-identity checks, not just version metadata: `cargo tree -e features --target
-   wasm32-unknown-unknown -p wordcraft-web` and the native `-p wordcraft` tree must show the
+   wasm32-unknown-unknown -p docufy-web` and the native `-p docufy` tree must show the
    expected `egui/default_fonts`, `egui-winit/clipboard` (required on native, with arboard resolved),
    `accesskit`, `wgpu` and no `system_fonts` resolution for the app root. Record the exact
    feature sets in the lock/evidence manifest.
@@ -298,7 +298,7 @@ Proposed checks, to run through the managed `task.py` workflow after the plans l
 ## 4. Concrete 0.37 API and behavior refactors
 
 The historical compiler audit at
-`/home/codex/work/ssd2/task-evidence/egui037-audit-20261022/{fork,stock}/wordcraft.errors`
+`/home/codex/work/ssd2/task-evidence/egui037-audit-20261022/{fork,stock}/docufy.errors`
 lists 42 diagnostics, identical for stock and fork. They are clues, not current acceptance and
 not an exhaustive list. The concrete fixes are:
 
@@ -317,7 +317,7 @@ Affected constructors and patterns:
   `:6094`).
 - Add `..` to patterns where the source is not used. For tests, use `Wheel` or `Trackpad` to
   match the behavior under test; for the control channel use `Unknown`.
-- Preserve `CanvasScroll` behavior: WordCraft disables egui's canvas wheel handling
+- Preserve `CanvasScroll` behavior: Docufy disables egui's canvas wheel handling
   (`ScrollArea::scroll_source { mouse_wheel: false }`) and computes its own delta. Do not start
   feeding the same momentum twice. The app's `SYNTH_MOMENTUM` policy remains Linux/BSD-only;
   macOS/Windows/Web already send their own momentum. Use `source` only for diagnostics/future
@@ -382,7 +382,7 @@ changes the role to `Unknown` must fail the explicit role query.
   returns immediately when `pending_shots` is empty.
 - `crates/ui-egui/src/control.rs:312` `save_screenshot(&ColorImage, path)` encodes/writes.
 
-Required design. WordCraft is one of the eleven `craft-ui` capture consumers and adopts the
+Required design. Docufy is one of the eleven `craft-ui` capture consumers and adopts the
 shared helper only after CL-2F freezes it; it does not take the provisional CL-2 revision used
 by the DesignCraft/GridCraft pilots. The callback contract is:
 
@@ -433,7 +433,7 @@ by the DesignCraft/GridCraft pilots. The callback contract is:
   CL-1 and CL-2F; only the DesignCraft/GridCraft pilots use the reviewed CL-2 provisional
   revision, and their adapters are reviewed before CL-2F freezes the API. DeckCraft, FigCraft
   and ArtCraft Native keep contract-compatible local adapters; `ai-egui` has no capture path.
-  Do not add `craft-ui` solely for capture; if DeckCraft/FigCraft later adopt it, WordCraft's
+  Do not add `craft-ui` solely for capture; if DeckCraft/FigCraft later adopt it, Docufy's
   adapter stays unchanged.
 
 Tests: four-request/128 MiB/256 MiB admission, two outstanding requests with distinct
@@ -466,7 +466,7 @@ domain ids. The replacement applies only to egui `Ui`.
 
 `Panel::left/right/top/bottom` in 0.37 take `impl AsIdSalt`, not `impl Into<Id>`; the panel id
 is now `parent_scope.with(IdSalt)`. Existing string literals in `chrome.rs`, `panes.rs`,
-`backstage.rs` and `ribbon.rs` compile, but their effective ids change. WordCraft does not persist
+`backstage.rs` and `ribbon.rs` compile, but their effective ids change. Docufy does not persist
 panel sizes in `ui.json` or enable egui `persistence`, so the only consequence is fresh in-process
 panel state after upgrade. Verify:
 
@@ -486,7 +486,7 @@ panel state after upgrade. Verify:
 `egui_kittest`'s normal `[dependencies] egui` uses `default-features = false`; only kittest's
 own `[dev-dependencies]` enable `default_fonts`/`monochrome_emoji_fonts`, and a dependency's
 dev-dependencies do not propagate. Neither kittest's manifest nor its dev-dependency graph
-supplies fonts to WordCraft's test root. WordCraft's `theme::font_definitions_language` starts from
+supplies fonts to Docufy's test root. Docufy's `theme::font_definitions_language` starts from
 `FontDefinitions::default()`, inserts `Inter` at index 0, pushes `SourceSans` at the end, then
 appends CJK/system faces (`theme.rs:536-620`). With `default_fonts` the default proportional
 family is `["Ubuntu-Light", "egui-icons"]`; with `monochrome_emoji_fonts` it is
@@ -504,10 +504,10 @@ wrong and would force an unintended fallback reorder.
 Concrete fix:
 
 - Keep eframe's `default_fonts` feature in both app manifests.
-- Make `wordcraft-ui-egui` test features explicit with `egui` dev-dependency features
+- Make `docufy-ui-egui` test features explicit with `egui` dev-dependency features
   `default_fonts` and `monochrome_emoji_fonts`; these are egui features, not kittest features.
   Do not rely on kittest's private dev-dependencies: without this explicit declaration the
-  test root is font-empty apart from WordCraft's own assets. Do not enable
+  test root is font-empty apart from Docufy's own assets. Do not enable
   `monochrome_emoji_fonts` in production just to make the test order match.
 - Add a font coverage test that asserts the exact prefix/position for the feature set under
   test: `Inter` at 0, `Ubuntu-Light` and `egui-icons` in the default fallback block,
@@ -530,7 +530,7 @@ inputs after `Harness::run`, so S1 cannot leave `cargo xtask ci` green without t
 ### 4.8 kittest 0.37 stricter defaults
 
 `egui_kittest` 0.37 fails tests when an input widget has no accessible name and panics on a glyph
-no installed font can draw. WordCraft has many custom-drawn controls and many `TextEdit`s whose
+no installed font can draw. Docufy has many custom-drawn controls and many `TextEdit`s whose
 adjacent labels are not attached. The migration must not disable these checks globally.
 
 - First run the UI suite with defaults; enumerate `Harness::unnamed_widgets()`.
@@ -562,7 +562,7 @@ print settings schema unchanged.
 
 ### 4.10 Text: remove double bidi and handle byte IME replacement
 
-This is the highest-risk app-specific change. WordCraft manually reorders right-to-left text for
+This is the highest-risk app-specific change. Docufy manually reorders right-to-left text for
 egui 0.36:
 
 - `crates/ui-egui/src/canvas.rs:2132-2185` `has_rtl`/`bidi_display`/`visual_row`, used by
@@ -571,7 +571,7 @@ egui 0.36:
   text itself, then right-aligns RTL rows.
 - `crates/ui-egui/src/keys.rs:352-390` handles `ImeEvent::Preedit/Commit/DeleteSurrounding`
   (char counts) and `keys.rs:626-680` implements `delete_surrounding` and `type_text`.
-- `apps/wordcraft/src/clipboard.rs` and `crates/ui-egui/src/a11y.rs` use logical text at the
+- `apps/docufy/src/clipboard.rs` and `crates/ui-egui/src/a11y.rs` use logical text at the
   OS/accessibility boundary; they must stay logical.
 
 With the fork's E5/E12/E16, egui shapes RTL runs and places rows in visual order. Keeping
@@ -621,7 +621,7 @@ IME byte replacement:
 never calls `WindowExtWayland::set_ime_surrounding_text`, and `egui::IMEOutput` has no logical
 text (`data/output.rs:100-114`). E21's incoming delete/commit is not full surrounding-text
 support. The complete contract is owned by `egui` plan §6 E21b and winit plan §5.2.3/§5.2.2;
-WordCraft depends on it and does not restate a weaker subset. It provides:
+Docufy depends on it and does not restate a weaker subset. It provides:
 an owner/context generation present for both Available and Unavailable; a valid empty document
 as Available, explicitly sent as `set_surrounding_text("", 0, 0)` plus commit, distinct from
 Unavailable; a bounded transient payload (logical committed text, UTF-8 byte cursor/anchor,
@@ -632,7 +632,7 @@ including authoritative `None`, as the only published value; and current-epoch `
 mismatch applying incoming edits once while deferring outgoing state until a matching serial,
 with obsolete epochs invalidated.
 
-Both WordCraft canvas producers (`crates/ui-egui/src/canvas.rs:1556-1561` math/equation caret
+Both Docufy canvas producers (`crates/ui-egui/src/canvas.rs:1556-1561` math/equation caret
 and `:1633-1638` text caret) need real model adapters, not `None`: derive the bounded logical
 paragraph/equation excerpt and byte cursor/anchor from `session.sel`/the equation editor,
 convert scalar/grapheme positions deliberately, exclude `ime_preedit`/`ime_preedit_range`,
@@ -668,11 +668,11 @@ grapheme/backspace rules remain the source of truth for document editing.
 
 ### 4.12 GPU, surface and texture behavior
 
-WordCraft uses wgpu 30 on native and WebGPU/WebGL2 on web; `graphics.rs` configures Windows
+Docufy uses wgpu 30 on native and WebGPU/WebGL2 on web; `graphics.rs` configures Windows
 DX12/FXC and the Intel-Mac indirect-validation skip. wgpu and winit versions do not change, so
 those APIs should compile; revalidate anyway under the new eframe/egui-wgpu:
 
-- `apps/wordcraft/src/graphics.rs:26-120` still reaches `WgpuSetup::CreateNew` and
+- `apps/docufy/src/graphics.rs:26-120` still reaches `WgpuSetup::CreateNew` and
   `InstanceDescriptor`; confirm with `cargo check` on Windows.
 - E2/E3 surface fit fixes should remove a class of large-window configure errors. Add a window
   size/DPI test near the surface limit if hardware permits; otherwise record the unresolved
@@ -686,7 +686,7 @@ those APIs should compile; revalidate anyway under the new eframe/egui-wgpu:
 
 ### 4.13 Clipboard and PRIMARY
 
-The app's clipboard is host-owned (`apps/wordcraft/src/clipboard.rs`, `system_clipboard.rs`) and
+The app's clipboard is host-owned (`apps/docufy/src/clipboard.rs`, `system_clipboard.rs`) and
 supports text, HTML, RTF, MathML, pictures and format names. It uses `wl-clipboard-rs`
 `ClipboardType::Regular` only; there is no application PRIMARY read/write, and middle-click on
 the canvas is autoscroll, not paste. S1 enables native `eframe/clipboard` to preserve the
@@ -703,7 +703,7 @@ ownership. Do not route `Event::PasteImage` into a new app-level paste path. Ver
   then copy back to the other process; an in-process fallback must fail this regression;
 - no double clipboard owner or last-writer race on X11/Wayland when both egui and the app write;
 - macOS/Windows native pasteboard formats (HTML, MathML, RTF) unchanged;
-- browser paste picture path in `apps/wordcraft-web/src/web.rs:160-220` still receives events;
+- browser paste picture path in `apps/docufy-web/src/web.rs:160-220` still receives events;
 - a regression that middle-click on the canvas starts autoscroll and never pastes PRIMARY.
 
 ## 5. Lifecycle, root `Ui`, hidden windows and repeated passes
@@ -722,7 +722,7 @@ state and leaves events/time/layout from the previous UI pass. However a pending
 actions_requested.any(ActionRequested::wants_paint)`), so `ViewportInfo::visible()` is not a
 phase indicator. After a normally completed `run_ui`, `current_pass_index()` is zero
 (`end_pass` takes the output); do not use a stale nonzero index as evidence of hidden work.
-This is the exact contract the WordCraft code must be audited against.
+This is the exact contract the Docufy code must be audited against.
 
 ### 5.2 `logic` is currently mostly idempotent; fix the exceptions
 
@@ -734,7 +734,7 @@ because they `take`/`recv`. The audit must prove, not assume:
 - **Dropped files are stale in hidden/forced logic passes.** `lib.rs:2208-2230` reads
   `ctx.input(|i| i.raw.dropped_files.clone())` without taking. A hidden `run_logic` frame or a
   forced hidden full pass can see the last shown frame's drops and open/insert them again.
-  The browser shell already takes the vector in `apps/wordcraft-web/src/web.rs:119`; native
+  The browser shell already takes the vector in `apps/docufy-web/src/web.rs:119`; native
   `WordApp::logic` still clones it. Change `WordApp::logic` to
   `ctx.input_mut(|i| std::mem::take(&mut i.raw.dropped_files))` and handle the drained vector.
   Apply the same rule to any future input-derived queue read in `logic`; never poll a
@@ -835,7 +835,7 @@ The engine and command registry are not migrated. Tests must still prove the UI 
 
 ### 6.2 UI geometry and screenshots
 
-Fixtures: `wordcraft_engine::sample::sample_document()`, a large synthetic table
+Fixtures: `docufy_engine::sample::sample_document()`, a large synthetic table
 (`tests::perf::big_table_doc`), and a durable evidence `.docx` with Latin/Arabic/Hebrew/CJK/
 Vietnamese/emoji/comments/headers. Fixtures and fonts are licensed and pinned: use
 `CRAFT_FONTS_DIR` at `b076417b5880bd4154bd22f00695b1d28c6bea83` for the app's CI text faces,
@@ -955,28 +955,28 @@ Proposed `task.py run` command bodies (the parent supplies task/job/evidence):
 - `cargo check --workspace --all-targets --locked`
 - `cargo clippy --workspace --all-targets --locked -- -D warnings`
 - `cargo test --workspace --locked`
-- `cargo test -p wordcraft-ui-egui --locked`
-- `cargo test -p wordcraft-engine tests::typing --locked`
-- `cargo test -p wordcraft-ui-egui --release big_table_scroll_bench -- --ignored --nocapture`
-- `cargo run --release -p wordcraft-ui-egui --example perf_probe -- <fixture.docx>`
-- `cargo run --release -p wordcraft-ui-egui --example ui_shot -- <script.jsonl>`
-- `cargo check -p wordcraft-web --target wasm32-unknown-unknown --locked`
-- `cargo build --release -p wordcraft --locked`
+- `cargo test -p docufy-ui-egui --locked`
+- `cargo test -p docufy-engine tests::typing --locked`
+- `cargo test -p docufy-ui-egui --release big_table_scroll_bench -- --ignored --nocapture`
+- `cargo run --release -p docufy-ui-egui --example perf_probe -- <fixture.docx>`
+- `cargo run --release -p docufy-ui-egui --example ui_shot -- <script.jsonl>`
+- `cargo check -p docufy-web --target wasm32-unknown-unknown --locked`
+- `cargo build --release -p docufy --locked`
 - `cargo xtask ci` (fmt, clippy, tests, assets, layers, wasm)
 - `cargo xtask parity`, `cargo xtask assets`, `cargo xtask layers`
 - `cargo xtask deps` (proposed new gate) and its negative tests
 
-`cargo xtask wasm` does not include `apps/wordcraft-web`; the separate
-`printing.yml` browser check (`cargo check -p wordcraft-web --target wasm32-unknown-unknown
+`cargo xtask wasm` does not include `apps/docufy-web`; the separate
+`printing.yml` browser check (`cargo check -p docufy-web --target wasm32-unknown-unknown
 --locked`) is mandatory. A real browser run uses `packaging/web/package.sh` (trunk) or a local
 `dist/web` server, with WebGPU and `?webgl` fallback, and the control/inbox workflows.
 
 ### 7.2 Native Linux
 
 Run the release app with `--sample --control 7981` and a temporary settings dir
-(`WORDCRAFT_NO_PREFS` for agent runs where appropriate). Use `ui.screenshot`, `ui.inspect`,
+(`DOCUFY_NO_PREFS` for agent runs where appropriate). Use `ui.screenshot`, `ui.inspect`,
 `ui.click`, `ui.key`, `ui.text`, `ui.wheel`, save/open. Observe X11 and a real Wayland
-compositor (record compositor identity); use `WORDCRAFT_WAYLAND=1` where needed. Check regular
+compositor (record compositor identity); use `DOCUFY_WAYLAND=1` where needed. Check regular
 clipboard, middle-click autoscroll (no PRIMARY paste), file drop, native IME and
 DeleteSurroundingBytes/outgoing surrounding text, real Russian/Arabic/Hebrew keyboard layouts,
 mixed DPI, window resize, a forced hidden screenshot pass, screenshot timeout/cancel and page
@@ -985,7 +985,7 @@ geometry. `ui.key`/kittest injection is not a substitute for OS layout or IME ev
 ### 7.3 Windows
 
 Use a uniquely named `craft-windows` clone, unused SSH/VNC ports, its own source checkout and
-target. Build with `cargo build --release -p wordcraft --locked` (or the repo's documented
+target. Build with `cargo build --release -p docufy --locked` (or the repo's documented
 build/test commands), launch through `Launch-CraftDesktop.ps1`/`guest-exec.py`, and perform a
 visible typed/edited/saved/reopened workflow plus print settings. Observe DX12/FXC startup and
 the screenshot path. Do not claim macOS/Metal or physical audio from Windows software rendering.
@@ -1010,7 +1010,7 @@ alone is not browser acceptance.
 
 ## 8. Performance protocol
 
-Use the shared protocol in `craft-libs/docs/egui-037-suite-rollout.md` and make WordCraft-specific
+Use the shared protocol in `craft-libs/docs/egui-037-suite-rollout.md` and make Docufy-specific
 measurements. Floors: at least 10 warmups and 30 timed steady-operation iterations, at least 20
 fresh processes for startup, and at least 1,000 frames for any frame distribution with p99.
 Licensed pinned fixtures apply; an app may tighten floors, never loosen them.
@@ -1107,7 +1107,7 @@ S0/P0 baseline harness + instrumentation (no production behavior)
   shared 4-request/128 MiB/256 MiB admission, geometry/DPI/zoom epoch cancel/retry,
   `RequestPaintWhileHidden` for queued hidden requests, timeout/cancel/late-result tests, forced
   hidden pass, visual review and explicit role assertions. Adopt `craft_ui::capture` only after
-  CL-2F freezes the API in S1; S2 expands stress tests. WordCraft needs CL-1 and CL-2F, while only the DesignCraft/GridCraft
+  CL-2F freezes the API in S1; S2 expands stress tests. Docufy needs CL-1 and CL-2F, while only the DesignCraft/GridCraft
   pilots use the reviewed CL-2 provisional revision. If CL-2F is not available, wait; do not
   publish a provisional adapter.
 - **S3:** extend native grapheme/IME/bidi coverage and optional language policy on Context.
@@ -1141,7 +1141,7 @@ S3 alone may be reverted only because it contains later policy/tests, not requir
 1. **craft-libs PR 199 is open/conflicting at inspection.** Its head `b68de8c` and historical
    `ec8840a` tree must not be merged; port only the `8614e4a` API hunks and `1764bca` README
    changes onto current `4919088`, preserving intervening fixes. The reviewed and published
-   CL-1 `craft-ui`/`craft-print` revision is a prerequisite for the WordCraft pin and must land
+   CL-1 `craft-ui`/`craft-print` revision is a prerequisite for the Docufy pin and must land
    in the same atomic dependency stage (section 9).
 2. **Fork publication/reachability.** Final pins must be the completed P8 `storytold/egui`
    and completed `storytold/winit` revisions: approved, reachable and immutable. Their SHAs do
@@ -1150,16 +1150,16 @@ S3 alone may be reverted only because it contains later policy/tests, not requir
    stage in the release manifest.
 3. **P7c selection/UI-regression fixes.** P7c owns the selected #8763 and #8748 fixes;
    #8764 is an open, unmerged proposal input. The approved P8 revision must contain the central
-   fixes and their pointer/keyboard regressions; a WordCraft workaround is not an accepted
+   fixes and their pointer/keyboard regressions; a Docufy workaround is not an accepted
    substitute.
 4. **E21b/P7b and E4/P2b+W15P prerequisites.** The approved revisions must satisfy the complete
    shared contracts in `egui` plan §6 E21b/E4 and winit plan §5.2/§5.3, including the W27
    lifecycle/serial rules, the W15P pointer-or-keyboard synchronous claim and bounded async
-   transfer. WordCraft's two canvas producers need real model/preedit/UTF-8 adapters.
+   transfer. Docufy's two canvas producers need real model/preedit/UTF-8 adapters.
 5. **Capacity and platform evidence.** Host build reservations, a Windows clone, a Wayland
    compositor, a browser with WebGPU/WebGL2, and macOS hardware are separate gates. Missing
    evidence remains an explicit blocker, not a pass.
-6. **Upstream #8731/#8736 measurements** are not yet reproduced on WordCraft. They may require a
+6. **Upstream #8731/#8736 measurements** are not yet reproduced on Docufy. They may require a
    reviewed fork patch or a documented tradeoff; do not accept a clamp-only texture change.
 7. **Strict names/glyph sweep.** The exact list of unnamed inputs is unknown until the suite
    runs. Fixing names and glyph coverage is part of S1, required rather than disabling the
@@ -1175,12 +1175,12 @@ S3 alone may be reverted only because it contains later policy/tests, not requir
     wakeups and RSS are not measurable with the current tools and must be added before
     production edits. Harness CPU time is not presented-frame latency.
 11. **Font/emoji policy.** The actual family order is `Inter, Ubuntu-Light, egui-icons,
-    SourceSans, ...` (with `monochrome_emoji_fonts` explicitly enabled on WordCraft's test
+    SourceSans, ...` (with `monochrome_emoji_fonts` explicitly enabled on Docufy's test
     root, not inherited from kittest), not the earlier proposed order. The UI has no color
     emoji; document emoji use a pinned test fixture or a recorded native platform result.
 12. **Craft-libs #198** remains a proposal, not a dependency. Do not silently include its
     locale/formatting scope or font assets.
-13. **`craft-print`/`craft-ui` #192** changes public print fields; confirm no other WordCraft
+13. **`craft-print`/`craft-ui` #192** changes public print fields; confirm no other Docufy
     caller constructs these structs without the new field.
 14. **Panel ids and any persisted egui state.** The app does not enable egui persistence now;
     if that changes, old panel ids will not load. Record this as an explicit non-goal or add a
@@ -1227,7 +1227,7 @@ Immutable or primary sources used for the API and behavior statements above:
 - Pinned font fixtures (craft-fonts `2481a8a...`, Noto Color Emoji v2.047):
   <https://github.com/storytold/craft-fonts/blob/2481a8a324b986a45954e90045ed1f8f2efaaf3c/fonts/manifest.txt>
   and <https://github.com/googlefonts/noto-emoji/blob/22e564626297b4df0a40570ad81d6c05cc7c38bd/fonts/NotoColorEmoji.ttf>.
-- Upstream reports used as risk hypotheses, not reproduced WordCraft results:
+- Upstream reports used as risk hypotheses, not reproduced Docufy results:
   <https://github.com/emilk/egui/issues/8731>,
   <https://github.com/emilk/egui/issues/8736>,
   <https://github.com/emilk/egui/issues/8763>,
@@ -1237,14 +1237,14 @@ Immutable or primary sources used for the API and behavior statements above:
   <https://github.com/emilk/egui/pull/8657>,
   <https://github.com/emilk/egui/pull/8577>.
 - Historical compiler diagnostics used only as clues:
-  `/home/codex/work/ssd2/task-evidence/egui037-audit-20261022/fork/wordcraft.errors`.
+  `/home/codex/work/ssd2/task-evidence/egui037-audit-20261022/fork/docufy.errors`.
 
 ## 12. Revision history
 
 - 2026-10-23: initial plan. Inventory and source anchors from the assigned checkout; dependency
   target, API refactors, lifecycle/root-`Ui` audit, behavior/evidence matrix, performance
   protocol, staged PR DAG, rollback and blocking unknowns. No tests/builds run; no publication.
-- 2026-10-23: revision 2 after independent review `plan-reviews/wordcraft-v1.md`. Corrected the
+- 2026-10-23: revision 2 after independent review `plan-reviews/docufy-v1.md`. Corrected the
   aiongg/reachability identity and PR 199 stale-tree rule; added E21b/P7b and W15P/E4/P2b as
   fork prerequisites; replaced the screenshot channel with request-owned weak slots, count/byte
   admission, in-flight budget, resize revalidation and post-unlock wakeup; documented the
@@ -1253,7 +1253,7 @@ Immutable or primary sources used for the API and behavior statements above:
   emoji source; added `scroll.rs:440`; added exact Id counts, feature checks, P0 instrumentation,
   native-vs-kittest boundaries, explicit role assertions, middle-click autoscroll preservation,
   #8763/#8764 selection fix and executable rollback rehearsal. No tests/builds run.
-- 2026-10-23: revision 3 after independent review `plan-reviews/wordcraft-v2.md`. Made S1 one
+- 2026-10-23: revision 3 after independent review `plan-reviews/docufy-v2.md`. Made S1 one
   atomic dependency stage including craft-libs CL-1, replacing the S1/S2 cycle; made P8 and the
   completed winit the only production pins; corrected the E21b/P2b/W15P contracts to the full
   shared plans; adopted the 4/128 MiB/256 MiB capture limits and geometry-epoch rule; added
@@ -1397,7 +1397,7 @@ two ignored and one filtered. The separate i18n-report stage runs that filtered 
 one passed, 4,110 filtered. Those filtered counts are selections over the same test binaries,
 not additional unique tests. The doctest stage selected zero doctests. Earlier narrower runs
 are not added to these totals. Full logs, source hashes and review bindings are retained in the
-local task evidence under `final-landing/wordcraft-local-commit`.
+local task evidence under `final-landing/docufy-local-commit`.
 
 A separate normal-dependency production font probe passed for the visible table-style `⊞`
 marker without external/system fonts or dev-dependency font unification. That probe preceded
@@ -1413,7 +1413,7 @@ current immutable pins and bounded remaining acceptance gates; preserve earlier 
 ### Bundled-font notice completion — pending package verification
 
 Canonical egui0.37 default_fonts embeds `EGUI_ICONS` (the small emoji-icon-font subset), and
-monochrome_emoji_fonts embeds its parent emoji-icon-font face. WordCraft starts from
+monochrome_emoji_fonts embeds its parent emoji-icon-font face. Docufy starts from
 `FontDefinitions::default()` in `theme.rs`. NOTICE now carries the exact upstream MIT text,
 including Copyright (c) 2014 John Slegers, and ATTRIBUTION identifies both dependency assets.
 The PDF notice names the actual pinned 17744430 revision. Shared Linux/web/CLI staging, macOS app

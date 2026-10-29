@@ -407,7 +407,7 @@ fn key(key: egui::Key) -> egui::Event {
 /// run by a script and a change of zoom don't.
 #[test]
 fn the_canvas_caret_glides_after_a_key() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": "Some text here"})).unwrap();
     // Animation effects off: the caret follows that switch.
     a.run("ui.animations", json!({"value": "off"})).unwrap();

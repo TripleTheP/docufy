@@ -274,8 +274,8 @@ fn plain_word(w: &str) -> bool {
 pub struct AutoCap {
     /// Undo steps pushed (ever) right after the change (`u64::MAX` until the caller has pushed its step).
     pub(crate) depth: u64,
-    pub(super) story: wordcraft_doc::StoryRef,
-    pub(super) path: wordcraft_doc::Path,
+    pub(super) story: docufy_doc::StoryRef,
+    pub(super) path: docufy_doc::Path,
     /// Byte offset of the word in its paragraph.
     pub(super) start: usize,
     /// The token before a sentence capital's word, lowercase ("there."); empty when none or when

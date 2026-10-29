@@ -13,7 +13,7 @@ use image::{DynamicImage, ImageDecoder, ImageFormat};
 /// Why a picture isn't decoded.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Refusal {
-    /// Not a raster picture WordCraft decodes (a metafile, SVG or other bytes).
+    /// Not a raster picture Docufy decodes (a metafile, SVG or other bytes).
     NotAPicture,
     /// A kind of picture that is never decoded, because its decoder can't be held to a budget.
     Unsupported(&'static str),

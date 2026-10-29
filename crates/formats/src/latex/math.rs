@@ -1,7 +1,7 @@
 use super::limits::MAX_NEST;
 
 // ---------------------------------------------------------------------------------------------
-// Equations: WordCraft keeps them in the linear format (`x=(-b±√(b^2-4ac))/2a`).
+// Equations: Docufy keeps them in the linear format (`x=(-b±√(b^2-4ac))/2a`).
 
 /// Symbols with a LaTeX command: (character, command without the backslash).
 const MATH_SYMBOLS: &[(char, &str)] = &[

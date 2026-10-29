@@ -11,11 +11,11 @@ pub(super) fn hf_part(s: &mut Session, header: bool) -> u32 {
     let layout = s.layout();
     let page = if s.sel.focus.story == StoryRef::Body { layout.page_of(&s.sel.focus) } else { Some(s.page_hint) };
     let slot = page.and_then(|pg| layout.pages.get(pg)).map(|pg| pg.hf_slot).unwrap_or_default();
-    fn slot_of(slot: wordcraft_layout::HfSlot, set: &mut wordcraft_doc::section::HeaderSet) -> &mut Option<u32> {
+    fn slot_of(slot: docufy_layout::HfSlot, set: &mut docufy_doc::section::HeaderSet) -> &mut Option<u32> {
         match slot {
-            wordcraft_layout::HfSlot::First => &mut set.first,
-            wordcraft_layout::HfSlot::Even => &mut set.even,
-            wordcraft_layout::HfSlot::Default => &mut set.default,
+            docufy_layout::HfSlot::First => &mut set.first,
+            docufy_layout::HfSlot::Even => &mut set.even,
+            docufy_layout::HfSlot::Default => &mut set.default,
         }
     }
     let mut sect = s.doc.section_mut(block).clone();
@@ -31,7 +31,7 @@ pub(super) fn hf_part(s: &mut Session, header: bool) -> u32 {
 }
 
 /// Three independently editable cells spanning the section's text width.
-fn three_column_hf(s: &Session, style: &str) -> wordcraft_doc::Blocks {
+fn three_column_hf(s: &Session, style: &str) -> docufy_doc::Blocks {
     let block = s.sel.focus.path.0.first().copied().unwrap_or(0) as usize;
     // The section `section_mut` would pick, read without making anything unique.
     let sections = s.doc.sections();
@@ -169,9 +169,9 @@ fn page_hf_part(s: &mut Session, page: usize, header: bool) -> Result<u32, CmdEr
     let sect = s.doc.section_mut(block);
     let set = if header { &mut sect.headers } else { &mut sect.footers };
     match slot {
-        wordcraft_layout::HfSlot::First => set.first = Some(id),
-        wordcraft_layout::HfSlot::Even => set.even = Some(id),
-        wordcraft_layout::HfSlot::Default => set.default = Some(id),
+        docufy_layout::HfSlot::First => set.first = Some(id),
+        docufy_layout::HfSlot::Even => set.even = Some(id),
+        docufy_layout::HfSlot::Default => set.default = Some(id),
     }
     s.new_header_parts.push(id);
     Ok(id)
@@ -196,7 +196,7 @@ pub(super) fn new_empty_headers(s: &Session) -> Vec<u32> {
 
 /// The document as saved: without the headers/footers just made and still empty, so an unwritten
 /// one is never saved (`None` when there are none, to save the document as it is).
-pub(crate) fn saved_copy(s: &Session) -> Option<wordcraft_doc::Document> {
+pub(crate) fn saved_copy(s: &Session) -> Option<docufy_doc::Document> {
     let ids = new_empty_headers(s);
     if ids.is_empty() {
         return None;
@@ -207,11 +207,11 @@ pub(crate) fn saved_copy(s: &Session) -> Option<wordcraft_doc::Document> {
 
 /// Takes headers/footers `ids` out of the document and every section that refers to them;
 /// whether anything was taken away.
-pub(super) fn strip_headers(doc: &mut wordcraft_doc::Document, ids: &[u32]) -> bool {
+pub(super) fn strip_headers(doc: &mut docufy_doc::Document, ids: &[u32]) -> bool {
     if ids.is_empty() {
         return false;
     }
-    let clear = |set: &mut wordcraft_doc::section::HeaderSet| {
+    let clear = |set: &mut docufy_doc::section::HeaderSet| {
         for slot in [&mut set.default, &mut set.first, &mut set.even] {
             if slot.is_some_and(|id| ids.contains(&id)) {
                 *slot = None;

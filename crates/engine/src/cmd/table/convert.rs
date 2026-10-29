@@ -57,7 +57,7 @@ pub(super) fn to_text(s: &mut Session, v: &Value) -> CmdResult {
         Some("paragraph") => None,
         Some("other") => match p::str(v, "char").and_then(|c| c.chars().next()) {
             // U+FFFC marks an object in the text, so it cannot set the cells apart.
-            Some(c) if c != '\n' && c != '\r' && c != wordcraft_doc::para::OBJ => Some(c),
+            Some(c) if c != '\n' && c != '\r' && c != docufy_doc::para::OBJ => Some(c),
             _ => return Err(CmdError::Params("`char` (the separating character) is required with `other`".into())),
         },
         Some(x) => return Err(CmdError::Params(format!("unknown separator `{x}`"))),
@@ -111,7 +111,7 @@ pub(super) fn to_text(s: &mut Session, v: &Value) -> CmdResult {
             for (k, mut control) in open.into_iter().enumerate() {
                 control.block = true;
                 let start = InlineObject::ControlStart { control: Box::new(control) };
-                p.insert_object(k * wordcraft_doc::para::OBJ.len_utf8(), start, &Default::default())?;
+                p.insert_object(k * docufy_doc::para::OBJ.len_utf8(), start, &Default::default())?;
             }
         }
         Some(Block::Table(x)) => {
@@ -141,7 +141,7 @@ pub(super) fn to_text(s: &mut Session, v: &Value) -> CmdResult {
 
 /// One row of Convert to Text as blocks: a paragraph per row (and per further paragraph in a
 /// cell) with the cells set apart by `sep`, or each cell's blocks as they are without one.
-fn row_to_text(row: wordcraft_doc::Row, sep: Option<char>, out: &mut Vec<Block>) {
+fn row_to_text(row: docufy_doc::Row, sep: Option<char>, out: &mut Vec<Block>) {
     let Some(sep) = sep else {
         for b in row.cells.into_iter().flat_map(|c| c.blocks) {
             out.push(match std::sync::Arc::unwrap_or_clone(b) {
@@ -207,14 +207,7 @@ pub(super) fn formula(s: &mut Session, v: &Value) -> CmdResult {
     let at = s.sel.focus.clone();
     let end = s.doc.insert_object(
         &at,
-        wordcraft_doc::InlineObject::Field {
-            instr: instr.clone(),
-            result: text.clone(),
-            locked: false,
-            dirty: false,
-            code: false,
-            form: String::new(),
-        },
+        docufy_doc::InlineObject::Field { instr: instr.clone(), result: text.clone(), locked: false, dirty: false, code: false, form: String::new() },
         &props,
     )?;
     s.sel = Selection::caret(end);
@@ -274,14 +267,14 @@ pub fn text_table_lines(s: &Session) -> Result<Vec<String>, CmdError> {
 /// paragraph with more fields than that carries on over the next rows.
 pub fn text_table_cells(lines: &[String], sep: Option<char>, columns: Option<usize>) -> (Vec<Vec<&str>>, usize) {
     let Some(sep) = sep else {
-        let cols = columns.unwrap_or(1).clamp(1, wordcraft_doc::table::MAX_COLS);
+        let cols = columns.unwrap_or(1).clamp(1, docufy_doc::table::MAX_COLS);
         return (lines.chunks(cols).map(|ch| ch.iter().map(String::as_str).collect()).collect(), cols);
     };
     let cols = columns.unwrap_or_else(|| lines.iter().map(|l| l.split(sep).count()).max().unwrap_or(1)).max(1);
     let mut rows = Vec::new();
     for l in lines {
         let fields: Vec<&str> = l.split(sep).collect();
-        rows.extend(fields.chunks(cols.min(wordcraft_doc::table::MAX_COLS)).map(<[&str]>::to_vec));
+        rows.extend(fields.chunks(cols.min(docufy_doc::table::MAX_COLS)).map(<[&str]>::to_vec));
     }
     (rows, cols)
 }
@@ -291,8 +284,8 @@ pub fn text_table_cells(lines: &[String], sep: Option<char>, columns: Option<usi
 /// cut out of it, trimmed of surrounding white space, so its formatting, objects (pictures,
 /// fields, notes…) and tracked changes go with it.
 fn text_table_paras(paras: Vec<Paragraph>, sep: Option<char>, columns: Option<usize>) -> Result<(Vec<Vec<Paragraph>>, usize), CmdError> {
-    use wordcraft_doc::para::OBJ;
-    use wordcraft_doc::table::MAX_COLS;
+    use docufy_doc::para::OBJ;
+    use docufy_doc::table::MAX_COLS;
     // Each paragraph's fields as byte ranges; an object is never a separator.
     let fields: Vec<Vec<std::ops::Range<usize>>> = paras
         .iter()
@@ -376,18 +369,18 @@ pub(super) fn from_text(s: &mut Session, v: &Value) -> CmdResult {
             _ => return Err(CmdError::Params("`width` must be between 0 and 1584 pt (22 in)".into())),
         },
     };
-    let columns = p::u64(v, "columns").map(|n| n.clamp(1, wordcraft_doc::table::MAX_COLS as u64) as usize);
+    let columns = p::u64(v, "columns").map(|n| n.clamp(1, docufy_doc::table::MAX_COLS as u64) as usize);
     let (a, b) = s.sel.ordered();
     // Checks the selection: only paragraphs, a table between them is refused.
     text_table_lines(s)?;
     let paras: Vec<Paragraph> = (a.path.last()..=b.path.last()).filter_map(|i| s.doc.para(a.story, &a.path.with_last(i)).cloned()).collect();
     let (cells, cols) = text_table_paras(paras, sep, columns)?;
     // A table has at most 63 columns; a longer row would lose its last fields.
-    if cols > wordcraft_doc::table::MAX_COLS {
+    if cols > docufy_doc::table::MAX_COLS {
         return Err(CmdError::Failed("a table can have at most 63 columns".into()));
     }
-    if cells.len() > wordcraft_doc::table::MAX_ROWS {
-        return Err(CmdError::Failed(format!("a table can have at most {} rows", wordcraft_doc::table::MAX_ROWS)));
+    if cells.len() > docufy_doc::table::MAX_ROWS {
+        return Err(CmdError::Failed(format!("a table can have at most {} rows", docufy_doc::table::MAX_ROWS)));
     }
     let width = crate::cmd::page::sect(s).text_width();
     let mut t = Table::new(cells.len().max(1), cols, width);

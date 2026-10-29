@@ -38,7 +38,7 @@ pub fn selected_cells(s: &Session) -> Vec<(usize, usize)> {
     v
 }
 
-pub(super) fn with_cells(s: &mut Session, f: impl Fn(&mut wordcraft_doc::Cell)) -> CmdResult {
+pub(super) fn with_cells(s: &mut Session, f: impl Fn(&mut docufy_doc::Cell)) -> CmdResult {
     let (tp, _, _) = cell(s)?;
     let cells = selected_cells(s);
     let t = s.doc.table_mut(s.sel.focus.story, &tp)?;
@@ -51,19 +51,19 @@ pub(super) fn with_cells(s: &mut Session, f: impl Fn(&mut wordcraft_doc::Cell)) 
     sel_result(s)
 }
 
-pub(crate) fn cell_text(c: &wordcraft_doc::Cell) -> String {
+pub(crate) fn cell_text(c: &docufy_doc::Cell) -> String {
     c.blocks.iter().filter_map(|b| b.as_para().map(|p| p.plain_text())).collect::<Vec<_>>().join("\n")
 }
 
 /// The language of a cell's text: that of its first paragraph with text.
-pub(super) fn cell_lang(doc: &wordcraft_doc::Document, c: &wordcraft_doc::Cell) -> Option<String> {
+pub(super) fn cell_lang(doc: &docufy_doc::Document, c: &docufy_doc::Cell) -> Option<String> {
     c.blocks.iter().filter_map(|b| b.as_para()).find(|p| !p.plain_text().trim().is_empty()).and_then(|p| crate::cmd::para_lang(doc, p))
 }
 
 /// The grid columns cell `c` of row `r` covers (first, last).
 pub(in crate::cmd) fn grid_cols(t: &Table, r: usize, c: usize) -> (usize, usize) {
     let g = t.grid_col(r, c);
-    let span = t.rows.get(r).and_then(|row| row.cells.get(c)).map_or(1, wordcraft_doc::Cell::span);
+    let span = t.rows.get(r).and_then(|row| row.cells.get(c)).map_or(1, docufy_doc::Cell::span);
     (g, g + span - 1)
 }
 

@@ -6,10 +6,10 @@
 //! column border fits the column to its contents (`table.fitColumn`). The geometry decisions
 //! are the engine's (`cmd::table_resize`).
 
+use docufy_engine::cmd::table_resize::{self, Edge, Plan, ResizeTarget, Share};
+use docufy_layout::DocLayout;
 use egui::{Pos2, Rect, Stroke, Ui, pos2};
 use serde_json::json;
-use wordcraft_engine::cmd::table_resize::{self, Edge, Plan, ResizeTarget, Share};
-use wordcraft_layout::DocLayout;
 
 use crate::WordApp;
 use crate::theme::Tokens;
@@ -293,7 +293,7 @@ pub(crate) fn caret_handles(
     painter: &egui::Painter,
     layout: &DocLayout,
     rects: &[Rect],
-) -> Vec<(usize, Option<wordcraft_geom::Rect>, Option<wordcraft_geom::Rect>)> {
+) -> Vec<(usize, Option<docufy_geom::Rect>, Option<docufy_geom::Rect>)> {
     let focus = &app.session.sel.focus;
     let Some((tp, _, _)) = focus.path.cell() else { return Vec::new() };
     let clip = painter.clip_rect();
@@ -302,7 +302,7 @@ pub(crate) fn caret_handles(
         .enumerate()
         .filter(|(_, r)| r.intersects(clip))
         .map(|(page, _)| {
-            let (m, z) = wordcraft_engine::cmd::table_mouse::caret_handles(layout, &app.session.doc, focus.story, &tp, page);
+            let (m, z) = docufy_engine::cmd::table_mouse::caret_handles(layout, &app.session.doc, focus.story, &tp, page);
             (page, m, z)
         })
         .filter(|(_, m, z)| m.is_some() || z.is_some())

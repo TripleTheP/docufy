@@ -1,7 +1,7 @@
 //! Caret movement and selection.
 
+use docufy_doc::{Pos, StoryRef};
 use serde_json::Value;
-use wordcraft_doc::{Pos, StoryRef};
 
 use super::{parse_pos, sel_result};
 use crate::{CmdError, CmdResult, CommandSpec, Selection, Session, p};
@@ -101,7 +101,7 @@ fn rtl_para(s: &Session) -> bool {
 /// Is the caret's paragraph bidirectional (right to left, or with right-to-left text)? Arrow keys
 /// move visually there.
 fn bidi_para(s: &Session) -> bool {
-    s.doc.para_at(&s.sel.focus).is_some_and(|p| wordcraft_doc::bidi::has_rtl(&p.text) || s.doc.styles.resolve_para(&p.props).bidi)
+    s.doc.para_at(&s.sel.focus).is_some_and(|p| docufy_doc::bidi::has_rtl(&p.text) || s.doc.styles.resolve_para(&p.props).bidi)
 }
 
 /// Left/Right: with a selection and no Shift, collapse to its edge.
@@ -129,8 +129,8 @@ fn visual_lr(s: &mut Session, v: &Value, is_left: bool) -> CmdResult {
     let from = s.sel.focus.clone();
     let l = s.layout();
     let to = match l.visual_step(&from, is_left, s.page_hint) {
-        Some(wordcraft_layout::VisualStep::Moved(p)) => p,
-        Some(wordcraft_layout::VisualStep::Edge { start, stop, last_line, rtl }) => {
+        Some(docufy_layout::VisualStep::Moved(p)) => p,
+        Some(docufy_layout::VisualStep::Edge { start, stop, last_line, rtl }) => {
             let at = |off| Pos { off, ..from.clone() };
             if is_left != rtl {
                 match s.doc.para_at(&from) {
@@ -395,7 +395,7 @@ fn select_paragraph(s: &mut Session, v: &Value) -> CmdResult {
         && a.path.0.get(..n.saturating_sub(1)) == b.path.0.get(..n.saturating_sub(1))
         && let (Some(&row), Some(&cell)) = (a.path.0.get(n.saturating_sub(3)), a.path.0.get(n.saturating_sub(2)))
     {
-        let tp = wordcraft_doc::Path(tp.to_vec());
+        let tp = docufy_doc::Path(tp.to_vec());
         let (row, cell) = (row as usize, cell as usize);
         let last = s.doc.table(a.story, &tp).and_then(|t| t.rows.get(row)?.cells.get(cell)).map(|c| c.blocks.len().saturating_sub(1));
         let only = last.is_some_and(|l| a.path.0.last().is_some_and(|&i| i as usize == l));

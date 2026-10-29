@@ -27,7 +27,7 @@ pub(crate) struct Ctx<'a> {
     /// Automatic equation numbers so far.
     pub(crate) eq_count: u32,
     /// Bounds laying out text boxes inside text boxes, for the whole layout.
-    pub(crate) boxes: wordcraft_doc::BoxBudget,
+    pub(crate) boxes: docufy_doc::BoxBudget,
     /// Linked text boxes (Create Link).
     pub(crate) chains: textbox::Chains,
     /// The current section's document grid (body text only: none for headers and footers).
@@ -175,7 +175,7 @@ impl Ctx<'_> {
         }
         let mut p = Paragraph::with_text(
             &n.to_string(),
-            CharProps { size: Some(10.0), color: Some(wordcraft_doc::TextColor::Rgb(Rgb(0x60, 0x60, 0x60))), ..Default::default() },
+            CharProps { size: Some(10.0), color: Some(docufy_doc::TextColor::Rgb(Rgb(0x60, 0x60, 0x60))), ..Default::default() },
         );
         p.props.space_after = Some(0.0);
         p.props.space_before = Some(0.0);

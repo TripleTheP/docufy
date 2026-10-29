@@ -29,7 +29,7 @@ fn read_formula(xml: &[u8]) -> Option<(String, bool)> {
                 if stack.is_empty() && local(&q) != "math" {
                     return;
                 }
-                if stack.len() < wordcraft_doc::math::MAX_DEPTH {
+                if stack.len() < docufy_doc::math::MAX_DEPTH {
                     stack.push(El { name: q, attrs: a, children: Vec::new() });
                 } else {
                     over += 1;
@@ -570,7 +570,7 @@ impl Body<'_> {
                 let w = get(a, "table:style-name").and_then(|n| self.styles.column_width(n)).unwrap_or(0.0);
                 let n = get(a, "table:number-columns-repeated").and_then(|v| v.trim().parse::<usize>().ok()).unwrap_or(1).max(1);
                 if let Some(t) = self.tables.last_mut() {
-                    let room = wordcraft_doc::table::MAX_COLS.saturating_sub(t.widths.len());
+                    let room = docufy_doc::table::MAX_COLS.saturating_sub(t.widths.len());
                     t.widths.extend(std::iter::repeat_n(w, n.min(room)));
                 }
             }
@@ -928,7 +928,7 @@ impl Body<'_> {
             "table-row" => {
                 if let Some(t) = self.tables.last_mut() {
                     let r = std::mem::take(&mut t.row);
-                    if !r.is_empty() && t.rows.len() < wordcraft_doc::table::MAX_ROWS {
+                    if !r.is_empty() && t.rows.len() < docufy_doc::table::MAX_ROWS {
                         t.rows.push(r);
                     }
                 }

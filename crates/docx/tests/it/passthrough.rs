@@ -1,5 +1,5 @@
 //! What a save keeps from a Word file beyond the document model (settings: `settings_merge.rs`):
-//! package parts WordCraft doesn't write (carried verbatim),
+//! package parts Docufy doesn't write (carried verbatim),
 //! comment durable ids and UTC dates, localized default styles, latent styles, list identities
 //! and extended properties. Hand-written fixtures (from the spec), no files produced by Word.
 
@@ -61,8 +61,8 @@ fn package(body: &str, doc_rels: &[(&str, &str, &str)], root_rels: &[(&str, &str
     zip(&entries)
 }
 
-fn save(doc: &wordcraft_doc::Document) -> BTreeMap<String, Vec<u8>> {
-    unzip(&wordcraft_docx::write(doc).expect("write"))
+fn save(doc: &docufy_doc::Document) -> BTreeMap<String, Vec<u8>> {
+    unzip(&docufy_docx::write(doc).expect("write"))
 }
 
 const SETTINGS: &str = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -110,7 +110,7 @@ fn unmodelled_parts_are_carried_with_relationships_and_content_types() {
             ("word/webextensions/webextension1.xml", ext),
         ],
     );
-    let doc = wordcraft_docx::read(&bytes).unwrap();
+    let doc = docufy_docx::read(&bytes).unwrap();
     let files = save(&doc);
     let input = unzip(&bytes);
     for part in [
@@ -143,7 +143,7 @@ fn unmodelled_parts_are_carried_with_relationships_and_content_types() {
         assert!(entry.contains(ty), "{part}: {entry}");
     }
     // Saved again: the same parts, still once each (`unzip` rejects duplicates).
-    let again = save(&wordcraft_docx::read(&wordcraft_docx::write(&doc).unwrap()).unwrap());
+    let again = save(&docufy_docx::read(&docufy_docx::write(&doc).unwrap()).unwrap());
     assert_eq!(again.get("word/webSettings.xml"), input.get("word/webSettings.xml"));
     assert_eq!(text(&again, "word/_rels/document.xml.rels").matches("/webSettings\"").count(), 1);
 }
@@ -161,7 +161,7 @@ fn parts_the_writer_owns_or_the_body_refers_to_are_not_carried() {
             ("word/referenced.xml", "<x/>"),
         ],
     );
-    let files = save(&wordcraft_docx::read(&bytes).unwrap());
+    let files = save(&docufy_docx::read(&bytes).unwrap());
     assert!(!files.contains_key("word/other-styles.xml") && !files.contains_key("word/referenced.xml"), "{:?}", files.keys());
     assert_eq!(text(&files, "word/_rels/document.xml.rels").matches("/styles\"").count(), 1);
 }
@@ -208,7 +208,7 @@ fn written_ids(files: &BTreeMap<String, Vec<u8>>) -> (Vec<(String, String)>, Vec
 
 #[test]
 fn comment_durable_ids_and_utc_dates_survive_and_match_the_written_paragraph_ids() {
-    let doc = wordcraft_docx::read(&comments_package(true)).unwrap();
+    let doc = docufy_docx::read(&comments_package(true)).unwrap();
     let c: Vec<_> = doc.comments.values().collect();
     assert_eq!(c[0].durable_id.as_deref(), Some("5A1B2C3D"));
     assert_eq!(c[1].date_utc.as_deref(), Some("2026-01-03T10:00:00Z"));
@@ -224,7 +224,7 @@ fn comment_durable_ids_and_utc_dates_survive_and_match_the_written_paragraph_ids
     let rels = text(&files, "word/_rels/document.xml.rels");
     assert!(rels.contains("relationships/commentsIds") && rels.contains("relationships/commentsExtensible"), "{rels}");
     // Read back: the same durable ids and dates.
-    let back = wordcraft_docx::read(&wordcraft_docx::write(&doc).unwrap()).unwrap();
+    let back = docufy_docx::read(&docufy_docx::write(&doc).unwrap()).unwrap();
     assert_eq!(
         back.comments.values().map(|c| c.durable_id.clone()).collect::<Vec<_>>(),
         doc.comments.values().map(|c| c.durable_id.clone()).collect::<Vec<_>>()
@@ -237,7 +237,7 @@ fn comment_durable_ids_and_utc_dates_survive_and_match_the_written_paragraph_ids
 
 #[test]
 fn comments_without_durable_ids_get_unique_ones() {
-    let doc = wordcraft_docx::read(&comments_package(false)).unwrap();
+    let doc = docufy_docx::read(&comments_package(false)).unwrap();
     let (ids, dates) = written_ids(&save(&doc));
     assert_eq!(ids.len(), 2);
     assert_ne!(ids[0].1, ids[1].1);
@@ -253,27 +253,27 @@ fn comments_without_durable_ids_get_unique_ones() {
 /// so it doesn't shift by the user's offset after a round trip.
 #[test]
 fn a_local_date_with_a_z_is_not_saved_as_utc() {
-    let mut doc = wordcraft_docx::read(&comments_package(false)).unwrap();
+    let mut doc = docufy_docx::read(&comments_package(false)).unwrap();
     for c in doc.comments.values_mut() {
         c.date.push('Z');
     }
     let files = save(&doc);
     let (_, dates) = written_ids(&files);
     assert!(dates.iter().all(|(_, utc)| utc.is_empty()), "{dates:?}");
-    let back = wordcraft_docx::read(&wordcraft_docx::write(&doc).unwrap()).unwrap();
+    let back = docufy_docx::read(&docufy_docx::write(&doc).unwrap()).unwrap();
     assert!(back.comments.values().all(|c| c.date_utc.is_none() && c.date.ends_with('Z')));
 }
 
 #[test]
 fn comment_references_use_the_documents_annotation_reference_style() {
-    let files = save(&wordcraft_docx::read(&comments_package(true)).unwrap());
+    let files = save(&docufy_docx::read(&comments_package(true)).unwrap());
     let body = text(&files, "word/document.xml");
     assert!(body.contains(r#"<w:rStyle w:val="Odwoaniedokomentarza"/>"#), "{body}");
     assert!(!body.contains(r#"w:val="CommentReference""#), "{body}");
     // A document without that style keeps the English id.
-    let mut doc = wordcraft_doc::Document::new();
+    let mut doc = docufy_doc::Document::new();
     doc.styles.styles.retain(|s| !s.name.eq_ignore_ascii_case("annotation reference"));
-    let rebuilt = wordcraft_docx::read(&comments_package(true)).unwrap();
+    let rebuilt = docufy_docx::read(&comments_package(true)).unwrap();
     doc.body = rebuilt.body.clone();
     doc.parts = rebuilt.parts.clone();
     doc.comments = rebuilt.comments.clone();
@@ -285,7 +285,7 @@ fn localized_default_styles_keep_their_default_flag() {
     let styles = r#"<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:latentStyles w:defLockedState="0" w:defUIPriority="99" w:defSemiHidden="0" w:defUnhideWhenUsed="0" w:defQFormat="0" w:count="376"><w:lsdException w:name="Normal" w:uiPriority="0" w:qFormat="1"/><w:lsdException w:name="heading 1" w:uiPriority="9" w:qFormat="1"/></w:latentStyles><w:style w:type="paragraph" w:default="1" w:styleId="Normalny"><w:name w:val="Normal"/></w:style><w:style w:type="character" w:default="1" w:styleId="Domylnaczcionkaakapitu"><w:name w:val="Default Paragraph Font"/></w:style><w:style w:type="table" w:default="1" w:styleId="Standardowy"><w:name w:val="Normal Table"/></w:style><w:style w:type="numbering" w:default="1" w:styleId="Bezlisty"><w:name w:val="No List"/></w:style></w:styles>"#;
     let bytes =
         package("<w:p><w:r><w:t>x</w:t></w:r></w:p>", &[("rId1", &format!("{REL}/styles"), "styles.xml")], &[], &[("word/styles.xml", styles)]);
-    let doc = wordcraft_docx::read(&bytes).unwrap();
+    let doc = docufy_docx::read(&bytes).unwrap();
     let s = text(&save(&doc), "word/styles.xml");
     for id in ["Domylnaczcionkaakapitu", "Standardowy", "Bezlisty"] {
         assert!(s.contains(&format!(r#"w:default="1" w:styleId="{id}""#)) || s.contains(&format!(r#"w:styleId="{id}" w:default="1""#)), "{id}: {s}");
@@ -295,7 +295,7 @@ fn localized_default_styles_keep_their_default_flag() {
     assert!(s.contains(r#"<w:lsdException w:name="heading 1" w:uiPriority="9" w:qFormat="1"/>"#), "{s}");
     assert!(pos(&s, "<w:latentStyles") < pos(&s, "<w:style "), "{s}");
     // A new document still flags the English defaults.
-    let fresh = text(&save(&wordcraft_doc::Document::new()), "word/styles.xml");
+    let fresh = text(&save(&docufy_doc::Document::new()), "word/styles.xml");
     assert!(fresh.contains(r#"w:styleId="Normal" w:default="1""#) || fresh.contains(r#"w:default="1" w:styleId="Normal""#), "{fresh}");
 }
 
@@ -308,7 +308,7 @@ fn list_identities_survive_and_a_copied_definition_gets_none() {
         &[],
         &[("word/numbering.xml", numbering)],
     );
-    let mut doc = wordcraft_docx::read(&bytes).unwrap();
+    let mut doc = docufy_docx::read(&bytes).unwrap();
     let n = text(&save(&doc), "word/numbering.xml");
     assert!(n.contains(r#"<w:nsid w:val="1F2E3D4C"/><w:multiLevelType w:val="hybridMultilevel"/><w:tmpl w:val="0415000F"/>"#), "{n}");
     // A copy of the definition (as the engine makes when restarting a list) doesn't reuse the nsid.
@@ -338,7 +338,7 @@ fn extended_properties_are_kept_without_words_counts_and_personal_ones_follow_th
             &[("rIdA", "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties", "docProps/app.xml")],
             &entries,
         );
-        text(&save(&wordcraft_docx::read(&b).unwrap()), "docProps/app.xml")
+        text(&save(&docufy_docx::read(&b).unwrap()), "docProps/app.xml")
     };
     let a = make("");
     for kept in [
@@ -352,7 +352,7 @@ fn extended_properties_are_kept_without_words_counts_and_personal_ones_follow_th
     for gone in ["Pages", "Characters", "Lines", "TotalTime", "AppVersion", "Microsoft Office Word", "40000"] {
         assert!(!a.contains(gone), "{gone}: {a}");
     }
-    assert!(a.contains("<Application>WordCraft</Application>"));
+    assert!(a.contains("<Application>Docufy</Application>"));
     let private = make(SETTINGS);
     assert!(!private.contains("Company") && !private.contains("Manager"), "{private}");
     assert!(private.contains("<Template>Normal.dotm</Template>"));
@@ -394,7 +394,7 @@ fn a_part_reached_under_many_spellings_is_kept_and_written_once() {
     let ct = CT.replace("<Default Extension=\"jpeg\"", "<Default Extension=\"png\" ContentType=\"image/png\"/><Default Extension=\"jpeg\"");
     let bytes =
         package(&body, &doc_rels, &[], &[("[Content_Types].xml", &ct), ("word/media/image1.png", &picture), ("word/unknownPart.xml", &unknown)]);
-    let doc = wordcraft_docx::read(&bytes).unwrap();
+    let doc = docufy_docx::read(&bytes).unwrap();
     assert_eq!(doc.media.len(), 1, "{:?}", doc.media.keys());
     let files = save(&doc);
     let named = |s: &str| files.keys().filter(|k| k.to_ascii_lowercase().contains(s)).count();
@@ -430,16 +430,16 @@ fn embedded_fonts_load_and_save_when_the_package_spells_the_font_table_in_capita
     entries.push(("WORD/FONTTABLE.XML", table.into_bytes()));
     entries.push(("WORD/_RELS/FONTTABLE.XML.RELS", table_rels));
     entries.push(("WORD/FONTS/FONT1.ODTTF", font_bytes.clone()));
-    let doc = wordcraft_docx::read(&zip(&entries)).unwrap();
-    let fonts = wordcraft_docx::embedded_fonts(&doc);
+    let doc = docufy_docx::read(&zip(&entries)).unwrap();
+    let fonts = docufy_docx::embedded_fonts(&doc);
     assert_eq!(fonts.len(), 1, "the font loads");
     assert_eq!(fonts[0].data, font_bytes);
     // And through a save and a reopen.
-    let saved = wordcraft_docx::write(&doc).unwrap();
+    let saved = docufy_docx::write(&doc).unwrap();
     let files = unzip(&saved);
     assert!(files.keys().any(|k| k.to_ascii_lowercase().ends_with("fonttable.xml")), "{:?}", files.keys());
-    let again = wordcraft_docx::read(&saved).unwrap();
-    let fonts = wordcraft_docx::embedded_fonts(&again);
+    let again = docufy_docx::read(&saved).unwrap();
+    let fonts = docufy_docx::embedded_fonts(&again);
     assert_eq!(fonts.len(), 1, "the font survives a save: {:?}", files.keys());
     assert_eq!(fonts[0].data, font_bytes);
 }

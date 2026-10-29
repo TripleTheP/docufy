@@ -25,7 +25,7 @@ pub fn image_px(data: &[u8]) -> Option<(u32, u32)> {
 /// declares huge dimensions can't exhaust memory when a picture is re-encoded on export. `None`
 /// when it would be too large or doesn't decode.
 pub fn decode_bounded(data: &[u8]) -> Option<image::DynamicImage> {
-    wordcraft_geom::picture::decode(data, wordcraft_geom::MAX_DECODED_BYTES).ok()
+    docufy_geom::picture::decode(data, docufy_geom::MAX_DECODED_BYTES).ok()
 }
 
 /// A picture from bytes with an optional display size (points); the natural size (96 dpi) is

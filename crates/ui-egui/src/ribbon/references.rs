@@ -92,7 +92,7 @@ pub(super) fn references(app: &mut WordApp, ui: &mut Ui) {
                 app,
                 crate::widgets::MenuButtonOptions::new("styles", Some(&label), "Citation Style", false, "references.citationStyle"),
                 |ui, app| {
-                    for st in &wordcraft_engine::cmd::citations::STYLES {
+                    for st in &docufy_engine::cmd::citations::STYLES {
                         mi_check(ui, app, st.name, st.name == current, "references.citationStyle", json!({"style": st.name}));
                     }
                 },

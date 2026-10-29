@@ -4,11 +4,11 @@
 //! result without the UI. The picker is shown through [`crate::dialogs_insert::InsertDialog`];
 //! the pane through [`crate::panes`].
 
+use docufy_doc::props::Rgb;
+use docufy_doc::smart_art::{MAX_ITEMS, SmartArtColors, SmartArtLayout, SmartArtSpec};
 use egui::{Color32, Painter, Rect, Sense, Stroke, Ui, pos2, vec2};
 use serde::Serialize;
 use serde_json::{Value, json};
-use wordcraft_doc::props::Rgb;
-use wordcraft_doc::smart_art::{MAX_ITEMS, SmartArtColors, SmartArtLayout, SmartArtSpec};
 
 use crate::WordApp;
 use crate::theme::{Tokens, c32, regular, semibold};
@@ -278,9 +278,9 @@ pub fn items_without(g: &SmartArtSpec, i: usize) -> Value {
 
 /// The Text Pane button on the left edge of the selected graphic's frame, as in Word, while
 /// the pane is closed.
-pub fn frame_button(app: &mut WordApp, ctx: &egui::Context, layout: &wordcraft_layout::DocLayout, pages: &[Rect], scale: f32, clip: Rect) {
+pub fn frame_button(app: &mut WordApp, ctx: &egui::Context, layout: &docufy_layout::DocLayout, pages: &[Rect], scale: f32, clip: Rect) {
     // The pane goes with the graphic: it opens again only on request.
-    if wordcraft_engine::cmd::smart_art::selected_smart_art(&app.session).is_none() {
+    if docufy_engine::cmd::smart_art::selected_smart_art(&app.session).is_none() {
         app.session.view.smart_art_pane = false;
         return;
     }
@@ -324,7 +324,7 @@ pub(crate) enum SmartArtTypeResult {
 /// Appends typing to the selected SmartArt item, joining an active typing undo, and returns
 /// whether the input was unhandled, consumed without a change, or changed an item.
 pub(crate) fn type_into(app: &mut WordApp, typed: &str) -> SmartArtTypeResult {
-    let Some(g) = wordcraft_engine::cmd::smart_art::selected_smart_art(&app.session) else {
+    let Some(g) = docufy_engine::cmd::smart_art::selected_smart_art(&app.session) else {
         return SmartArtTypeResult::NotHandled;
     };
     let Some(i) = app.smart_art_item.filter(|i| *i < g.items.len()).or((!g.items.is_empty()).then_some(0)) else {
@@ -351,7 +351,7 @@ pub(crate) fn type_into(app: &mut WordApp, typed: &str) -> SmartArtTypeResult {
 /// undo step per item typed in); Enter adds an item after the current one; Tab demotes the
 /// focused item and Shift+Tab promotes it, as Word's Text Pane does.
 pub fn text_pane(app: &mut WordApp, ui: &mut Ui) {
-    let Some(g) = wordcraft_engine::cmd::smart_art::selected_smart_art(&app.session) else { return };
+    let Some(g) = docufy_engine::cmd::smart_art::selected_smart_art(&app.session) else { return };
     let t = Tokens::get(ui.ctx());
     ui.label(egui::RichText::new(tl!("One line per item. Enter adds an item.")).color(t.text_dim));
     ui.add_space(4.0);

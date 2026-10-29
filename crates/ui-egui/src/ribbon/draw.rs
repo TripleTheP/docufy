@@ -3,8 +3,8 @@ use super::language::mi_check;
 use super::{CONTENT_H, Rect, Sense, Stroke, Target, Tokens, Ui, WordApp, big, big_toggle, group, icons, json, menu_button, pos2, split, vec2};
 
 pub(super) fn draw(app: &mut WordApp, ui: &mut Ui) {
-    use wordcraft_doc::freeform::InkTool;
-    use wordcraft_engine::cmd::draw::{DrawMode, lasso_selection};
+    use docufy_doc::freeform::InkTool;
+    use docufy_engine::cmd::draw::{DrawMode, lasso_selection};
     let mode = app.session.view.draw.mode;
     // The pen the colour and thickness menus change: the one in use, else the pen.
     let tool = mode.pen().unwrap_or(InkTool::Pen);
@@ -68,8 +68,8 @@ pub(super) fn draw(app: &mut WordApp, ui: &mut Ui) {
 }
 
 /// The command that picks up `tool`.
-fn pen_command(tool: wordcraft_doc::freeform::InkTool) -> &'static str {
-    use wordcraft_doc::freeform::InkTool;
+fn pen_command(tool: docufy_doc::freeform::InkTool) -> &'static str {
+    use docufy_doc::freeform::InkTool;
     match tool {
         InkTool::Pen => "draw.pen",
         InkTool::Pencil => "draw.pencil",
@@ -79,7 +79,7 @@ fn pen_command(tool: wordcraft_doc::freeform::InkTool) -> &'static str {
 
 /// After the colour or thickness menu changed `tool`'s settings, the gallery pen that was in use
 /// (`custom`) takes them too.
-fn update_gallery_pen(app: &mut WordApp, custom: Option<usize>, tool: wordcraft_doc::freeform::InkTool) {
+fn update_gallery_pen(app: &mut WordApp, custom: Option<usize>, tool: docufy_doc::freeform::InkTool) {
     let set = app.session.view.draw.settings(tool);
     if let Some(p) = custom.and_then(|i| app.session.view.draw.pens.get_mut(i))
         && p.kind == tool
@@ -91,8 +91,8 @@ fn update_gallery_pen(app: &mut WordApp, custom: Option<usize>, tool: wordcraft_
 
 /// A pen of the gallery: its kind's icon over a bar of its colour and thickness; a click picks it
 /// up, right-click offers Remove Pen.
-fn gallery_pen(ui: &mut Ui, app: &mut WordApp, i: usize, pen: wordcraft_engine::cmd::draw::CustomPen, active: bool) {
-    use wordcraft_doc::freeform::InkTool;
+fn gallery_pen(ui: &mut Ui, app: &mut WordApp, i: usize, pen: docufy_engine::cmd::draw::CustomPen, active: bool) {
+    use docufy_doc::freeform::InkTool;
     let t = Tokens::get(ui.ctx());
     let (r, resp) = ui.allocate_exact_size(vec2(34.0, CONTENT_H), Sense::click());
     crate::widgets::bg(ui, r, &resp, active, &t);

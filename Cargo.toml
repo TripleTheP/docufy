@@ -1,33 +1,33 @@
 [workspace]
 resolver = "3"
 members = ["crates/*", "apps/*", "xtask"]
-default-members = ["crates/*", "apps/wordcraft", "apps/wordcraft-cli", "xtask"]
+default-members = ["crates/*", "apps/docufy", "apps/docufy-cli", "xtask"]
 
 [workspace.package]
 version = "0.12.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 rust-version = "1.95"
-repository = "https://github.com/storytold/wordcraft"
+repository = "https://github.com/TripleTheP/docufy"
 
 [workspace.dependencies]
 # internal
-wordcraft-geom = { path = "crates/geom" }
-wordcraft-doc = { path = "crates/doc" }
-wordcraft-fonts = { path = "crates/fonts" }
-wordcraft-layout = { path = "crates/layout" }
-wordcraft-docx = { path = "crates/docx" }
-wordcraft-docbin = { path = "crates/docbin" }
-wordcraft-formats = { path = "crates/formats" }
-wordcraft-render = { path = "crates/render" }
-wordcraft-pdf = { path = "crates/pdf" }
-wordcraft-proof = { path = "crates/proof" }
-wordcraft-engine = { path = "crates/engine" }
-wordcraft-mcp = { path = "crates/mcp" }
-wordcraft-zotero = { path = "crates/zotero" }
-wordcraft-control-key = { path = "crates/control-key" }
-wordcraft-ui-egui = { path = "crates/ui-egui" }
-wordcraft-metafile = { path = "crates/metafile" }
+docufy-geom = { path = "crates/geom" }
+docufy-doc = { path = "crates/doc" }
+docufy-fonts = { path = "crates/fonts" }
+docufy-layout = { path = "crates/layout" }
+docufy-docx = { path = "crates/docx" }
+docufy-docbin = { path = "crates/docbin" }
+docufy-formats = { path = "crates/formats" }
+docufy-render = { path = "crates/render" }
+docufy-pdf = { path = "crates/pdf" }
+docufy-proof = { path = "crates/proof" }
+docufy-engine = { path = "crates/engine" }
+docufy-mcp = { path = "crates/mcp" }
+docufy-zotero = { path = "crates/zotero" }
+docufy-control-key = { path = "crates/control-key" }
+docufy-ui-egui = { path = "crates/ui-egui" }
+docufy-metafile = { path = "crates/metafile" }
 
 # foundation
 kurbo = { version = "0.13", features = ["serde"] }

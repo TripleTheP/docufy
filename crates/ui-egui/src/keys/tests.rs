@@ -67,8 +67,8 @@ fn ctrl_f1_collapses_the_ribbon() {
 /// #1678: a Ctrl+F1 the user binds runs their command instead of collapsing the ribbon.
 #[test]
 fn a_bound_ctrl_f1_beats_the_ribbon_toggle() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
-    a.session.keymap = wordcraft_engine::keymap::KeyMap::from_value(&json!({"assigned": {"Mod+F1": "view.focus"}}));
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), crate::Services::default());
+    a.session.keymap = docufy_engine::keymap::KeyMap::from_value(&json!({"assigned": {"Mod+F1": "view.focus"}}));
     assert!(dispatch(&mut a, Key::F1, Modifiers { ctrl: true, command: true, ..Default::default() }));
     assert!(a.session.view.focus_mode && !a.ui.ribbon_collapsed);
 }
@@ -77,8 +77,8 @@ fn a_bound_ctrl_f1_beats_the_ribbon_toggle() {
 /// opening the command search.
 #[test]
 fn a_bound_alt_q_still_opens_command_search() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
-    a.session.keymap = wordcraft_engine::keymap::KeyMap::from_value(&json!({"assigned": {"Alt+Q": "view.focus"}}));
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), crate::Services::default());
+    a.session.keymap = docufy_engine::keymap::KeyMap::from_value(&json!({"assigned": {"Alt+Q": "view.focus"}}));
     assert!(dispatch(&mut a, Key::Q, Modifiers { alt: true, ..Default::default() }));
     if cfg!(target_os = "macos") {
         // Option+Q is no interface shortcut on macOS, so the binding runs.
@@ -140,7 +140,7 @@ fn picture_app() -> WordApp {
         clipboard_picture: Some(Box::new(|| Some(ClipboardPicture::Pixels { width: 4, height: 4, rgba: vec![200; 4 * 4 * 4] }))),
         ..Default::default()
     };
-    WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), services)
+    WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), services)
 }
 
 /// How many pictures the document holds (the Selection Pane's list).
@@ -264,18 +264,18 @@ fn alt_numpad_code_types_its_character_without_keytips() {
     if cfg!(target_os = "macos") {
         return;
     }
-    let doc_text = |a: &WordApp| a.session.doc.plain_text(wordcraft_doc::StoryRef::Body);
+    let doc_text = |a: &WordApp| a.session.doc.plain_text(docufy_doc::StoryRef::Body);
     let ctx = egui::Context::default();
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), crate::Services::default());
     // Windows reads codes in the system locale's code pages (0233 is é in 1252 and 1250, й in
     // 1251); elsewhere the ANSI page is 1252 and the OEM page the locale's own. The app records
     // the locale when it starts, so ask after `WordApp::new`.
     let (ansi, oem_page) = if cfg!(target_os = "windows") {
-        wordcraft_engine::cmd::text::system_code_pages()
+        docufy_engine::cmd::text::system_code_pages()
     } else {
-        (1252, wordcraft_engine::cmd::text::system_oem_code_page())
+        (1252, docufy_engine::cmd::text::system_oem_code_page())
     };
-    let typed = wordcraft_engine::cmd::text::alt_code_char("0233", ansi, oem_page).unwrap_or('?');
+    let typed = docufy_engine::cmd::text::alt_code_char("0233", ansi, oem_page).unwrap_or('?');
     let alt = Modifiers { alt: true, ..Default::default() };
     let key = |key, pressed, modifiers| egui::Event::Key { key, physical_key: Some(key), pressed, repeat: false, modifiers };
     let frame = |a: &mut WordApp, events: Vec<egui::Event>| {
@@ -303,7 +303,7 @@ fn alt_numpad_code_types_its_character_without_keytips() {
         frame(&mut a, vec![key(k, true, alt), key(k, false, alt)]);
     }
     frame(&mut a, vec![key(Key::AltLeft, false, alt), egui::Event::ModifiersChanged(Modifiers::NONE)]);
-    let oem = wordcraft_engine::cmd::text::alt_code_char("233", ansi, oem_page);
+    let oem = docufy_engine::cmd::text::alt_code_char("233", ansi, oem_page);
     assert_eq!(doc_text(&a).trim_end(), format!("{typed}é{}", oem.unwrap_or('?')));
     // A bare Alt tap still opens keytips.
     frame(&mut a, vec![egui::Event::ModifiersChanged(alt), key(Key::AltLeft, true, alt)]);
@@ -321,9 +321,9 @@ fn altgr_types_its_characters_without_keytips() {
     if cfg!(target_os = "macos") {
         return;
     }
-    let doc_text = |a: &WordApp| a.session.doc.plain_text(wordcraft_doc::StoryRef::Body);
+    let doc_text = |a: &WordApp| a.session.doc.plain_text(docufy_doc::StoryRef::Body);
     let ctx = egui::Context::default();
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), crate::Services::default());
     let none = Modifiers::NONE;
     let key = |key, pressed, modifiers| egui::Event::Key { key, physical_key: Some(key), pressed, repeat: false, modifiers };
     let frame = |a: &mut WordApp, events: Vec<egui::Event>| {
@@ -364,7 +364,7 @@ fn altgr_types_its_characters_without_keytips() {
 }
 
 fn alt_frame_app() -> (egui::Context, WordApp) {
-    let a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), crate::Services::default());
     (egui::Context::default(), a)
 }
 
@@ -384,7 +384,7 @@ fn disabled_alt_shortcut_leaves_the_typed_character() {
     let alt_shift = Modifiers { alt: true, shift: true, ..Default::default() };
     let key = |pressed| egui::Event::Key { key: Key::Minus, physical_key: Some(Key::Minus), pressed, repeat: false, modifiers: alt_shift };
     alt_frame(&ctx, &mut a, vec![key(true), egui::Event::Text("\u{2014}".into()), key(false)]);
-    assert_eq!(a.session.doc.plain_text(wordcraft_doc::StoryRef::Body).trim_end(), "\u{2014}");
+    assert_eq!(a.session.doc.plain_text(docufy_doc::StoryRef::Body).trim_end(), "\u{2014}");
 }
 
 /// Holding a digit with Alt adds it once: its auto-repeat presses don't (#961).
@@ -398,7 +398,7 @@ fn alt_code_ignores_auto_repeat() {
     alt_frame(&ctx, &mut a, vec![alt_key(Key::Num5, true, false)]);
     assert_eq!(a.canvas.alt_code, "65");
     alt_frame(&ctx, &mut a, vec![egui::Event::ModifiersChanged(Modifiers::NONE)]);
-    assert_eq!(a.session.doc.plain_text(wordcraft_doc::StoryRef::Body).trim_end(), "A");
+    assert_eq!(a.session.doc.plain_text(docufy_doc::StoryRef::Body).trim_end(), "A");
 }
 
 /// Switching to another window mid-code drops the digits: releasing Alt later types nothing.
@@ -412,7 +412,7 @@ fn alt_code_is_dropped_when_the_window_loses_focus() {
     alt_frame(&ctx, &mut a, vec![egui::Event::WindowFocused(false)]);
     assert_eq!(a.canvas.alt_code, "");
     alt_frame(&ctx, &mut a, vec![egui::Event::WindowFocused(true), egui::Event::ModifiersChanged(Modifiers::NONE)]);
-    assert_eq!(a.session.doc.plain_text(wordcraft_doc::StoryRef::Body).trim_end(), "");
+    assert_eq!(a.session.doc.plain_text(docufy_doc::StoryRef::Body).trim_end(), "");
 }
 
 /// Windows composes Alt codes with the system's code pages: for a code up to 255 its
@@ -421,7 +421,7 @@ fn alt_code_is_dropped_when_the_window_loses_focus() {
 #[test]
 fn system_composed_alt_code_character_wins_up_to_255() {
     let (ctx, mut a) = alt_frame_app();
-    let text = |a: &WordApp| a.session.doc.plain_text(wordcraft_doc::StoryRef::Body).trim_end().to_string();
+    let text = |a: &WordApp| a.session.doc.plain_text(docufy_doc::StoryRef::Body).trim_end().to_string();
     let _ = a.run("text.typeCode", json!({"code": "0185", "ansi": 1252}));
     a.canvas.alt_code_echo = Some(AltCodeEcho { typed: "¹".into(), system_composes: true, byte_code: true });
     alt_frame(&ctx, &mut a, vec![egui::Event::Text("ą".into())]);
@@ -437,7 +437,7 @@ fn system_composed_alt_code_character_wins_up_to_255() {
 }
 
 fn body(a: &WordApp) -> String {
-    a.session.doc.plain_text(wordcraft_doc::StoryRef::Body).trim_end_matches(['\r', '\n']).to_string()
+    a.session.doc.plain_text(docufy_doc::StoryRef::Body).trim_end_matches(['\r', '\n']).to_string()
 }
 
 fn surround(before_chars: usize, after_chars: usize) -> egui::Event {
@@ -456,11 +456,11 @@ fn ime_interrupted_body_preedit_drops_queued_replacement_before_mutation() {
     ] {
         let (ctx, mut a) = alt_frame_app();
         a.run("document.setText", json!({"text": "ABCDE"})).unwrap();
-        a.session.sel = wordcraft_engine::Selection::caret(wordcraft_doc::Pos::body(0, 2));
+        a.session.sel = docufy_engine::Selection::caret(docufy_doc::Pos::body(0, 2));
         alt_frame(&ctx, &mut a, vec![egui::Event::Ime(egui::ImeEvent::Preedit { text: "に".into(), active_range_chars: None })]);
         assert_eq!(a.canvas.ime_preedit, "に");
         a.run("document.setText", json!({"text": "ABCDE"})).unwrap();
-        a.session.sel = wordcraft_engine::Selection::caret(wordcraft_doc::Pos::body(0, 2));
+        a.session.sel = docufy_engine::Selection::caret(docufy_doc::Pos::body(0, 2));
         let depth = a.session.undo_depth();
         alt_frame(&ctx, &mut a, replacement);
         assert_eq!(body(&a), "ABCDE", "queued events cannot replace text in the new body");
@@ -507,7 +507,7 @@ fn ime_interrupted_preedit_does_not_suppress_fresh_input() {
             alt_frame(&ctx, &mut a, vec![egui::Event::Ime(egui::ImeEvent::Preedit { text: "old".into(), active_range_chars: None })]);
         }
         a.run("document.setText", json!({"text": "ABCDE"})).unwrap();
-        a.session.sel = wordcraft_engine::Selection::caret(wordcraft_doc::Pos::body(0, 2));
+        a.session.sel = docufy_engine::Selection::caret(docufy_doc::Pos::body(0, 2));
         let depth = a.session.undo_depth();
         let mut events = Vec::new();
         match fresh_case {
@@ -562,14 +562,14 @@ fn delete_surrounding_bytes_replaces_exact_utf8_and_joins_one_undo_step() {
     let (ctx, mut a) = alt_frame_app();
     a.run("document.setText", json!({"text": "aé👍b"})).unwrap();
     // The caret is before `b`, after the four-byte emoji.
-    a.session.sel = wordcraft_engine::Selection::caret(wordcraft_doc::Pos::body(0, 7));
+    a.session.sel = docufy_engine::Selection::caret(docufy_doc::Pos::body(0, 7));
     alt_frame(&ctx, &mut a, vec![surround_bytes(4, 0), egui::Event::Text("x".into())]);
     assert_eq!(body(&a), "aéxb");
     a.run("edit.undo", json!({})).unwrap();
     assert_eq!(body(&a), "aé👍b", "delete plus commit is one undo step");
 
     // A range that starts inside the emoji is not a UTF-8 boundary: nothing changes.
-    a.session.sel = wordcraft_engine::Selection::caret(wordcraft_doc::Pos::body(0, 7));
+    a.session.sel = docufy_engine::Selection::caret(docufy_doc::Pos::body(0, 7));
     alt_frame(&ctx, &mut a, vec![surround_bytes(3, 0)]);
     assert_eq!(body(&a), "aé👍b");
     // Beyond the paragraph is refused too, and never joins the next paragraph.
@@ -589,7 +589,7 @@ fn delete_surrounding_bytes_replaces_exact_utf8_and_joins_one_undo_step() {
 fn delete_surrounding_bytes_replaces_a_combining_mark_and_accepts_empty_commit() {
     let (ctx, mut a) = alt_frame_app();
     a.run("document.setText", json!({"text": "e\u{301}"})).unwrap();
-    a.session.sel = wordcraft_engine::Selection::caret(wordcraft_doc::Pos::body(0, "e\u{301}".len()));
+    a.session.sel = docufy_engine::Selection::caret(docufy_doc::Pos::body(0, "e\u{301}".len()));
     alt_frame(&ctx, &mut a, vec![surround_bytes(2, 0), egui::Event::Text(String::new())]);
     assert_eq!(body(&a), "e");
     // A deletion-only batch and a 0/0 batch stay harmless.
@@ -605,7 +605,7 @@ fn delete_surrounding_bytes_replaces_a_combining_mark_and_accepts_empty_commit()
 fn ime_commit_replaces_delete_surrounding_bytes_in_one_undo_step() {
     let (ctx, mut a) = alt_frame_app();
     a.run("document.setText", json!({"text": "e\u{301}"})).unwrap();
-    a.session.sel = wordcraft_engine::Selection::caret(wordcraft_doc::Pos::body(0, "e\u{301}".len()));
+    a.session.sel = docufy_engine::Selection::caret(docufy_doc::Pos::body(0, "e\u{301}".len()));
     alt_frame(&ctx, &mut a, vec![surround_bytes("e\u{301}".len(), 0), egui::Event::Ime(egui::ImeEvent::Commit("é".into()))]);
     assert_eq!(body(&a), "é", "the combining sequence is replaced by the IME's committed text");
     a.run("edit.undo", json!({})).unwrap();
@@ -619,7 +619,7 @@ fn ime_commit_replaces_delete_surrounding_bytes_in_one_undo_step() {
 fn ime_commit_in_a_later_frame_joins_the_delete_surrounding_undo_step() {
     let (ctx, mut a) = alt_frame_app();
     a.run("document.setText", json!({"text": "teh"})).unwrap();
-    a.session.sel = wordcraft_engine::Selection::caret(wordcraft_doc::Pos::body(0, 3));
+    a.session.sel = docufy_engine::Selection::caret(docufy_doc::Pos::body(0, 3));
     let depth = a.session.undo_depth();
 
     alt_frame(&ctx, &mut a, vec![surround_bytes(3, 0)]);
@@ -668,9 +668,9 @@ fn delete_surrounding_stays_inside_the_paragraph() {
         a.run("caret.right", json!({})).unwrap();
     }
     alt_frame(&ctx, &mut a, vec![surround(usize::MAX, usize::MAX)]);
-    assert_eq!(a.session.doc.plain_text(wordcraft_doc::StoryRef::Body).trim_end(), "one\n\nthree");
+    assert_eq!(a.session.doc.plain_text(docufy_doc::StoryRef::Body).trim_end(), "one\n\nthree");
     alt_frame(&ctx, &mut a, vec![surround(5, 5), egui::Event::Text("2".into())]);
-    assert_eq!(a.session.doc.plain_text(wordcraft_doc::StoryRef::Body).trim_end(), "one\n2\nthree");
+    assert_eq!(a.session.doc.plain_text(docufy_doc::StoryRef::Body).trim_end(), "one\n2\nthree");
 }
 
 /// The agent's rewrite belongs to the typing it corrects: one Undo takes back the typing
@@ -756,12 +756,12 @@ fn a_refused_second_delete_surrounding_rolls_the_request_back() {
     let (ctx, mut a) = alt_frame_app();
     a.run("document.setText", json!({"text": "ab"})).unwrap();
     // Wrap `b` in a rich-text control that refuses edits, leaving `a` editable.
-    a.session.sel = wordcraft_engine::Selection { anchor: wordcraft_doc::Pos::body(0, 1), focus: wordcraft_doc::Pos::body(0, 2) };
+    a.session.sel = docufy_engine::Selection { anchor: docufy_doc::Pos::body(0, 1), focus: docufy_doc::Pos::body(0, 2) };
     a.run("developer.richText", json!({"tag": "locked"})).unwrap();
     a.run("developer.properties", json!({"control": "locked", "lockEdit": true})).unwrap();
-    a.session.sel = wordcraft_engine::Selection::caret(wordcraft_doc::Pos::body(0, 1));
+    a.session.sel = docufy_engine::Selection::caret(docufy_doc::Pos::body(0, 1));
     let depth = a.session.undo_depth();
-    let pending = wordcraft_doc::props::CharProps { bold: Some(true), ..Default::default() };
+    let pending = docufy_doc::props::CharProps { bold: Some(true), ..Default::default() };
     a.session.pending = Some(pending.clone());
     a.session.goal_x = Some(123.0);
     alt_frame(&ctx, &mut a, vec![surround(1, 1)]);
@@ -788,15 +788,15 @@ fn a_refused_second_delete_surrounding_rolls_the_request_back() {
 fn a_refused_ime_commit_after_a_successful_delete_restores_pending_and_interrupts() {
     let (ctx, mut a) = alt_frame_app();
     a.run("document.setText", json!({"text": "zaXY"})).unwrap();
-    a.session.sel = wordcraft_engine::Selection { anchor: wordcraft_doc::Pos::body(0, 0), focus: wordcraft_doc::Pos::body(0, 2) };
+    a.session.sel = docufy_engine::Selection { anchor: docufy_doc::Pos::body(0, 0), focus: docufy_doc::Pos::body(0, 2) };
     a.run("developer.richText", json!({"tag": "fill"})).unwrap();
     a.run("select.text", json!({"text": "X"})).unwrap();
     a.run("developer.richText", json!({"tag": "locked"})).unwrap();
     a.run("developer.properties", json!({"control": "locked", "lockEdit": true})).unwrap();
     a.run("review.restrict", json!({"mode": "forms"})).unwrap();
     let locked =
-        a.session.doc.control_ranges(wordcraft_doc::StoryRef::Body).into_iter().find(|r| r.control.tag == "locked").expect("the locked control");
-    a.session.sel = wordcraft_engine::Selection::caret(locked.content_start());
+        a.session.doc.control_ranges(docufy_doc::StoryRef::Body).into_iter().find(|r| r.control.tag == "locked").expect("the locked control");
+    a.session.sel = docufy_engine::Selection::caret(locked.content_start());
     a.session.pending = None;
     a.canvas.ime_reset = false;
     let _ = a.session.take_pending_ime_application_change();
@@ -804,13 +804,8 @@ fn a_refused_ime_commit_after_a_successful_delete_restores_pending_and_interrupt
     alt_frame(&ctx, &mut a, vec![surround(1, 0), egui::Event::Ime(egui::ImeEvent::Commit("\"".into()))]);
     assert_eq!(body(&a), "zXY", "the locked replacement is refused, the earlier deletion stands");
     assert_eq!(a.session.undo_depth(), depth + 1, "only the successful deletion added an undo step");
-    let locked = a
-        .session
-        .doc
-        .control_ranges(wordcraft_doc::StoryRef::Body)
-        .into_iter()
-        .find(|r| r.control.tag == "locked")
-        .expect("the locked control remains");
+    let locked =
+        a.session.doc.control_ranges(docufy_doc::StoryRef::Body).into_iter().find(|r| r.control.tag == "locked").expect("the locked control remains");
     assert_eq!(a.session.sel.focus, locked.content_start(), "the caret stays where the deletion left it");
     assert_eq!(a.session.sel.anchor, locked.content_start());
     assert_eq!(a.session.pending, None, "the refused replacement leaves no pending formatting from the erased text");
@@ -828,7 +823,7 @@ fn tracked_delete_surrounding_shifts_past_its_own_insertion() {
     let (ctx, mut a) = alt_frame_app();
     a.run("review.trackChanges", json!({"value": true})).unwrap();
     a.run("text.insert", json!({"text": "abXY"})).unwrap();
-    a.session.sel = wordcraft_engine::Selection::caret(wordcraft_doc::Pos::body(0, 2));
+    a.session.sel = docufy_engine::Selection::caret(docufy_doc::Pos::body(0, 2));
     alt_frame(&ctx, &mut a, vec![surround(1, 1)]);
     assert_eq!(body(&a), "aY", "the own insertion `b` and the following `X` are erased");
     assert_eq!(a.session.sel.focus.off, 1, "the caret points after the stored deletion");
@@ -844,17 +839,17 @@ fn tracked_own_insertion_then_a_refused_side_rolls_the_whole_request_back() {
     a.run("document.setText", json!({"text": "aXY"})).unwrap();
     // Lock the following `X`; inserting `b` before it under Track Changes is this author's own
     // insertion, which a tracked delete removes from the stored text instead of marking.
-    a.session.sel = wordcraft_engine::Selection { anchor: wordcraft_doc::Pos::body(0, 1), focus: wordcraft_doc::Pos::body(0, 2) };
+    a.session.sel = docufy_engine::Selection { anchor: docufy_doc::Pos::body(0, 1), focus: docufy_doc::Pos::body(0, 2) };
     a.run("developer.richText", json!({"tag": "locked"})).unwrap();
     a.run("developer.properties", json!({"control": "locked", "lockEdit": true})).unwrap();
     a.run("review.trackChanges", json!({"value": true})).unwrap();
-    a.session.sel = wordcraft_engine::Selection::caret(wordcraft_doc::Pos::body(0, 1));
+    a.session.sel = docufy_engine::Selection::caret(docufy_doc::Pos::body(0, 1));
     a.run("text.insert", json!({"text": "b"})).unwrap();
     assert_eq!(body(&a), "abXY");
-    a.session.sel = wordcraft_engine::Selection::caret(wordcraft_doc::Pos::body(0, 2));
+    a.session.sel = docufy_engine::Selection::caret(docufy_doc::Pos::body(0, 2));
     let depth = a.session.undo_depth();
     let revisions = a.session.doc.revisions.len();
-    let pending = wordcraft_doc::props::CharProps { bold: Some(true), ..Default::default() };
+    let pending = docufy_doc::props::CharProps { bold: Some(true), ..Default::default() };
     a.session.pending = Some(pending.clone());
     a.session.goal_x = Some(123.0);
     alt_frame(&ctx, &mut a, vec![surround(1, 1)]);
@@ -871,16 +866,16 @@ fn tracked_own_insertion_then_a_refused_side_rolls_the_whole_request_back() {
 /// Selects a body range, wraps it in a rich-text content control with `tag`, and sets its
 /// placeholder.
 fn wrap_in_control(a: &mut WordApp, start: usize, end: usize, tag: &str, placeholder: &str) {
-    a.session.sel = wordcraft_engine::Selection { anchor: wordcraft_doc::Pos::body(0, start), focus: wordcraft_doc::Pos::body(0, end) };
+    a.session.sel = docufy_engine::Selection { anchor: docufy_doc::Pos::body(0, start), focus: docufy_doc::Pos::body(0, end) };
     a.run("developer.richText", json!({"tag": tag})).unwrap();
     a.run("developer.properties", json!({"control": tag, "placeholder": placeholder})).unwrap();
 }
 
 /// Finds the body content control with `tag`, panicking if it is absent.
-fn control(a: &WordApp, tag: &str) -> wordcraft_doc::ControlRange {
+fn control(a: &WordApp, tag: &str) -> docufy_doc::ControlRange {
     a.session
         .doc
-        .control_ranges(wordcraft_doc::StoryRef::Body)
+        .control_ranges(docufy_doc::StoryRef::Body)
         .into_iter()
         .find(|r| r.control.tag == tag)
         .unwrap_or_else(|| panic!("the {tag} control remains"))
@@ -898,7 +893,7 @@ fn delete_surrounding_maps_after_text_and_caret_past_a_growing_placeholder() {
     let r = control(&a, "name");
     let placeholder = r.control.placeholder_shown().to_string();
     assert!(placeholder.len() > "Ada".len(), "the fixture grows the paragraph: {placeholder:?}");
-    a.session.sel = wordcraft_engine::Selection::caret(r.end.clone());
+    a.session.sel = docufy_engine::Selection::caret(r.end.clone());
     let depth = a.session.undo_depth();
 
     alt_frame(&ctx, &mut a, vec![surround(3, 1)]);
@@ -922,7 +917,7 @@ fn delete_surrounding_maps_a_shrinking_placeholder_and_after_text() {
     a.run("document.setText", json!({"text": "Name: AdaX"})).unwrap();
     wrap_in_control(&mut a, 6, 9, "name", "N");
     let r = control(&a, "name");
-    a.session.sel = wordcraft_engine::Selection::caret(r.end.clone());
+    a.session.sel = docufy_engine::Selection::caret(r.end.clone());
     let depth = a.session.undo_depth();
 
     alt_frame(&ctx, &mut a, vec![surround(3, 1)]);
@@ -948,7 +943,7 @@ fn delete_surrounding_maps_a_placeholder_restored_by_the_after_side() {
     let r = control(&a, "name");
     let placeholder = r.control.placeholder_shown().to_string();
     assert!(placeholder.len() > 1);
-    a.session.sel = wordcraft_engine::Selection::caret(wordcraft_doc::Pos::body(0, 1));
+    a.session.sel = docufy_engine::Selection::caret(docufy_doc::Pos::body(0, 1));
     let depth = a.session.undo_depth();
 
     alt_frame(&ctx, &mut a, vec![surround(0, 1)]);
@@ -971,7 +966,7 @@ fn a_refused_body_delete_clears_preedit_and_joins() {
     a.run("document.setText", json!({"text": "ab"})).unwrap();
     wrap_in_control(&mut a, 1, 2, "locked", "b");
     a.run("developer.properties", json!({"control": "locked", "lockEdit": true})).unwrap();
-    a.session.sel = wordcraft_engine::Selection::caret(wordcraft_doc::Pos::body(0, 1));
+    a.session.sel = docufy_engine::Selection::caret(docufy_doc::Pos::body(0, 1));
     let depth = a.session.undo_depth();
 
     alt_frame(
@@ -999,7 +994,7 @@ fn a_refused_body_delete_clears_preedit_and_joins() {
 fn body_delete_join_does_not_leak_to_an_intervening_command() {
     let (ctx, mut a) = alt_frame_app();
     a.run("document.setText", json!({"text": "abcd"})).unwrap();
-    a.session.sel = wordcraft_engine::Selection::caret(wordcraft_doc::Pos::body(0, 4));
+    a.session.sel = docufy_engine::Selection::caret(docufy_doc::Pos::body(0, 4));
     let base = a.session.undo_depth();
 
     alt_frame(&ctx, &mut a, vec![surround(1, 0)]);
@@ -1023,7 +1018,7 @@ fn body_delete_join_does_not_leak_to_an_intervening_command() {
 fn cross_block_delete_surrounding_is_refused_and_interrupts() {
     let (ctx, mut a) = alt_frame_app();
     a.run("document.setText", json!({"text": "one\ntwo"})).unwrap();
-    a.session.sel = wordcraft_engine::Selection { anchor: wordcraft_doc::Pos::body(0, 1), focus: wordcraft_doc::Pos::body(1, 1) };
+    a.session.sel = docufy_engine::Selection { anchor: docufy_doc::Pos::body(0, 1), focus: docufy_doc::Pos::body(1, 1) };
     alt_frame(&ctx, &mut a, vec![surround(1, 0)]);
     assert_eq!(body(&a), "one\ntwo", "nothing is deleted across blocks");
     assert!(a.canvas.ime_interrupt_now, "the refused request interrupts the composition");
@@ -1111,7 +1106,7 @@ fn over_cap_equation_delete_clears_the_painted_preedit() {
     alt_frame(&ctx, &mut a, vec![egui::Event::Ime(egui::ImeEvent::Preedit { text: "p".into(), active_range_chars: None })]);
     assert_eq!(a.canvas.ime_preedit, "p");
     a.canvas.ime_interrupt_now = false;
-    alt_frame(&ctx, &mut a, vec![surround(wordcraft_engine::MAX_EQUATION_DELETE_UNITS + 1, 0)]);
+    alt_frame(&ctx, &mut a, vec![surround(docufy_engine::MAX_EQUATION_DELETE_UNITS + 1, 0)]);
     assert_eq!(body(&a), "abc", "the over-cap request deletes nothing");
     assert!(a.canvas.ime_preedit.is_empty(), "the refused request's pre-edit is not left painted");
     assert_eq!(a.canvas.ime_preedit_range, None);
@@ -1124,7 +1119,7 @@ fn over_cap_equation_delete_clears_the_painted_preedit() {
 fn over_cap_equation_delete_clears_the_previous_replacement_join() {
     let (ctx, mut a) = alt_frame_app();
     a.run("insert.equation", json!({"linear": "abcd"})).unwrap();
-    alt_frame(&ctx, &mut a, vec![surround(1, 0), surround(wordcraft_engine::MAX_EQUATION_DELETE_UNITS + 1, 0)]);
+    alt_frame(&ctx, &mut a, vec![surround(1, 0), surround(docufy_engine::MAX_EQUATION_DELETE_UNITS + 1, 0)]);
     assert_eq!(body(&a), "abc", "the first, valid deletion stands");
     assert!(a.canvas.ime_interrupt_now, "the over-cap request interrupts the composition");
     let depth = a.session.undo_depth();
@@ -1184,7 +1179,7 @@ fn oversized_ime_events_are_ignored() {
     // command, with no prefix committed and the composition interrupted.
     a.run("insert.equation", json!({})).unwrap();
     a.canvas.ime_interrupt_now = false;
-    let long = "c".repeat(wordcraft_engine::MAX_EQUATION_TYPE_CHARS + 1);
+    let long = "c".repeat(docufy_engine::MAX_EQUATION_TYPE_CHARS + 1);
     alt_frame(&ctx, &mut a, vec![egui::Event::Ime(egui::ImeEvent::Commit(long))]);
     assert_eq!(body(&a), "", "no equation prefix is committed");
     assert!(a.canvas.ime_interrupt_now, "the refused commit starts the composition afresh");
@@ -1194,7 +1189,7 @@ fn oversized_ime_events_are_ignored() {
 #[test]
 fn observe_ime_drops_a_preedit_without_focus() {
     let ctx = egui::Context::default();
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), crate::Services::default());
     a.canvas.ime_preedit = "に".into();
     a.canvas.ime_preedit_range = Some(0..1);
     a.canvas.focused = false;
@@ -1207,16 +1202,16 @@ fn observe_ime_drops_a_preedit_without_focus() {
 #[test]
 fn typing_with_smart_art_selected_types_into_an_item() {
     let ctx = egui::Context::default();
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), crate::Services::default());
     a.run("insert.smartArt", json!({"layout": "matrix", "items": ["Ada", "Bea"]})).unwrap();
     for t in ["x", "y"] {
         ctx.run_ui(egui::RawInput { events: vec![egui::Event::Text(t.into())], ..Default::default() }, |ui| canvas_events(&mut a, ui.ctx()))
             .drop_without_applying_deltas();
     }
-    let g = wordcraft_engine::cmd::smart_art::selected_smart_art(&a.session).expect("the graphic stays");
+    let g = docufy_engine::cmd::smart_art::selected_smart_art(&a.session).expect("the graphic stays");
     assert_eq!(g.items.iter().map(|i| i.text.as_str()).collect::<Vec<_>>(), ["Adaxy", "Bea"]);
     assert!(a.session.view.smart_art_pane, "the Text Pane opens");
     a.run("edit.undo", json!({})).unwrap();
-    let g = wordcraft_engine::cmd::smart_art::selected_smart_art(&a.session).expect("still there");
+    let g = docufy_engine::cmd::smart_art::selected_smart_art(&a.session).expect("still there");
     assert_eq!(g.items[0].text, "Ada", "one undo step for the typing");
 }

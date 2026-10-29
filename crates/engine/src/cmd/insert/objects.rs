@@ -124,10 +124,10 @@ fn place_picture(s: &mut Session, bytes: Vec<u8>, width: Option<f32>, alt: &str)
     }
     // Natural size: pixels at 96 ppi, or a metafile's own frame (WMF, EMF: #802). A picture that
     // is never decoded (a TIFF with JPEG strips, #3645) isn't inserted.
-    let (natural_w, natural_h, ext) = match wordcraft_geom::picture::probe(&bytes) {
+    let (natural_w, natural_h, ext) = match docufy_geom::picture::probe(&bytes) {
         Ok(pic) => (pic.width as f32 * 0.75, pic.height as f32 * 0.75, image_ext(&bytes)),
-        Err(wordcraft_geom::picture::Refusal::Unsupported(why)) => return Err(CmdError::Failed(why.into())),
-        Err(_) => match wordcraft_render::metafile_size(&bytes) {
+        Err(docufy_geom::picture::Refusal::Unsupported(why)) => return Err(CmdError::Failed(why.into())),
+        Err(_) => match docufy_render::metafile_size(&bytes) {
             Some(size) => size,
             None => return Err(CmdError::Failed("not a supported image (PNG, JPEG, GIF, WebP, BMP, WMF, EMF)".into())),
         },
@@ -157,12 +157,12 @@ fn place_picture(s: &mut Session, bytes: Vec<u8>, width: Option<f32>, alt: &str)
     Ok(json!({"media": key, "width": w, "height": h}))
 }
 
-/// Insert › Icons: a library icon (original artwork drawn in code, `wordcraft_render::icon_lib`)
+/// Insert › Icons: a library icon (original artwork drawn in code, `docufy_render::icon_lib`)
 /// rendered to a PNG picture `size` points square (default 1 inch) in `color` (default black).
 /// Without an `id` it lists the library (narrowed by `query` and `category`) and asks a front end
 /// for its icon picker.
 pub(super) fn icon(s: &mut Session, v: &Value) -> CmdResult {
-    use wordcraft_render::icon_lib;
+    use docufy_render::icon_lib;
     let Some(id) = p::str(v, "id") else {
         let category = p::str(v, "category").and_then(icon_lib::Category::parse);
         let icons: Vec<Value> = icon_lib::search(p::str(v, "query").unwrap_or(""), category)
@@ -208,7 +208,7 @@ pub(super) fn shape(s: &mut Session, v: &Value) -> CmdResult {
         Some("none") | None => (false, false),
         Some(x) => return Err(CmdError::Params(format!("`arrow`: none, start, end or both, not `{x}`"))),
     };
-    let extra = wordcraft_doc::connector::ShapeExtra { arrow_start, arrow_end, ..Default::default() };
+    let extra = docufy_doc::connector::ShapeExtra { arrow_start, arrow_end, ..Default::default() };
     // Connectors float in front of the text, so they can be glued to floating shapes.
     let float = if kind.is_connector() {
         Float { wrap: Wrap::InFrontOfText, ..Default::default() }
@@ -220,7 +220,7 @@ pub(super) fn shape(s: &mut Session, v: &Value) -> CmdResult {
         kind,
         w,
         h,
-        fill: fill.map(wordcraft_doc::fill::Fill::solid),
+        fill: fill.map(docufy_doc::fill::Fill::solid),
         stroke,
         stroke_width: 1.0,
         float,
@@ -252,7 +252,7 @@ pub(super) fn text_box(s: &mut Session, v: &Value) -> CmdResult {
         kind: ShapeKind::TextBox,
         w,
         h,
-        fill: Some(wordcraft_doc::fill::Fill::solid(Rgb::WHITE)),
+        fill: Some(docufy_doc::fill::Fill::solid(Rgb::WHITE)),
         stroke: Some(Rgb::BLACK),
         stroke_width: 0.75,
         float: Float::default(),

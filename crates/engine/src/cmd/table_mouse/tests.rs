@@ -1,6 +1,6 @@
 use super::*;
+use docufy_doc::props::Align;
 use serde_json::json;
-use wordcraft_doc::props::Align;
 
 fn table_session(rows: usize, cols: usize) -> Session {
     let mut s = Session::new(Document::new());
@@ -33,7 +33,7 @@ fn fill(s: &mut Session) {
     }
 }
 
-fn para(s: &Session, r: usize, c: usize) -> wordcraft_doc::Paragraph {
+fn para(s: &Session, r: usize, c: usize) -> docufy_doc::Paragraph {
     s.doc.para(StoryRef::Body, &cell_pos(s, r, c).path).cloned().unwrap()
 }
 
@@ -281,14 +281,14 @@ fn the_row_bar_needs_the_table_beside_the_margin() {
     // A floating table with text wrapped to its left.
     let mut d = Document::from_text(&"Words that wrap round the floating table beside them. ".repeat(40));
     let mut t = Table::new(3, 1, 150.0);
-    t.props.float = Some(wordcraft_doc::props::TableFloat {
-        h_rel: wordcraft_doc::para::Anchor::Margin,
-        v_rel: wordcraft_doc::para::Anchor::Paragraph,
+    t.props.float = Some(docufy_doc::props::TableFloat {
+        h_rel: docufy_doc::para::Anchor::Margin,
+        v_rel: docufy_doc::para::Anchor::Paragraph,
         x: 300.0,
         overlap: false,
         ..Default::default()
     });
-    d.insert_block(StoryRef::Body, &Path(vec![0]), wordcraft_doc::Block::Table(t)).unwrap();
+    d.insert_block(StoryRef::Body, &Path(vec![0]), docufy_doc::Block::Table(t)).unwrap();
     let mut s = Session::new(d);
     let r0 = cell_rect(&mut s, 0, 0);
     assert!(r0.x > 300.0, "the table floats at the right: {r0:?}");
@@ -300,7 +300,7 @@ fn the_row_bar_needs_the_table_beside_the_margin() {
 fn a_paragraph_flush_above_the_table_keeps_the_row_bar() {
     let mut d = Document::from_text("Above");
     d.para_mut(StoryRef::Body, &Path::top(0)).unwrap().props.space_after = Some(0.0);
-    d.insert_block(StoryRef::Body, &Path::top(1), wordcraft_doc::Block::Table(Table::new(2, 2, 400.0))).unwrap();
+    d.insert_block(StoryRef::Body, &Path::top(1), docufy_doc::Block::Table(Table::new(2, 2, 400.0))).unwrap();
     let mut s = Session::new(d);
     let r0 = cell_rect(&mut s, 0, 0);
     assert_eq!(spot_at(&mut s, 10.0, mid_y(r0)), Some(Spot::Row(0)));
@@ -388,7 +388,7 @@ fn a_double_click_on_a_border_fits_the_column() {
     s.sel = Selection::caret(cell_pos(&s, 0, 0));
     s.run("text.insert", &json!({"text": "ab"})).unwrap();
     let (a, b, c) = (cell_rect(&mut s, 0, 0), cell_rect(&mut s, 0, 1), cell_rect(&mut s, 0, 2));
-    let fit = wordcraft_layout::measure_table_columns(&s.doc, &first_table(&s));
+    let fit = docufy_layout::measure_table_columns(&s.doc, &first_table(&s));
     s.run("table.fitColumn", &json!({"page": 0, "x": a.right(), "y": mid_y(a)})).unwrap();
     let (a1, b1, c1) = (cell_rect(&mut s, 0, 0), cell_rect(&mut s, 0, 1), cell_rect(&mut s, 0, 2));
     assert!((a1.w - fit[0].1).abs() < 0.5 && a1.w < a.w - 50.0, "{a:?} → {a1:?}, {fit:?}");
@@ -430,7 +430,7 @@ fn a_nested_tables_column_fits_within_its_cell() {
     assert!(b.right() < host.right() - 40.0, "{b:?} in {host:?}");
     s.run("table.fitColumn", &json!({"page": 0, "x": a.right(), "y": mid_y(a)})).unwrap();
     let (a1, b1) = (rect(&mut s, &inner, 0), rect(&mut s, &inner, 1));
-    let text_right = host.right() - wordcraft_layout::cell_margins(&s.doc, &first_table(&s), 0, 0)[3];
+    let text_right = host.right() - docufy_layout::cell_margins(&s.doc, &first_table(&s), 0, 0)[3];
     assert!(a1.w > a.w + 40.0 && (b1.w - b.w).abs() < 0.5, "{a:?} {b:?} → {a1:?} {b1:?}");
     assert!((b1.right() - text_right).abs() < 0.5, "the table fills its cell's text: {b1:?}, {text_right}");
     let host1 = rect(&mut s, &outer, 0);

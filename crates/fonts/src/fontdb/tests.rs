@@ -19,10 +19,10 @@ fn occasional_slow_hinted_glyphs_do_not_turn_hinting_off() {
     assert_eq!(off(&spread), Some(23));
 }
 #[test]
-#[ignore = "requires a locally licensed kaiu.ttf; set WORDCRAFT_TEST_KAI_FONT"]
+#[ignore = "requires a locally licensed kaiu.ttf; set DOCUFY_TEST_KAI_FONT"]
 fn kai_contours_include_complete_character_body() {
     use kurbo::Shape;
-    let path = std::env::var_os("WORDCRAFT_TEST_KAI_FONT").expect("set WORDCRAFT_TEST_KAI_FONT");
+    let path = std::env::var_os("DOCUFY_TEST_KAI_FONT").expect("set DOCUFY_TEST_KAI_FONT");
     let db = super::FontDb::with_font_dirs(vec![]);
     db.set_system_fallback(false);
     assert!(db.add_font(std::fs::read(path).unwrap()) > 0);

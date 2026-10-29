@@ -46,7 +46,7 @@ impl Exporter<'_> {
             Draw::Image { rect, media, crop, alpha, .. } => self.picture(s, rect, media, crop, *alpha),
             Draw::Path { segs, fill: f, stroke, stroke_width, dash, cap } => {
                 let mut pb = PathBuilder::new();
-                append_path(&mut pb, &wordcraft_layout::display::seg_path(segs));
+                append_path(&mut pb, &docufy_layout::display::seg_path(segs));
                 let Some(p) = pb.finish() else { return };
                 s.set_fill(f.as_ref().map(paint_fill));
                 s.set_stroke(stroke.map(|c| Stroke {
@@ -104,7 +104,7 @@ impl Exporter<'_> {
                 if let (Some(rad), Some(c), true) = (fx.soft_edge, f.as_ref(), can_fill) {
                     let rad = rad.min(rect.w.min(rect.h) / 2.0).max(0.0);
                     s.set_stroke(None);
-                    for (g, a) in wordcraft_doc::effects::bands(-rad, 0.0, 1.0) {
+                    for (g, a) in docufy_doc::effects::bands(-rad, 0.0, 1.0) {
                         if let Some(p) = shape_path(*kind, &grown(rect, g, 0.0, 0.0), *corner) {
                             s.set_fill(Some(paint_fill(&c.faded(a))));
                             s.draw_path(&p);
@@ -128,7 +128,7 @@ impl Exporter<'_> {
                 s.set_stroke(None);
             }
             Draw::Art { path, fx, color, alpha, .. } => {
-                for l in wordcraft_layout::wordart::art_layers(path, fx, *color, *alpha) {
+                for l in docufy_layout::wordart::art_layers(path, fx, *color, *alpha) {
                     let mut pb = PathBuilder::new();
                     append_path(&mut pb, &l.path);
                     let Some(p) = pb.finish() else { continue };
@@ -276,7 +276,7 @@ impl Exporter<'_> {
 
     /// The page's picture or texture fill: tiled at 96 dpi for a `tile` fill (when that is a sane
     /// number of tiles), else stretched over the page.
-    pub(super) fn page_picture(&mut self, s: &mut Surface, pic: &wordcraft_doc::PagePicture, w: f32, h: f32) {
+    pub(super) fn page_picture(&mut self, s: &mut Surface, pic: &docufy_doc::PagePicture, w: f32, h: f32) {
         const MAX_TILES: f32 = 4096.0;
         if !(w.is_finite() && h.is_finite() && w > 0.0 && h > 0.0) {
             return;
@@ -317,7 +317,7 @@ impl Exporter<'_> {
             s.set_fill(None);
             return;
         };
-        let [cl, ct, vis_w, vis_h] = wordcraft_metafile::crop_window(*crop).map(|v| v as f32);
+        let [cl, ct, vis_w, vis_h] = docufy_metafile::crop_window(*crop).map(|v| v as f32);
         let (fw, fh) = (rect.w / vis_w, rect.h / vis_h);
         let Some(size) = Size::from_wh(fw.max(0.01), fh.max(0.01)) else { return };
         let fade = alpha < 0.999;

@@ -88,7 +88,7 @@ pub(super) fn table(toks: &[Tok], spec: &str, depth: usize) -> FTable {
             }
             _ => {}
         }
-        if rows.len() >= wordcraft_doc::table::MAX_ROWS {
+        if rows.len() >= docufy_doc::table::MAX_ROWS {
             break;
         }
     }

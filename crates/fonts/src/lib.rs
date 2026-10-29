@@ -1,8 +1,8 @@
-//! WordCraft fonts: the font database (bundled OFL families + user/system fonts), vertical
+//! Docufy fonts: the font database (bundled OFL families + user/system fonts), vertical
 //! metrics, glyph outlines and OpenType shaping.
 //!
 //! Shaping here is style-agnostic: [`shape`] turns a string in one face into glyph ids, clusters
-//! and advances in font units. `wordcraft-compose` applies sizes, tracking, scaling and
+//! and advances in font units. `docufy-compose` applies sizes, tracking, scaling and
 //! justification on top.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 #![forbid(unsafe_code)]

@@ -125,7 +125,7 @@ fn frames_sharing_a_picture_all_show_it() {
 fn embedded_formula_object_reads_its_mathml() {
     // #3099: LibreOffice saves an equation as a `draw:object` (a formula sub-document whose
     // own `content.xml` is MathML) plus a `draw:image` replacement preview in LibreOffice's
-    // own metafile format, which WordCraft can't decode as a picture. The object's MathML
+    // own metafile format, which Docufy can't decode as a picture. The object's MathML
     // must be read instead of silently dropping the frame (blank equation).
     let math = r#"<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>E</mi><mo stretchy="false">=</mo><msup><mi mathvariant="italic">mc</mi><mn>2</mn></msup></mrow><annotation encoding="StarMath 5.0">E=mc^2</annotation></semantics></math>"#;
     let frame = r#"<draw:frame svg:width="0.5in" svg:height="0.2in"><draw:object xlink:href="./Object 1"/><draw:image xlink:href="./ObjectReplacements/Object 1"/></draw:frame>"#;
@@ -269,7 +269,7 @@ fn page_layout_follows_the_first_master_page() {
             <style:master-page style:name="Standard" style:page-layout-name="pm2"/>
             <style:master-page style:name="Other" style:page-layout-name="pm1"/>
             </office:master-styles></office:document-styles>"#;
-    let mut sec = wordcraft_doc::SectionProps::default();
+    let mut sec = docufy_doc::SectionProps::default();
     apply_page_layout(xml, &mut sec);
     assert!(sec.landscape);
     assert_eq!((sec.page_w, sec.page_h, sec.margin_left, sec.margin_top), (720.0, 360.0, 72.0, 72.0));
@@ -288,14 +288,14 @@ fn hostile_page_layout_values_are_clamped() {
         )
     };
     // Huge values: the page is capped at 22 inches and margins at the page's longer side.
-    let mut sec = wordcraft_doc::SectionProps::default();
+    let mut sec = docufy_doc::SectionProps::default();
     apply_page_layout(styles("1e30pt", "1e30in", "1e30pt").as_bytes(), &mut sec);
     assert_eq!((sec.page_w, sec.page_h), (1584.0, 1584.0));
     assert_eq!((sec.margin_top, sec.margin_left), (1584.0, 1584.0));
     // Negative, zero, tiny and non-numeric values leave the defaults alone.
-    let def = wordcraft_doc::SectionProps::default();
+    let def = docufy_doc::SectionProps::default();
     for (w, h, m) in [("-10in", "-5in", "-1in"), ("0pt", "0pt", "NaNpt"), ("1pt", "2pt", "infpt"), ("NaN", "inf", "x")] {
-        let mut sec = wordcraft_doc::SectionProps::default();
+        let mut sec = docufy_doc::SectionProps::default();
         apply_page_layout(styles(w, h, m).as_bytes(), &mut sec);
         assert_eq!((sec.page_w, sec.page_h), (def.page_w, def.page_h), "{w} {h}");
         assert_eq!((sec.margin_top, sec.margin_right), (def.margin_top, def.margin_right), "{m}");
@@ -321,16 +321,15 @@ fn table_column_widths_survive_a_round_trip() {
     let content = format!(
         r##"<office:document-content {NS_T}><office:automatic-styles><style:style style:name="Table1.A" style:family="table-column"><style:table-column-properties style:column-width="1in"/></style:style><style:style style:name="Table1.B" style:family="table-column"><style:table-column-properties style:column-width="3in"/></style:style></office:automatic-styles><office:body><office:text><table:table><table:table-column table:style-name="Table1.A"/><table:table-column table:style-name="Table1.B"/><table:table-row><table:table-cell><text:p>A</text:p></table:table-cell><table:table-cell><text:p>B</text:p></table:table-cell></table:table-row></table:table></office:text></office:body></office:document-content>"##
     );
-    let grid =
-        |doc: &Document| match doc.body.iter().find_map(|b| if let wordcraft_doc::Block::Table(t) = &**b { Some(t.grid.clone()) } else { None }) {
-            Some(g) => g,
-            None => panic!("no table"),
-        };
+    let grid = |doc: &Document| match doc.body.iter().find_map(|b| if let docufy_doc::Block::Table(t) = &**b { Some(t.grid.clone()) } else { None }) {
+        Some(g) => g,
+        None => panic!("no table"),
+    };
     let mut doc = import(&package(&content, None)).unwrap();
     assert_eq!(grid(&doc), vec![72.0, 216.0]);
     let widths = vec![150.0, 100.0];
     for b in doc.body.iter_mut() {
-        if let wordcraft_doc::Block::Table(t) = std::sync::Arc::make_mut(b) {
+        if let docufy_doc::Block::Table(t) = std::sync::Arc::make_mut(b) {
             t.grid = widths.clone();
         }
     }
@@ -408,7 +407,7 @@ fn sections_package() -> Vec<u8> {
 }
 
 fn part_text(d: &Document, id: Option<u32>) -> String {
-    d.plain_text(wordcraft_doc::StoryRef::Part(id.expect("part")))
+    d.plain_text(docufy_doc::StoryRef::Part(id.expect("part")))
 }
 
 #[test]
@@ -454,7 +453,7 @@ fn headers_and_footers_follow_their_master_page() {
     assert_eq!(part_text(&d, wide.footers.default), "");
     assert_eq!(d.parts.len(), 6);
     let id = up.headers.default.unwrap();
-    let Some(wordcraft_doc::Block::Para(p)) = d.parts[&id].blocks.first().map(|b| &**b) else { panic!("no header paragraph") };
+    let Some(docufy_doc::Block::Para(p)) = d.parts[&id].blocks.first().map(|b| &**b) else { panic!("no header paragraph") };
     assert!(p.runs.iter().all(|r| r.props.bold == Some(true)), "{:?}", p.runs);
 }
 
@@ -490,7 +489,7 @@ fn deeply_nested_header_content_does_not_panic() {
 
 #[test]
 fn master_pages_and_column_sections_become_sections() {
-    use wordcraft_doc::section::SectionStart;
+    use docufy_doc::section::SectionStart;
     let doc = import(&sections_package()).unwrap();
     let secs = doc.sections();
     let summary: Vec<_> =
@@ -510,23 +509,23 @@ fn master_pages_and_column_sections_become_sections() {
     assert!((cols.space - 28.35).abs() < 0.01 && cols.separator, "{cols:?}");
     // Each section ends on its own last paragraph; the wide one ends after its table.
     let text = |i: usize| match doc.body.get(i).map(|b| &**b) {
-        Some(wordcraft_doc::Block::Para(p)) => p.plain_text().to_string(),
+        Some(docufy_doc::Block::Para(p)) => p.plain_text().to_string(),
         _ => String::from("<not a paragraph>"),
     };
     assert_eq!(text(secs[0].0), "More opening words");
-    assert!(matches!(doc.body.get(secs[1].0 - 1).map(|b| &**b), Some(wordcraft_doc::Block::Table(_))));
+    assert!(matches!(doc.body.get(secs[1].0 - 1).map(|b| &**b), Some(docufy_doc::Block::Table(_))));
     assert_eq!(text(secs[2].0), "Right column text");
     assert_eq!(text(secs[3].0), "Last line");
 }
 
 /// (start, landscape, width, height, columns, restart, margins) of each section, and the
 /// text of the paragraph ending it.
-fn section_summary(doc: &Document) -> Vec<(wordcraft_doc::section::SectionStart, bool, f32, f32, u32, bool, Option<u32>, [f32; 4], String)> {
+fn section_summary(doc: &Document) -> Vec<(docufy_doc::section::SectionStart, bool, f32, f32, u32, bool, Option<u32>, [f32; 4], String)> {
     doc.sections()
         .iter()
         .map(|(end, s)| {
             let text = match doc.body.get(*end).map(|b| &**b) {
-                Some(wordcraft_doc::Block::Para(p)) => p.plain_text().to_string(),
+                Some(docufy_doc::Block::Para(p)) => p.plain_text().to_string(),
                 _ => String::new(),
             };
             (
@@ -657,7 +656,7 @@ fn export_of_a_one_section_document_stays_simple() {
     let one = import(&export(&doc).unwrap()).unwrap();
     let mut single = one.clone();
     for b in single.body.iter_mut() {
-        if let wordcraft_doc::Block::Para(p) = std::sync::Arc::make_mut(b) {
+        if let docufy_doc::Block::Para(p) = std::sync::Arc::make_mut(b) {
             p.section = None;
         }
     }
@@ -715,7 +714,7 @@ fn master_page_on_a_table_style_starts_a_section() {
     // Review of #1379: a table style can name a master page too (ODF 1.3 §19.509), with its
     // page-number restart on `style:table-properties`. An empty name on a child style means
     // "no page style here", and a page-number restart without a master page starts nothing.
-    use wordcraft_doc::section::SectionStart;
+    use docufy_doc::section::SectionStart;
     let styles = format!(
         r#"<office:document-styles {NS_T}><office:styles><style:style style:name="WideParent" style:family="paragraph" style:master-page-name="Wide"/></office:styles><office:automatic-styles>
             <style:page-layout style:name="pU"><style:page-layout-properties fo:page-width="21cm" fo:page-height="29.7cm"><style:columns fo:column-count="1" fo:column-gap="0cm"/></style:page-layout-properties></style:page-layout>
@@ -739,9 +738,9 @@ fn master_page_on_a_table_style_starts_a_section() {
     let secs = doc.sections();
     let summary: Vec<_> = secs.iter().map(|(i, s)| (*i, s.start, s.landscape, s.page_num_start)).collect();
     assert_eq!(summary, [(2, SectionStart::NextPage, false, None), (4, SectionStart::NextPage, true, Some(1))]);
-    assert!(matches!(doc.body.get(3).map(|b| &**b), Some(wordcraft_doc::Block::Table(_))));
+    assert!(matches!(doc.body.get(3).map(|b| &**b), Some(docufy_doc::Block::Table(_))));
     // A one-column page layout keeps the default column gap.
-    assert_eq!(secs[0].1.columns, wordcraft_doc::section::Columns::default());
+    assert_eq!(secs[0].1.columns, docufy_doc::section::Columns::default());
 }
 
 #[test]
@@ -780,13 +779,13 @@ fn region(id: &str, kind: &str, author: &str, date: &str, content: &str) -> Stri
 }
 
 /// Each body paragraph as (text, revision kind) runs, plus its mark's revision kind.
-type RevRuns = Vec<(Vec<(String, Option<wordcraft_doc::RevisionKind>)>, Option<wordcraft_doc::RevisionKind>)>;
+type RevRuns = Vec<(Vec<(String, Option<docufy_doc::RevisionKind>)>, Option<docufy_doc::RevisionKind>)>;
 
 fn rev_runs(doc: &Document) -> RevRuns {
     let kind = |i: Option<u32>| i.and_then(|i| doc.revisions.get(i as usize)).map(|r| r.kind);
     doc.body
         .iter()
-        .filter_map(|b| if let wordcraft_doc::Block::Para(p) = &**b { Some(p) } else { None })
+        .filter_map(|b| if let docufy_doc::Block::Para(p) = &**b { Some(p) } else { None })
         .map(|p| {
             let runs = p.run_ranges().map(|(r, cp)| (p.text[r].to_string(), kind(cp.del).or(kind(cp.ins)))).collect();
             (runs, kind(p.mark.del).or(kind(p.mark.ins)))
@@ -805,7 +804,7 @@ fn insertion_and_deletion() -> Vec<u8> {
 
 #[test]
 fn tracked_insertion_and_deletion_import_with_authors_and_dates() {
-    use wordcraft_doc::RevisionKind::{Delete, Insert};
+    use docufy_doc::RevisionKind::{Delete, Insert};
     let doc = import(&insertion_and_deletion()).unwrap();
     let s = |v: &str| v.to_string();
     assert_eq!(rev_runs(&doc), vec![(vec![(s("Keep "), None), (s("new "), Some(Insert)), (s("old "), Some(Delete)), (s("words."), None)], None)]);
@@ -816,7 +815,7 @@ fn tracked_insertion_and_deletion_import_with_authors_and_dates() {
 
 #[test]
 fn tracked_deletion_across_paragraphs_keeps_the_deleted_paragraph_mark() {
-    use wordcraft_doc::RevisionKind::Delete;
+    use docufy_doc::RevisionKind::Delete;
     // "First tail¶head rest." with "tail¶head " deleted: the body holds the merged paragraph.
     let regions = region("d1", "deletion", "Bob", "2024-03-02T11:30:00", "<text:p>tail</text:p><text:p>head<text:s/></text:p>");
     let doc = import(&tracked(&regions, r#"<text:p>First <text:change text:change-id="d1"/>rest.</text:p>"#)).unwrap();
@@ -839,24 +838,24 @@ fn tracked_changes_round_trip_through_export() {
     assert_eq!(revs(&back), revs(&doc));
     assert_eq!(back.settings.track_changes, doc.settings.track_changes);
     // The inserted paragraph mark survives: "added¶" is part of the insertion.
-    assert_eq!(rev_runs(&doc)[2].1, Some(wordcraft_doc::RevisionKind::Insert));
+    assert_eq!(rev_runs(&doc)[2].1, Some(docufy_doc::RevisionKind::Insert));
 }
 
 #[test]
 fn an_inserted_ruby_keeps_its_tracked_insertion() {
     // ODF has no ruby: its base text is written as text, and the insertion on the ruby must
     // still be a change range around that text, not plain untracked text.
-    use wordcraft_doc::RevisionKind::Insert;
-    let props = wordcraft_doc::props::CharProps::default();
-    let mut p = wordcraft_doc::Paragraph::with_text("before ", props.clone());
+    use docufy_doc::RevisionKind::Insert;
+    let props = docufy_doc::props::CharProps::default();
+    let mut p = docufy_doc::Paragraph::with_text("before ", props.clone());
     let n = p.len();
     let mut ins = props.clone();
     ins.ins = Some(0);
     p.insert_object(n, crate::model::ruby_object("漢字".into(), "かんじ".into(), 20.0), &ins).unwrap();
     let mut d = Document::new();
     d.settings.track_changes = true;
-    d.revisions.push(wordcraft_doc::Revision::new(Insert, "Alice", "2024-03-01T10:00:00"));
-    d.body = vec![wordcraft_doc::para_block(p)];
+    d.revisions.push(docufy_doc::Revision::new(Insert, "Alice", "2024-03-01T10:00:00"));
+    d.body = vec![docufy_doc::para_block(p)];
     let back = import(&export(&d).unwrap()).unwrap();
     assert_eq!(rev_runs(&back), vec![(vec![("before ".to_string(), None), ("漢字".to_string(), Some(Insert))], None)]);
 }
@@ -888,14 +887,14 @@ fn hostile_tracked_changes_are_bounded() {
 type Marks = Vec<(Vec<(String, bool, bool)>, (bool, bool))>;
 
 fn marks(doc: &Document) -> Marks {
-    fn walk(bl: &wordcraft_doc::Blocks, out: &mut Marks) {
+    fn walk(bl: &docufy_doc::Blocks, out: &mut Marks) {
         for b in bl {
             match &**b {
-                wordcraft_doc::Block::Para(p) => out.push((
+                docufy_doc::Block::Para(p) => out.push((
                     p.run_ranges().map(|(r, cp)| (p.text[r].to_string(), cp.ins.is_some(), cp.del.is_some())).collect(),
                     (p.mark.ins.is_some(), p.mark.del.is_some()),
                 )),
-                wordcraft_doc::Block::Table(t) => {
+                docufy_doc::Block::Table(t) => {
                     for r in &t.rows {
                         for c in &r.cells {
                             walk(&c.blocks, out);
@@ -990,7 +989,7 @@ fn spaces_after_a_tab_survive_a_round_trip() {
     for src in ["a\t b", "a\t  b", "a\t   éa", "é\t 😀a", "a\t\t b"] {
         let doc = Document::from_text(src);
         let back = import(&export(&doc).unwrap()).unwrap();
-        assert_eq!(back.plain_text(wordcraft_doc::StoryRef::Body).trim_end(), src, "{src:?}");
+        assert_eq!(back.plain_text(docufy_doc::StoryRef::Body).trim_end(), src, "{src:?}");
     }
 }
 
@@ -1041,11 +1040,11 @@ fn explicit_spaces_at_paragraph_ends_are_kept() {
     assert_eq!(texts, vec!["    lead", "trail  ", "plain", " x  "]);
     let d = Document::from_text("    indented code  ");
     let back = import(&export(&d).unwrap()).unwrap();
-    assert_eq!(back.plain_text(wordcraft_doc::StoryRef::Body).trim_end_matches('\n'), "    indented code  ");
+    assert_eq!(back.plain_text(docufy_doc::StoryRef::Body).trim_end_matches('\n'), "    indented code  ");
     for t in ["trail ", "trail  "] {
         let d = Document::from_text(t);
         let back = import(&export(&d).unwrap()).unwrap();
-        assert_eq!(back.plain_text(wordcraft_doc::StoryRef::Body).trim_end_matches('\n'), t);
+        assert_eq!(back.plain_text(docufy_doc::StoryRef::Body).trim_end_matches('\n'), t);
     }
 }
 

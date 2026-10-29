@@ -1,7 +1,7 @@
 //! Who answered on Zotero's port. Zotero's protocol has no handshake that proves the other end
 //! is Zotero, and whatever answers gets to read and rewrite the open document. Two checks:
 //!
-//! - **Every system:** WordCraft only connects to this computer (a loopback address).
+//! - **Every system:** Docufy only connects to this computer (a loopback address).
 //! - **Linux only:** the program listening there must not run as another user, from the
 //!   kernel's socket table (`/proc/net/tcp`): another account on a shared machine that took the
 //!   port while Zotero wasn't running is refused. A listener the tables don't show (WSL2
@@ -22,7 +22,7 @@ pub(crate) fn check_addr(addr: &SocketAddr) -> Result<(), ZoteroError> {
     if addr.ip().to_canonical().is_loopback() {
         Ok(())
     } else {
-        Err(ZoteroError::Refused(format!("{addr} is not on this computer; WordCraft only talks to Zotero on 127.0.0.1")))
+        Err(ZoteroError::Refused(format!("{addr} is not on this computer; Docufy only talks to Zotero on 127.0.0.1")))
     }
 }
 

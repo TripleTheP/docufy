@@ -181,7 +181,7 @@ fn delete_inner(s: &mut Session, _: &Value) -> CmdResult {
                 *l -= 1;
             }
             path.extend([0, 0, 0]);
-            s.sel = Selection::caret(Pos { story: f.story, path: wordcraft_doc::Path(path), off: 0 });
+            s.sel = Selection::caret(Pos { story: f.story, path: docufy_doc::Path(path), off: 0 });
         }
     } else if f.story == StoryRef::Body && f.path.0.len() == 1 && !s.doc.settings.track_changes {
         // The last paragraph: no paragraph to join, but a section break on its mark (the last

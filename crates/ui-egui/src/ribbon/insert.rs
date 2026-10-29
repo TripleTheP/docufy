@@ -134,7 +134,7 @@ pub(super) fn insert(app: &mut WordApp, ui: &mut Ui) {
                     // This session's building blocks, then the document's own Quick Parts.
                     let mut parts: Vec<String> = app.session.building_blocks.keys().cloned().collect();
                     let mut seen: std::collections::HashSet<String> = parts.iter().cloned().collect();
-                    let glossary = app.session.doc.glossary.iter().filter(|e| e.gallery == wordcraft_doc::QUICK_PARTS_GALLERY);
+                    let glossary = app.session.doc.glossary.iter().filter(|e| e.gallery == docufy_doc::QUICK_PARTS_GALLERY);
                     parts.extend(glossary.filter(|e| seen.insert(e.name.clone())).map(|e| e.name.clone()));
                     for name in parts {
                         if ui.button(&name).clicked() {
@@ -200,7 +200,7 @@ pub(super) fn insert(app: &mut WordApp, ui: &mut Ui) {
 /// Insert › Drop Cap's menu (#2601): None, Dropped and In margin (the current one checked),
 /// then the Drop Cap dialog.
 fn drop_cap_items(ui: &mut Ui, app: &mut WordApp) {
-    let current = wordcraft_engine::cmd::insert::drop_cap_state(&app.session).position;
+    let current = docufy_engine::cmd::insert::drop_cap_state(&app.session).position;
     for (label, v) in [("None", "none"), ("Dropped", "dropped"), ("In margin", "margin")] {
         mi_check(ui, app, label, current == v, "insert.dropCap", json!({"position": v}));
     }

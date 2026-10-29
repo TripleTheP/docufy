@@ -1,8 +1,8 @@
 use super::*;
-use wordcraft_doc::math::Math;
+use docufy_doc::math::Math;
 
 fn rc() -> ResolvedChar {
-    wordcraft_doc::styles::StyleSheet::default().resolve_char(None, &Default::default())
+    docufy_doc::styles::StyleSheet::default().resolve_char(None, &Default::default())
 }
 
 fn lay(lin: &str, display: bool) -> MathLayout {
@@ -37,7 +37,7 @@ fn lay_in(math: &Math, lin: &str, display: bool, avail: f32, mp: &MathProps) -> 
 fn eq_array_rows_without_ampersand_are_centred() {
     // Word centres a row with no `&` in the array (#2617: a case row "a, n odd" above
     // "|a|, &n even"), whether or not the other rows have one.
-    use wordcraft_doc::math::*;
+    use docufy_doc::math::*;
     let run = |s: &str| vec![MNode::Run(MRun::new(s))];
     let w_a = lay("a", true).width;
     for other in ["bbbbbb&c", "bbbbbbc"] {
@@ -180,7 +180,7 @@ fn delimiters_grow_around_tall_content() {
 
 #[test]
 fn every_structure_lays_out() {
-    use wordcraft_doc::math::*;
+    use docufy_doc::math::*;
     let x = || vec![MNode::Run(MRun::new("x"))];
     let nodes = vec![
         MNode::Acc { chr: '\u{302}', e: x() },
@@ -217,7 +217,7 @@ fn every_structure_lays_out() {
 /// drawn from a fallback font, not as a missing-glyph box.
 #[test]
 fn characters_the_math_font_lacks_fall_back() {
-    let (face, _) = wordcraft_fonts::math::resolve_math("Cambria Math");
+    let (face, _) = docufy_fonts::math::resolve_math("Cambria Math");
     let Some(c) = ['⨌', '⫿', '⟅', 'ア', '中', '가'].into_iter().find(|c| !face.covers(*c) && FontDb::global().fallback_for(*c, face.id()).is_some())
     else {
         return; // Every candidate is in the math font, or no fallback font is installed.
@@ -243,8 +243,8 @@ fn characters_the_math_font_lacks_fall_back() {
 
 #[test]
 fn caret_slots_cover_every_position() {
-    use wordcraft_doc::math_edit::{MathPos, move_right, units};
-    let math = Math { nodes: wordcraft_doc::math::parse_linear("x=(-b±√(b^2-4ac))/2a+■(a&b@c&d)"), ..Default::default() };
+    use docufy_doc::math_edit::{MathPos, move_right, units};
+    let math = Math { nodes: docufy_doc::math::parse_linear("x=(-b±√(b^2-4ac))/2a+■(a&b@c&d)"), ..Default::default() };
     let m = layout_equation(&math, "", &rc(), true, 400.0, &MathProps::default(), &mut 0);
     // Walking the caret through the equation, every position has a slot.
     let mut p = MathPos::default();
@@ -268,7 +268,7 @@ fn caret_slots_cover_every_position() {
 
 #[test]
 fn an_arguments_extent_spans_its_caret_positions() {
-    let math = Math { nodes: wordcraft_doc::math::parse_linear("y=(a+b)/c"), ..Default::default() };
+    let math = Math { nodes: docufy_doc::math::parse_linear("y=(a+b)/c"), ..Default::default() };
     let m = layout_equation(&math, "", &rc(), true, 400.0, &MathProps::default(), &mut 0);
     let (nx0, nx1, nup, ndown) = m.arg_extent(&[(1, 0)]).unwrap();
     let (dx0, dx1, dup, ddown) = m.arg_extent(&[(1, 1)]).unwrap();
@@ -285,7 +285,7 @@ fn an_arguments_extent_spans_its_caret_positions() {
 
 #[test]
 fn empty_slots_show_placeholders_on_screen_only() {
-    let math = Math { nodes: wordcraft_doc::math::parse_linear("⬚/⬚"), ..Default::default() };
+    let math = Math { nodes: docufy_doc::math::parse_linear("⬚/⬚"), ..Default::default() };
     let m = layout_equation(&math, "", &rc(), true, 400.0, &MathProps::default(), &mut 0);
     assert!(m.items.iter().all(|i| matches!(i, MItem::ScreenOnly(_) | MItem::Rect { .. })), "{:?}", m.items);
     assert!(m.slots.iter().any(|s| s.path == vec![(0, 0)] && s.off == 0));
@@ -295,7 +295,7 @@ fn empty_slots_show_placeholders_on_screen_only() {
 
 #[test]
 fn numbered_equations_fill_the_line_with_the_number_at_the_right() {
-    let math = Math { nodes: wordcraft_doc::math::parse_linear("E=mc^2#(1)"), ..Default::default() };
+    let math = Math { nodes: docufy_doc::math::parse_linear("E=mc^2#(1)"), ..Default::default() };
     let m = layout_equation(&math, "", &rc(), true, 400.0, &MathProps::default(), &mut 0);
     assert!((m.width - 400.0).abs() < 0.01, "{}", m.width);
     let xs: Vec<f32> = m.items.iter().filter_map(|i| if let MItem::Glyphs { glyphs, .. } = i { glyphs.first().map(|g| g.1) } else { None }).collect();
@@ -304,7 +304,7 @@ fn numbered_equations_fill_the_line_with_the_number_at_the_right() {
     let min = xs.iter().cloned().fold(f32::MAX, f32::min);
     assert!(min > 120.0 && min < 220.0, "equation centred: {xs:?}");
     // Automatic numbers count.
-    let auto = Math { nodes: wordcraft_doc::math::parse_linear("a=b#"), ..Default::default() };
+    let auto = Math { nodes: docufy_doc::math::parse_linear("a=b#"), ..Default::default() };
     let mut n = 4;
     let _ = layout_equation(&auto, "", &rc(), true, 400.0, &MathProps::default(), &mut n);
     assert_eq!(n, 5);
@@ -323,7 +323,7 @@ fn math_alphabets() {
 
 #[test]
 fn eqarr_rows_without_an_align_marker_are_centred() {
-    use wordcraft_doc::math::*;
+    use docufy_doc::math::*;
     // A row without `&` must not widen the alignment columns; it centres across the
     // array instead of right-aligning at the first column's edge.
     let rows: Vec<Vec<MNode>> = vec![vec![MNode::Run(MRun::new("mmm"))], vec![MNode::Run(MRun::new("x&yyyyyyyy"))]];
@@ -338,7 +338,7 @@ fn eqarr_rows_without_an_align_marker_are_centred() {
 
 #[test]
 fn eqarr_row_without_an_align_marker_wider_than_the_columns_widens_the_array() {
-    use wordcraft_doc::math::*;
+    use docufy_doc::math::*;
     // The `&`-less row is wider than the aligned columns: it must not hang left of the
     // origin, the array is as wide as it, and the aligned rows centre under it.
     let rows: Vec<Vec<MNode>> = vec![vec![MNode::Run(MRun::new("bbbbbbbbbb"))], vec![MNode::Run(MRun::new("a&c"))]];
@@ -362,7 +362,7 @@ fn eqarr_row_without_an_align_marker_wider_than_the_columns_widens_the_array() {
 
 #[test]
 fn hostile_trees_never_panic() {
-    use wordcraft_doc::math::*;
+    use docufy_doc::math::*;
     // Deep nesting.
     let mut n = vec![MNode::Run(MRun::new("x"))];
     for _ in 0..500 {
@@ -395,7 +395,7 @@ fn hostile_trees_never_panic() {
 #[test]
 fn a_long_text_run_lays_out_in_linear_time() {
     use crate::tests::linear::assert_linear_steps;
-    use wordcraft_doc::math::*;
+    use docufy_doc::math::*;
     let eq = |n: usize| Math { nodes: vec![MNode::Run(MRun { nor: true, ..MRun::new("a".repeat(n)) })], ..Default::default() };
     let lay = |m: &Math| drop(std::hint::black_box(lay_in(m, "", false, 1e6, &MathProps::default())));
     assert_linear_steps("math text run", 400, eq, lay);

@@ -8,7 +8,7 @@ impl Writer<'_> {
         let inline = std::mem::take(&mut self.inline_controls);
         // A drop cap is a separate framed paragraph holding the first character.
         if let Some(lines) = p.props.drop_cap.filter(|l| *l > 0)
-            && let Some(first) = p.text.chars().next().filter(|c| !matches!(*c, wordcraft_doc::para::OBJ | '\t' | '\n' | '\u{c}' | '\u{e}'))
+            && let Some(first) = p.text.chars().next().filter(|c| !matches!(*c, docufy_doc::para::OBJ | '\t' | '\n' | '\u{c}' | '\u{e}'))
             && p.text.len() > first.len_utf8()
         {
             let mut head = p.clone();
@@ -135,7 +135,7 @@ impl Writer<'_> {
         // Split into pieces with their props.
         let mut pieces: Vec<(Piece, &CharProps)> = Vec::new();
         let mut k = 0usize;
-        // Runs of mixed direction are split so Word orders them as WordCraft does (#1543).
+        // Runs of mixed direction are split so Word orders them as Docufy does (#1543).
         let rtl_para = self.doc.styles.resolve_para(&p.props).bidi;
         let styles = &self.doc.styles;
         let para_style = p.props.style.as_deref();
@@ -158,7 +158,7 @@ impl Writer<'_> {
                     '\u{000E}' => Some(Piece::Br(Some("column"))),
                     '\u{2011}' => Some(Piece::NbHyphen),
                     '\u{00AD}' => Some(Piece::SoftHyphen),
-                    wordcraft_doc::para::OBJ => {
+                    docufy_doc::para::OBJ => {
                         let o = p.objects.get(k);
                         k += 1;
                         Some(match o {

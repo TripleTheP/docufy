@@ -4,8 +4,8 @@
 //! document); a front end keeps the other windows' views and moves them in and out with
 //! [`Session::take_view`] and [`Session::put_view`] as it draws each window.
 
-use wordcraft_doc::props::CharProps;
-use wordcraft_doc::{Pos, StoryRef};
+use docufy_doc::props::CharProps;
+use docufy_doc::{Pos, StoryRef};
 
 use super::{ColumnBlock, MathEdit, Selection, Session, TypedWord, ViewState, Widened, next_math_session};
 

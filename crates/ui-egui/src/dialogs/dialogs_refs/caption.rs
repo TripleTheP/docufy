@@ -33,7 +33,7 @@ impl CaptionForm {
             }
         }
         // In a table the caption is for the table, unless a picture or shape in it is selected.
-        let in_table = wordcraft_engine::cmd::objects::object_selection(&app.session).is_none()
+        let in_table = docufy_engine::cmd::objects::object_selection(&app.session).is_none()
             && app.session.sel.focus.path.depth() > 0
             && app
                 .session

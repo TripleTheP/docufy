@@ -1,16 +1,16 @@
 [package]
-name = "wordcraft-docbin"
+name = "docufy-docbin"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "WordCraft reader for the Word 97-2003 binary file format (.doc, [MS-DOC])"
+description = "Docufy reader for the Word 97-2003 binary file format (.doc, [MS-DOC])"
 
 [lints]
 workspace = true
 
 [dependencies]
-wordcraft-doc = { workspace = true }
-wordcraft-geom = { workspace = true }
+docufy-doc = { workspace = true }
+docufy-geom = { workspace = true }
 cfb = { workspace = true }
 image = { workspace = true }
 miniz_oxide = { workspace = true }
@@ -20,6 +20,6 @@ log = { workspace = true }
 chrono = { workspace = true }
 
 [dev-dependencies]
-wordcraft-doc = { workspace = true, features = ["test-support"] }
+docufy-doc = { workspace = true, features = ["test-support"] }
 proptest = { workspace = true }
 serde_json = { workspace = true }

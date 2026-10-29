@@ -18,7 +18,7 @@ pub(crate) struct PaperLabels {
 /// custom size.
 pub(crate) fn paper_entry(paper: (f32, f32)) -> Option<&'static str> {
     let ppu = crate::options::unit().pt_per_unit();
-    wordcraft_geom::paper_name(paper.0 * ppu, paper.1 * ppu)
+    docufy_geom::paper_name(paper.0 * ppu, paper.1 * ppu)
 }
 
 /// The commands Page Setup's OK runs for the paper, orientation and margins (#1433), all in the
@@ -34,7 +34,7 @@ pub(super) fn page_layout_commands(
     landscape: bool,
     (top, bottom, left, right): (f32, f32, f32, f32),
 ) -> Result<Vec<(&'static str, Value)>, &'static str> {
-    use wordcraft_engine::cmd::page::{MARGINS_DONT_FIT, margins_fit, sect};
+    use docufy_engine::cmd::page::{MARGINS_DONT_FIT, margins_fit, sect};
     let ppu = crate::options::unit().pt_per_unit();
     let (paper, was) = ((paper.0 * ppu, paper.1 * ppu), (was.0 * ppu, was.1 * ppu));
     let m = (top * ppu, bottom * ppu, left * ppu, right * ppu);
@@ -92,7 +92,7 @@ pub(super) fn page_paper_group(ui: &mut Ui, paper: &mut (f32, f32), landscape: &
         let entry = paper_entry(*paper).filter(|_| !*custom);
         let shown = tl!(entry.unwrap_or(l.custom));
         let combo = craft_ui::ComboBox::from_id_salt("ps_paper_size").width(180.0).height(400.0).selected_text(shown).show_ui(ui, |ui| {
-            for (n, w, h) in wordcraft_geom::PAPER_SIZES {
+            for (n, w, h) in docufy_geom::PAPER_SIZES {
                 if ui.selectable_label(entry == Some(*n), tl!(n)).clicked() {
                     let (w, h) = (w / ppu, h / ppu);
                     *paper = if *landscape { (w.max(h), w.min(h)) } else { (w.min(h), w.max(h)) };
@@ -107,7 +107,7 @@ pub(super) fn page_paper_group(ui: &mut Ui, paper: &mut (f32, f32), landscape: &
         combo.response.labelled_by(label.id);
     });
     egui::Grid::new("ps_paper").num_columns(4).show(ui, |ui| {
-        use wordcraft_engine::cmd::page::{MAX_PAGE_SIDE, MIN_PAGE_SIDE};
+        use docufy_engine::cmd::page::{MAX_PAGE_SIDE, MIN_PAGE_SIDE};
         let range = MIN_PAGE_SIDE / ppu..=MAX_PAGE_SIDE / ppu;
         let width_label = ui.label(tl!(l.width));
         let w = ui
@@ -123,8 +123,8 @@ pub(super) fn page_paper_group(ui: &mut Ui, paper: &mut (f32, f32), landscape: &
 }
 
 /// Page Setup's "Vertical alignment:" box (Word's Layout tab).
-pub(super) fn page_valign_combo(ui: &mut egui::Ui, valign: &mut wordcraft_doc::section::PageVAlign) {
-    use wordcraft_doc::section::PageVAlign;
+pub(super) fn page_valign_combo(ui: &mut egui::Ui, valign: &mut docufy_doc::section::PageVAlign) {
+    use docufy_doc::section::PageVAlign;
     const CHOICES: [(PageVAlign, &str); 4] =
         [(PageVAlign::Top, "Top"), (PageVAlign::Center, "Center"), (PageVAlign::Justify, "Justified"), (PageVAlign::Bottom, "Bottom")];
     ui.horizontal(|ui| {
@@ -140,8 +140,8 @@ pub(super) fn page_valign_combo(ui: &mut egui::Ui, valign: &mut wordcraft_doc::s
 }
 
 /// `layout.verticalAlign`'s name for a value.
-pub(super) fn page_valign_value(v: wordcraft_doc::section::PageVAlign) -> &'static str {
-    use wordcraft_doc::section::PageVAlign;
+pub(super) fn page_valign_value(v: docufy_doc::section::PageVAlign) -> &'static str {
+    use docufy_doc::section::PageVAlign;
     match v {
         PageVAlign::Top => "top",
         PageVAlign::Center => "center",

@@ -14,7 +14,7 @@ pub(super) fn word_count(s: &mut Session, v: &Value) -> CmdResult {
     let words = if s.sel.is_collapsed() || crate::cmd::objects::object_selection(s).is_some() {
         stories.iter().map(|st| s.doc.story_word_count(*st)).sum()
     } else {
-        wordcraft_doc::count_words(&text)
+        docufy_doc::count_words(&text)
     };
     let chars = text.chars().filter(|c| *c != '\n' && *c != '\r').count();
     let chars_no_spaces = text.chars().filter(|c| !c.is_whitespace()).count();
@@ -25,7 +25,7 @@ pub(super) fn word_count(s: &mut Session, v: &Value) -> CmdResult {
             .iter()
             .flat_map(|p| p.items.iter())
             .map(|it| {
-                if let wordcraft_layout::Placed::Lines { l0, l1, story, .. } = it
+                if let docufy_layout::Placed::Lines { l0, l1, story, .. } = it
                     && stories.contains(story)
                 {
                     l1 - l0
@@ -44,26 +44,26 @@ pub(super) fn word_count(s: &mut Session, v: &Value) -> CmdResult {
 
 /// Issues (spelling + grammar) in one paragraph as positions, each in its run's language and
 /// skipping text left unchecked — the same issues the layout underlines.
-fn para_issues(s: &Session, story: StoryRef, path: &wordcraft_doc::Path) -> Vec<(Pos, Pos, wordcraft_proof::Issue)> {
+fn para_issues(s: &Session, story: StoryRef, path: &docufy_doc::Path) -> Vec<(Pos, Pos, docufy_proof::Issue)> {
     let Some(p) = s.doc.para(story, path) else { return Vec::new() };
-    let runs = wordcraft_layout::para::proof_runs(&s.doc, p, None);
-    wordcraft_layout::para::paragraph_issues(p, &runs, &s.prefs.spelling(), true, wordcraft_layout::para::is_list_item(&s.doc, p))
+    let runs = docufy_layout::para::proof_runs(&s.doc, p, None);
+    docufy_layout::para::paragraph_issues(p, &runs, &s.prefs.spelling(), true, docufy_layout::para::is_list_item(&s.doc, p))
         .into_iter()
         .map(|i| (Pos { story, path: path.clone(), off: i.start }, Pos { story, path: path.clone(), off: i.end }, i))
         .collect()
 }
 
 /// The issue under a position.
-pub(super) fn issue_at(s: &Session, at: &Pos) -> Option<(Pos, Pos, wordcraft_proof::Issue)> {
+pub(super) fn issue_at(s: &Session, at: &Pos) -> Option<(Pos, Pos, docufy_proof::Issue)> {
     para_issues(s, at.story, &at.path).into_iter().find(|(a, b, _)| a.off <= at.off && at.off <= b.off)
 }
 
-fn issue_json(s: &Session, a: &Pos, b: &Pos, i: &wordcraft_proof::Issue) -> Value {
+fn issue_json(s: &Session, a: &Pos, b: &Pos, i: &docufy_proof::Issue) -> Value {
     let word = s.doc.para_at(a).and_then(|p| p.text.get(a.off..b.off)).unwrap_or("").to_string();
-    let sugg = if i.kind == wordcraft_proof::IssueKind::Spelling { wordcraft_proof::suggest_in(&word, 6, i.lang) } else { i.suggestions.clone() };
+    let sugg = if i.kind == docufy_proof::IssueKind::Spelling { docufy_proof::suggest_in(&word, 6, i.lang) } else { i.suggestions.clone() };
     json!({
         "start": pos_json(a), "end": pos_json(b), "text": word,
-        "kind": if i.kind == wordcraft_proof::IssueKind::Spelling { "spelling" } else { "grammar" },
+        "kind": if i.kind == docufy_proof::IssueKind::Spelling { "spelling" } else { "grammar" },
         "message": i.message, "suggestions": sugg, "lang": i.lang.code(),
     })
 }

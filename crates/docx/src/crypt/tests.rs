@@ -49,7 +49,7 @@ fn legacy_protection_hash_is_verified() {
     assert_eq!(super::check_protection_password(&attrs, "Example"), Correct);
     assert_eq!(super::check_protection_password(&attrs, "example"), Incorrect);
     assert_eq!(super::check_protection_password(&attrs, ""), Incorrect);
-    // MD5 (and the other algorithms WordCraft lacks), hostile spin counts: refused.
+    // MD5 (and the other algorithms Docufy lacks), hostile spin counts: refused.
     assert_eq!(super::check_protection_password(&legacy("3", KNOWN_LEGACY_SHA1, "100000"), "Example"), Unsupported);
     assert_eq!(super::check_protection_password(&legacy("4", KNOWN_LEGACY_SHA1, "4294967295"), "Example"), Unsupported);
     assert_eq!(super::check_protection_password(&legacy("4", KNOWN_LEGACY_SHA1, "-1"), "Example"), Unsupported);
@@ -67,7 +67,7 @@ const KNOWN_LEGACY_SHA1: &str = "pEWelKoH6SVpvMmyPAJ8bHA/g/s=";
 use super::*;
 
 fn zip_package() -> Vec<u8> {
-    let mut doc = wordcraft_doc::Document::from_text("Top secret plans\nSecond paragraph");
+    let mut doc = docufy_doc::Document::from_text("Top secret plans\nSecond paragraph");
     doc.core.title = "Secret".into();
     crate::write(&doc).unwrap()
 }
@@ -83,7 +83,7 @@ fn round_trip_with_a_password() {
     assert!(comp.is_stream("/\u{6}DataSpaces/TransformInfo/StrongEncryptionTransform/\u{6}Primary"));
     assert_eq!(decrypt(&enc, Some("pässwörd 🔑")).unwrap(), pkg);
     let doc = crate::read_with_password(&enc, Some("pässwörd 🔑")).unwrap();
-    assert!(doc.plain_text(wordcraft_doc::StoryRef::Body).contains("Top secret plans"));
+    assert!(doc.plain_text(docufy_doc::StoryRef::Body).contains("Top secret plans"));
     assert_eq!(doc.core.title, "Secret");
     // Without a password, or with the wrong one, it says so instead of opening blank.
     assert_eq!(crate::read(&enc), Err(DocxError::PasswordRequired));
@@ -194,7 +194,7 @@ fn hostile_encryption_info_errors_without_panicking() {
 }
 
 /// Standard encryption's key derivation (§2.3.4.7) for the password "Password1234_" and the
-/// salt 00 01 … 0F. The expected keys were computed outside WordCraft (Python's hashlib)
+/// salt 00 01 … 0F. The expected keys were computed outside Docufy (Python's hashlib)
 /// following the specification's steps, so the encryptor and decryptor can't share a mistake.
 #[test]
 fn standard_key_matches_an_independent_derivation() {
@@ -228,7 +228,7 @@ fn standard_encryption_round_trips() {
     }
     let enc = encrypt_standard_for_tests(&pkg, "pw", 128).unwrap();
     let doc = crate::read_with_password(&enc, Some("pw")).unwrap();
-    assert!(doc.plain_text(wordcraft_doc::StoryRef::Body).contains("Top secret plans"));
+    assert!(doc.plain_text(docufy_doc::StoryRef::Body).contains("Top secret plans"));
     // Sizes on and off the block boundary, and empty.
     for n in [0usize, 1, 15, 16, 17, SEGMENT + 3] {
         let data: Vec<u8> = (0..n).map(|i| (i * 7) as u8).collect();
@@ -248,7 +248,7 @@ fn hand_built_standard(payload: &[u8], password: &str) -> Vec<u8> {
     let key = standard_key(&salt, password, 16);
     let mut hash = sha1::Sha1::digest(verifier).to_vec();
     hash.resize(32, 0); // the hash, zero-padded to two AES blocks
-    let csp: Vec<u8> = "WordCraft test provider".encode_utf16().chain([0]).flat_map(u16::to_le_bytes).collect();
+    let csp: Vec<u8> = "Docufy test provider".encode_utf16().chain([0]).flat_map(u16::to_le_bytes).collect();
 
     let mut header = Vec::new();
     header.extend_from_slice(&0x24u32.to_le_bytes()); // Flags: fCryptoAPI | fAES

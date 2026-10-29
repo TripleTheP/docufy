@@ -1335,6 +1335,333 @@ dependencies = [
 ]
 
 [[package]]
+name = "docufy"
+version = "0.12.0"
+dependencies = [
+ "arboard",
+ "chrono",
+ "clipboard-win",
+ "craft-print",
+ "craft-update",
+ "dispatch2",
+ "docufy-control-key",
+ "docufy-doc",
+ "docufy-engine",
+ "docufy-fonts",
+ "docufy-proof",
+ "docufy-ui-egui",
+ "eframe",
+ "egui",
+ "fmv-macos-events",
+ "getrandom 0.3.4",
+ "log",
+ "objc2 0.6.5",
+ "objc2-app-kit 0.3.2",
+ "objc2-foundation 0.3.2",
+ "open",
+ "pollster 1.0.1",
+ "rfd",
+ "serde_json",
+ "windows",
+ "winit",
+ "winresource",
+ "wl-clipboard-rs",
+ "zbus",
+]
+
+[[package]]
+name = "docufy-cli"
+version = "0.12.0"
+dependencies = [
+ "docufy-doc",
+ "docufy-engine",
+ "docufy-mcp",
+ "docufy-render",
+ "docufy-zotero",
+ "serde_json",
+ "sys-locale",
+]
+
+[[package]]
+name = "docufy-control-key"
+version = "0.12.0"
+
+[[package]]
+name = "docufy-doc"
+version = "0.12.0"
+dependencies = [
+ "base64 0.23.1",
+ "docufy-geom",
+ "log",
+ "proptest",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "docufy-docbin"
+version = "0.12.0"
+dependencies = [
+ "cfb",
+ "chrono",
+ "docufy-doc",
+ "docufy-geom",
+ "image",
+ "log",
+ "miniz_oxide 0.9.1",
+ "proptest",
+ "serde_json",
+ "sha1 0.11.0",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "docufy-docx"
+version = "0.12.0"
+dependencies = [
+ "aes",
+ "base64 0.23.1",
+ "cfb",
+ "chrono",
+ "docufy-doc",
+ "docufy-geom",
+ "getrandom 0.3.4",
+ "hmac",
+ "image",
+ "log",
+ "proptest",
+ "quick-xml 0.41.0",
+ "sha1 0.11.0",
+ "sha2 0.11.1",
+ "thiserror 2.0.21",
+ "unicode-bidi",
+ "zeroize",
+ "zip 3.0.0",
+]
+
+[[package]]
+name = "docufy-engine"
+version = "0.12.0"
+dependencies = [
+ "cfb",
+ "chrono",
+ "docufy-doc",
+ "docufy-docbin",
+ "docufy-docx",
+ "docufy-fonts",
+ "docufy-formats",
+ "docufy-geom",
+ "docufy-layout",
+ "docufy-pdf",
+ "docufy-proof",
+ "docufy-render",
+ "encoding_rs",
+ "getrandom 0.3.4",
+ "image",
+ "js-sys",
+ "libc",
+ "log",
+ "regex",
+ "regex-automata",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "zeroize",
+ "zip 3.0.0",
+]
+
+[[package]]
+name = "docufy-fonts"
+version = "0.12.0"
+dependencies = [
+ "brotli-decompressor",
+ "harfrust 0.13.3",
+ "kurbo",
+ "log",
+ "skrifa 0.47.0",
+ "unicode-bidi",
+ "unicode-script",
+ "wuff",
+]
+
+[[package]]
+name = "docufy-formats"
+version = "0.12.0"
+dependencies = [
+ "cfb",
+ "chardetng",
+ "chrono",
+ "docufy-doc",
+ "docufy-geom",
+ "encoding_rs",
+ "image",
+ "js-sys",
+ "log",
+ "proptest",
+ "quick-xml 0.41.0",
+ "zip 3.0.0",
+]
+
+[[package]]
+name = "docufy-geom"
+version = "0.12.0"
+dependencies = [
+ "image",
+ "serde",
+]
+
+[[package]]
+name = "docufy-layout"
+version = "0.12.0"
+dependencies = [
+ "docufy-doc",
+ "docufy-fonts",
+ "docufy-geom",
+ "docufy-metafile",
+ "docufy-proof",
+ "image",
+ "js-sys",
+ "kurbo",
+ "log",
+ "serde",
+ "serde_json",
+ "unicode-bidi",
+ "unicode-linebreak",
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "docufy-mcp"
+version = "0.12.0"
+dependencies = [
+ "docufy-control-key",
+ "docufy-doc",
+ "docufy-engine",
+ "docufy-render",
+ "log",
+ "serde_json",
+]
+
+[[package]]
+name = "docufy-metafile"
+version = "0.12.0"
+dependencies = [
+ "kurbo",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "docufy-pdf"
+version = "0.12.0"
+dependencies = [
+ "chrono",
+ "craft-pdf",
+ "docufy-doc",
+ "docufy-fonts",
+ "docufy-geom",
+ "docufy-layout",
+ "docufy-metafile",
+ "hayro-cmap",
+ "hayro-interpret",
+ "hayro-syntax",
+ "image",
+ "js-sys",
+ "kurbo",
+ "log",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "docufy-proof"
+version = "0.12.0"
+dependencies = [
+ "log",
+ "miniz_oxide 0.9.1",
+ "proptest",
+ "unicode-normalization",
+]
+
+[[package]]
+name = "docufy-render"
+version = "0.12.0"
+dependencies = [
+ "docufy-doc",
+ "docufy-fonts",
+ "docufy-geom",
+ "docufy-layout",
+ "docufy-metafile",
+ "image",
+ "log",
+ "vello_cpu",
+]
+
+[[package]]
+name = "docufy-ui-egui"
+version = "0.12.0"
+dependencies = [
+ "cfb",
+ "chrono",
+ "craft-i18n",
+ "craft-ui",
+ "craft-update",
+ "craft-window",
+ "docufy-doc",
+ "docufy-engine",
+ "docufy-fonts",
+ "docufy-geom",
+ "docufy-layout",
+ "docufy-render",
+ "docufy-zotero",
+ "egui",
+ "egui_kittest",
+ "image",
+ "js-sys",
+ "log",
+ "serde",
+ "serde_json",
+ "sys-locale",
+ "toml",
+ "web-time",
+ "zbus",
+ "zip 3.0.0",
+]
+
+[[package]]
+name = "docufy-web"
+version = "0.12.0"
+dependencies = [
+ "docufy-doc",
+ "docufy-engine",
+ "docufy-fonts",
+ "docufy-ui-egui",
+ "eframe",
+ "egui",
+ "js-sys",
+ "log",
+ "rfd",
+ "serde_json",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
+name = "docufy-zotero"
+version = "0.12.0"
+dependencies = [
+ "docufy-doc",
+ "docufy-docx",
+ "docufy-engine",
+ "docufy-formats",
+ "log",
+ "proptest",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "document-features"
 version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6643,333 +6970,6 @@ dependencies = [
  "wayland-client",
  "wayland-protocols",
  "wayland-protocols-wlr",
-]
-
-[[package]]
-name = "wordcraft"
-version = "0.12.0"
-dependencies = [
- "arboard",
- "chrono",
- "clipboard-win",
- "craft-print",
- "craft-update",
- "dispatch2",
- "eframe",
- "egui",
- "fmv-macos-events",
- "getrandom 0.3.4",
- "log",
- "objc2 0.6.5",
- "objc2-app-kit 0.3.2",
- "objc2-foundation 0.3.2",
- "open",
- "pollster 1.0.1",
- "rfd",
- "serde_json",
- "windows",
- "winit",
- "winresource",
- "wl-clipboard-rs",
- "wordcraft-control-key",
- "wordcraft-doc",
- "wordcraft-engine",
- "wordcraft-fonts",
- "wordcraft-proof",
- "wordcraft-ui-egui",
- "zbus",
-]
-
-[[package]]
-name = "wordcraft-cli"
-version = "0.12.0"
-dependencies = [
- "serde_json",
- "sys-locale",
- "wordcraft-doc",
- "wordcraft-engine",
- "wordcraft-mcp",
- "wordcraft-render",
- "wordcraft-zotero",
-]
-
-[[package]]
-name = "wordcraft-control-key"
-version = "0.12.0"
-
-[[package]]
-name = "wordcraft-doc"
-version = "0.12.0"
-dependencies = [
- "base64 0.23.1",
- "log",
- "proptest",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "unicode-segmentation",
- "wordcraft-geom",
-]
-
-[[package]]
-name = "wordcraft-docbin"
-version = "0.12.0"
-dependencies = [
- "cfb",
- "chrono",
- "image",
- "log",
- "miniz_oxide 0.9.1",
- "proptest",
- "serde_json",
- "sha1 0.11.0",
- "thiserror 2.0.21",
- "wordcraft-doc",
- "wordcraft-geom",
-]
-
-[[package]]
-name = "wordcraft-docx"
-version = "0.12.0"
-dependencies = [
- "aes",
- "base64 0.23.1",
- "cfb",
- "chrono",
- "getrandom 0.3.4",
- "hmac",
- "image",
- "log",
- "proptest",
- "quick-xml 0.41.0",
- "sha1 0.11.0",
- "sha2 0.11.1",
- "thiserror 2.0.21",
- "unicode-bidi",
- "wordcraft-doc",
- "wordcraft-geom",
- "zeroize",
- "zip 3.0.0",
-]
-
-[[package]]
-name = "wordcraft-engine"
-version = "0.12.0"
-dependencies = [
- "cfb",
- "chrono",
- "encoding_rs",
- "getrandom 0.3.4",
- "image",
- "js-sys",
- "libc",
- "log",
- "regex",
- "regex-automata",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "wordcraft-doc",
- "wordcraft-docbin",
- "wordcraft-docx",
- "wordcraft-fonts",
- "wordcraft-formats",
- "wordcraft-geom",
- "wordcraft-layout",
- "wordcraft-pdf",
- "wordcraft-proof",
- "wordcraft-render",
- "zeroize",
- "zip 3.0.0",
-]
-
-[[package]]
-name = "wordcraft-fonts"
-version = "0.12.0"
-dependencies = [
- "brotli-decompressor",
- "harfrust 0.13.3",
- "kurbo",
- "log",
- "skrifa 0.47.0",
- "unicode-bidi",
- "unicode-script",
- "wuff",
-]
-
-[[package]]
-name = "wordcraft-formats"
-version = "0.12.0"
-dependencies = [
- "cfb",
- "chardetng",
- "chrono",
- "encoding_rs",
- "image",
- "js-sys",
- "log",
- "proptest",
- "quick-xml 0.41.0",
- "wordcraft-doc",
- "wordcraft-geom",
- "zip 3.0.0",
-]
-
-[[package]]
-name = "wordcraft-geom"
-version = "0.12.0"
-dependencies = [
- "image",
- "serde",
-]
-
-[[package]]
-name = "wordcraft-layout"
-version = "0.12.0"
-dependencies = [
- "image",
- "js-sys",
- "kurbo",
- "log",
- "serde",
- "serde_json",
- "unicode-bidi",
- "unicode-linebreak",
- "unicode-segmentation",
- "wordcraft-doc",
- "wordcraft-fonts",
- "wordcraft-geom",
- "wordcraft-metafile",
- "wordcraft-proof",
-]
-
-[[package]]
-name = "wordcraft-mcp"
-version = "0.12.0"
-dependencies = [
- "log",
- "serde_json",
- "wordcraft-control-key",
- "wordcraft-doc",
- "wordcraft-engine",
- "wordcraft-render",
-]
-
-[[package]]
-name = "wordcraft-metafile"
-version = "0.12.0"
-dependencies = [
- "kurbo",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "wordcraft-pdf"
-version = "0.12.0"
-dependencies = [
- "chrono",
- "craft-pdf",
- "hayro-cmap",
- "hayro-interpret",
- "hayro-syntax",
- "image",
- "js-sys",
- "kurbo",
- "log",
- "thiserror 2.0.21",
- "wordcraft-doc",
- "wordcraft-fonts",
- "wordcraft-geom",
- "wordcraft-layout",
- "wordcraft-metafile",
-]
-
-[[package]]
-name = "wordcraft-proof"
-version = "0.12.0"
-dependencies = [
- "log",
- "miniz_oxide 0.9.1",
- "proptest",
- "unicode-normalization",
-]
-
-[[package]]
-name = "wordcraft-render"
-version = "0.12.0"
-dependencies = [
- "image",
- "log",
- "vello_cpu",
- "wordcraft-doc",
- "wordcraft-fonts",
- "wordcraft-geom",
- "wordcraft-layout",
- "wordcraft-metafile",
-]
-
-[[package]]
-name = "wordcraft-ui-egui"
-version = "0.12.0"
-dependencies = [
- "cfb",
- "chrono",
- "craft-i18n",
- "craft-ui",
- "craft-update",
- "craft-window",
- "egui",
- "egui_kittest",
- "image",
- "js-sys",
- "log",
- "serde",
- "serde_json",
- "sys-locale",
- "toml",
- "web-time",
- "wordcraft-doc",
- "wordcraft-engine",
- "wordcraft-fonts",
- "wordcraft-geom",
- "wordcraft-layout",
- "wordcraft-render",
- "wordcraft-zotero",
- "zbus",
- "zip 3.0.0",
-]
-
-[[package]]
-name = "wordcraft-web"
-version = "0.12.0"
-dependencies = [
- "eframe",
- "egui",
- "js-sys",
- "log",
- "rfd",
- "serde_json",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
- "wordcraft-doc",
- "wordcraft-engine",
- "wordcraft-fonts",
- "wordcraft-ui-egui",
-]
-
-[[package]]
-name = "wordcraft-zotero"
-version = "0.12.0"
-dependencies = [
- "log",
- "proptest",
- "serde_json",
- "thiserror 2.0.21",
- "wordcraft-doc",
- "wordcraft-docx",
- "wordcraft-engine",
- "wordcraft-formats",
 ]
 
 [[package]]

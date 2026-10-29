@@ -5,7 +5,7 @@ use crate::table_resize::tests::{H, button, cell, screen, steps, table_window, t
 /// white paper they stay black, and the hollow row arrow is the same on both.
 #[test]
 fn the_selection_arrow_is_light_on_dark_paper() {
-    let dark_paper = Color32::from_gray(wordcraft_render::DARK_PAPER);
+    let dark_paper = Color32::from_gray(docufy_render::DARK_PAPER);
     assert_eq!(arrow_colors(Spot::Column(0), false), (Color32::BLACK, Color32::WHITE));
     assert_eq!(arrow_colors(Spot::Cell(0, 0), false), (Color32::BLACK, Color32::WHITE));
     assert_eq!(arrow_colors(Spot::Column(0), true), (Color32::WHITE, dark_paper));
@@ -149,7 +149,7 @@ fn triple_click_or_ctrl_click_beside_a_row_selects_the_document() {
         let s = &h.state().session;
         // From the first cell's start to the end of the paragraph after the table.
         let (a, e) = s.sel.ordered();
-        a.path == wordcraft_doc::Path(vec![0, 0, 0, 0]) && a.off == 0 && e == wordcraft_doc::Pos::body(1, 0)
+        a.path == docufy_doc::Path(vec![0, 0, 0, 0]) && a.off == 0 && e == docufy_doc::Pos::body(1, 0)
     };
     // One click: the row.
     click(&mut h, at);
@@ -183,10 +183,10 @@ fn triple_click_or_ctrl_click_beside_a_row_selects_the_document() {
 /// that selection (the ordinary Shift+click into a table), instead of selecting only the row.
 #[test]
 fn shift_click_beside_a_row_extends_a_selection_from_above() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": "Above"})).unwrap();
     a.run("insert.table", json!({"rows": 3, "cols": 2})).unwrap();
-    a.run("caret.set", json!({"pos": serde_json::to_value(wordcraft_doc::Pos::body(0, 0)).unwrap()})).unwrap();
+    a.run("caret.set", json!({"pos": serde_json::to_value(docufy_doc::Pos::body(0, 0)).unwrap()})).unwrap();
     a.run("view.commentsPane", json!({"value": false})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
         |ui, app: &mut WordApp| {
@@ -205,7 +205,7 @@ fn shift_click_beside_a_row_extends_a_selection_from_above() {
     h.event(egui::Event::ModifiersChanged(egui::Modifiers::default()));
     h.step();
     let sel = h.state().session.sel.clone();
-    assert_eq!(sel.anchor, wordcraft_doc::Pos::body(0, 0), "the selection still starts above the table");
+    assert_eq!(sel.anchor, docufy_doc::Pos::body(0, 0), "the selection still starts above the table");
     assert!(!sel.is_collapsed());
     assert!(sel.focus.path.cell().is_some_and(|(_, r, _)| r == 1), "and runs into the clicked row: {:?}", sel.focus);
 }

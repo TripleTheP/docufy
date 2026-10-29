@@ -37,7 +37,7 @@ pub(crate) fn lenient_order<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Ve
 /// The panes open now, from the session's view flags, in the user's order.
 pub fn open(app: &WordApp) -> Vec<Pane> {
     let v = &app.session.view;
-    let smart_art = v.smart_art_pane && wordcraft_engine::cmd::smart_art::selected_smart_art(&app.session).is_some();
+    let smart_art = v.smart_art_pane && docufy_engine::cmd::smart_art::selected_smart_art(&app.session).is_some();
     let mut open = [
         (Pane::SmartArtText, smart_art),
         (Pane::Navigation, v.nav_pane),

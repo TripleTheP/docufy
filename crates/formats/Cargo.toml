@@ -1,16 +1,16 @@
 [package]
-name = "wordcraft-formats"
+name = "docufy-formats"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "WordCraft import/export: plain text, Markdown, HTML, RTF, OpenDocument Text and LaTeX"
+description = "Docufy import/export: plain text, Markdown, HTML, RTF, OpenDocument Text and LaTeX"
 
 [lints]
 workspace = true
 
 [dependencies]
-wordcraft-doc = { workspace = true }
-wordcraft-geom = { workspace = true, features = ["image"] }
+docufy-doc = { workspace = true }
+docufy-geom = { workspace = true, features = ["image"] }
 image = { workspace = true }
 quick-xml = { workspace = true }
 zip = { workspace = true }
@@ -25,5 +25,5 @@ chrono = { workspace = true }
 js-sys = "0.3"
 
 [dev-dependencies]
-wordcraft-doc = { workspace = true, features = ["test-support"] }
+docufy-doc = { workspace = true, features = ["test-support"] }
 proptest = { workspace = true }

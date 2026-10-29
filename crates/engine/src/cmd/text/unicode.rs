@@ -50,7 +50,7 @@ pub(super) fn toggle_unicode(s: &mut Session, _: &Value) -> CmdResult {
 /// undo step, AutoFormat as for a typed character). `ansi` and `oem` are the system's code pages
 /// (Windows-1252 and the locale's OEM page by default). The result's `char` is the character.
 pub(super) fn insert_code(s: &mut Session, v: &Value) -> CmdResult {
-    use wordcraft_doc::encoding::{OEM_CODE_PAGES, SINGLE_BYTE_CODE_PAGES};
+    use docufy_doc::encoding::{OEM_CODE_PAGES, SINGLE_BYTE_CODE_PAGES};
     let code = p::req_str(v, "code")?;
     let page = |key: &str, known: &[u16], default: u16| match p::u64(v, key) {
         Some(cp) => u16::try_from(cp).ok().filter(|cp| known.contains(cp)).ok_or_else(|| CmdError::Params(format!("{key} must be one of {known:?}"))),
@@ -68,10 +68,10 @@ pub(super) fn insert_code(s: &mut Session, v: &Value) -> CmdResult {
 
 /// The character Word on Windows types for an Alt+numpad code (decimal digits, as typed):
 /// - with a leading 0 and a value up to 255, the ANSI code page's character (`ansi`, one of
-///   [`wordcraft_doc::encoding::SINGLE_BYTE_CODE_PAGES`]): `0233` → é and `0128` → € in
+///   [`docufy_doc::encoding::SINGLE_BYTE_CODE_PAGES`]): `0233` → é and `0128` → € in
 ///   Windows-1252, `0185` → ą in 1250;
 /// - without one, 1–255 is the OEM code page's character (`oem`, one of
-///   [`wordcraft_doc::encoding::OEM_CODE_PAGES`]): `233` → Θ in 437, Ú in 850 (é is `130` in
+///   [`docufy_doc::encoding::OEM_CODE_PAGES`]): `233` → Θ in 437, Ú in 850 (é is `130` in
 ///   both), `165` → ą in 852; 1–31 and 127 are the code page's glyphs (`1` → ☺, `7` → •);
 /// - above 255, with or without the 0, the Unicode character with that decimal value
 ///   (`8364` → €), as Word inserts it.
@@ -90,8 +90,8 @@ pub fn alt_code_char(code: &str, ansi: u16, oem: u16) -> Option<char> {
     let value: u32 = if digits.is_empty() { 0 } else { digits.parse().ok()? };
     let c = match u8::try_from(value) {
         Ok(0) => return None,
-        Ok(b) if code.starts_with('0') => wordcraft_doc::encoding::windows_byte(ansi, b),
-        Ok(b) => wordcraft_doc::encoding::oem_byte(oem, b),
+        Ok(b) if code.starts_with('0') => docufy_doc::encoding::windows_byte(ansi, b),
+        Ok(b) => docufy_doc::encoding::oem_byte(oem, b),
         Err(_) => char::from_u32(value)?,
     };
     Some(c).filter(|c| codeable(*c) && *c != '\u{FFFD}')
@@ -162,7 +162,7 @@ fn hex_char(code: &str) -> Option<char> {
 
 /// Characters Alt+X converts (not control characters, breaks or object placeholders).
 fn codeable(c: char) -> bool {
-    !c.is_control() && c != wordcraft_doc::para::OBJ
+    !c.is_control() && c != docufy_doc::para::OBJ
 }
 
 /// A character's code as Word writes it: at least four upper-case hex digits.

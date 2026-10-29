@@ -72,14 +72,14 @@ pub(super) fn caption(s: &mut Session, v: &Value) -> CmdResult {
 
 /// Renumber the body's SEQ fields in document order, honouring `\* format`, `\s level` (restart
 /// after each heading of that level), `\r n` (reset to n), `\c` (repeat) and `\h` (hide), and
-/// fill body STYLEREF fields ([`wordcraft_layout::styleref`]): chapter numbers (`STYLEREF n \s`,
+/// fill body STYLEREF fields ([`docufy_layout::styleref`]): chapter numbers (`STYLEREF n \s`,
 /// the last level-n heading's number, or its count when the heading isn't numbered) and the
 /// text or number of the nearest paragraph of a style.
 pub fn update_seq(s: &mut Session) -> Result<(), CmdError> {
     let mut headings = [0u32; 9];
     let mut seq: std::collections::HashMap<String, (u32, u32)> = Default::default();
     // Built on the first STYLEREF (field results don't change what it finds).
-    let mut styles: Option<wordcraft_layout::styleref::StyleIndex> = None;
+    let mut styles: Option<docufy_layout::styleref::StyleIndex> = None;
     for path in s.doc.para_paths(StoryRef::Body) {
         let Some(p) = s.doc.para(StoryRef::Body, &path) else { continue };
         if let Some(l) = heading_style_level(p)
@@ -108,13 +108,13 @@ pub fn update_seq(s: &mut Session) -> Result<(), CmdError> {
                     } else if !f.has('c') {
                         n.0 = n.0.saturating_add(1);
                     }
-                    let fmt = wordcraft_layout::fields::format_switch(instr).unwrap_or_default();
-                    updates.push((k, if f.has('h') { String::new() } else { wordcraft_layout::fields::field_number(instr, fmt, n.0) }));
+                    let fmt = docufy_layout::fields::format_switch(instr).unwrap_or_default();
+                    updates.push((k, if f.has('h') { String::new() } else { docufy_layout::fields::field_number(instr, fmt, n.0) }));
                 }
                 "STYLEREF" => {
-                    let ix = styles.get_or_insert_with(|| wordcraft_layout::styleref::StyleIndex::build(&s.doc));
+                    let ix = styles.get_or_insert_with(|| docufy_layout::styleref::StyleIndex::build(&s.doc));
                     if let Some(i) = ix.index_of(&path) {
-                        updates.push((k, text_result(instr, ix.eval(instr, wordcraft_layout::styleref::At::Body(i)))));
+                        updates.push((k, text_result(instr, ix.eval(instr, docufy_layout::styleref::At::Body(i)))));
                     }
                 }
                 _ => {}
@@ -203,7 +203,7 @@ pub fn update_fields_in(s: &mut Session, all: bool) -> Result<(), CmdError> {
                 }
                 continue;
             }
-            let name = wordcraft_layout::fields::field_name(instr);
+            let name = docufy_layout::fields::field_name(instr);
             match name.as_str() {
                 "DATE" | "TIME" | "CREATEDATE" | "SAVEDATE" | "PRINTDATE" => {
                     let pic = date_picture(instr).unwrap_or_else(|| if name == "TIME" { "h:mm am/pm".into() } else { "M/d/yyyy".into() });
@@ -216,8 +216,8 @@ pub fn update_fields_in(s: &mut Session, all: bool) -> Result<(), CmdError> {
                         if !has_switch(instr, 'p') { bookmark_text(&s.doc, target) } else { None }
                     } else if !has_switch(instr, 'p') {
                         pages.get(target).map(|(num, page_fmt)| {
-                            let fmt = wordcraft_layout::fields::format_switch(instr).unwrap_or(*page_fmt);
-                            wordcraft_layout::fields::field_number(instr, fmt, *num)
+                            let fmt = docufy_layout::fields::format_switch(instr).unwrap_or(*page_fmt);
+                            docufy_layout::fields::field_number(instr, fmt, *num)
                         })
                     } else {
                         None
@@ -287,7 +287,7 @@ pub fn update_fields_in(s: &mut Session, all: bool) -> Result<(), CmdError> {
 /// are not "now"; `REF`, `PAGEREF`, `TOC` and citations are refreshed on an explicit update
 /// (`fields.updateAll`) and not on open, again as Word does. A field carrying `w:fldLock` keeps
 /// its stored result, which is what the lock is for.
-pub fn refresh_date_fields(doc: &mut wordcraft_doc::Document) {
+pub fn refresh_date_fields(doc: &mut docufy_doc::Document) {
     let stories: Vec<StoryRef> = std::iter::once(StoryRef::Body).chain(doc.parts.keys().copied().map(StoryRef::Part)).collect();
     for story in stories {
         for path in doc.para_paths(story) {
@@ -295,7 +295,7 @@ pub fn refresh_date_fields(doc: &mut wordcraft_doc::Document) {
             let mut updates: Vec<(usize, String)> = Vec::new();
             for (k, o) in p.objects.iter().enumerate() {
                 let InlineObject::Field { instr, locked: false, .. } = o else { continue };
-                let name = wordcraft_layout::fields::field_name(instr);
+                let name = docufy_layout::fields::field_name(instr);
                 if !matches!(name.as_str(), "DATE" | "TIME") {
                     continue;
                 }

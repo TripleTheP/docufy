@@ -18,7 +18,7 @@ struct Parsed {
     flow: Flow,
     page: PageGeom,
     /// The last section's properties (the others are on the paragraphs that end them).
-    last_section: wordcraft_doc::SectionProps,
+    last_section: docufy_doc::SectionProps,
     default_font: Option<String>,
     /// Each section's headers and footers, in order, the last section's last.
     headers_footers: Vec<Vec<(HeaderFooter, Vec<FBlock>)>>,
@@ -276,10 +276,10 @@ pub fn import(bytes: &[u8]) -> Result<Document, String> {
     // Each section's own headers and footers; those it leaves out stay linked to the previous.
     let mut sets = Vec::with_capacity(headers_footers.len());
     for parts in &headers_footers {
-        let (mut headers, mut footers) = (wordcraft_doc::section::HeaderSet::default(), wordcraft_doc::section::HeaderSet::default());
+        let (mut headers, mut footers) = (docufy_doc::section::HeaderSet::default(), docufy_doc::section::HeaderSet::default());
         for (which, blocks) in parts {
             let blocks = model::part_blocks(&mut doc, blocks);
-            let id = doc.add_part(if which.footer { wordcraft_doc::PartKind::Footer } else { wordcraft_doc::PartKind::Header }, blocks);
+            let id = doc.add_part(if which.footer { docufy_doc::PartKind::Footer } else { docufy_doc::PartKind::Header }, blocks);
             let set = if which.footer { &mut footers } else { &mut headers };
             match which.pages {
                 HfPages::Default => set.default = Some(id),
@@ -291,9 +291,9 @@ pub fn import(bytes: &[u8]) -> Result<Document, String> {
     }
     let mut sets = sets.into_iter();
     for b in &mut doc.body {
-        if let wordcraft_doc::Block::Para(p) = &**b
+        if let docufy_doc::Block::Para(p) = &**b
             && p.section.is_some()
-            && let wordcraft_doc::Block::Para(p) = std::sync::Arc::make_mut(b)
+            && let docufy_doc::Block::Para(p) = std::sync::Arc::make_mut(b)
             && let Some(s) = p.section.as_deref_mut()
             && let Some((h, f)) = sets.next()
         {
@@ -308,7 +308,7 @@ pub fn import(bytes: &[u8]) -> Result<Document, String> {
     let dp = &mut doc.styles.default_para;
     dp.space_before = Some(0.0);
     dp.space_after = Some(0.0);
-    dp.line_spacing = Some(wordcraft_doc::props::LineSpacing::Multiple(1.0));
+    dp.line_spacing = Some(docufy_doc::props::LineSpacing::Multiple(1.0));
     if default_font.is_some() {
         doc.styles.default_chr.font = default_font;
     }

@@ -17,8 +17,8 @@ fn jpeg_strip_tiff() -> Vec<u8> {
 #[test]
 fn tiffs_with_jpeg_strips_are_refused() {
     let tiff = jpeg_strip_tiff();
-    assert_eq!(wordcraft_render::image_size(&tiff), Some((4, 4)), "its header reads");
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    assert_eq!(docufy_render::image_size(&tiff), Some((4, 4)), "its header reads");
+    let mut s = Session::new(docufy_doc::Document::new());
     let e = s.run("insert.picture", &json!({"data": base64_encode(&tiff)})).unwrap_err().to_string();
     assert!(e.contains("TIFF"), "{e}");
     assert!(s.doc.media.is_empty());
@@ -34,7 +34,7 @@ fn tiffs_with_jpeg_strips_are_refused() {
 /// body, not on page 1 (#3331).
 #[test]
 fn close_header_returns_to_the_body_selection() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("text.insert", &json!({"text": "One"})).unwrap();
     s.run("insert.pageBreak", &json!({})).unwrap();
     s.run("text.insert", &json!({"text": "Two words here"})).unwrap();
@@ -57,7 +57,7 @@ fn close_header_returns_to_the_body_selection() {
 /// away again so the saved file stays as it was.
 #[test]
 fn edit_header_on_a_page_creates_its_slot() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("text.insert", &json!({"text": "One"})).unwrap();
     s.run("insert.pageBreak", &json!({})).unwrap();
     s.run("text.insert", &json!({"text": "Two"})).unwrap();
@@ -70,7 +70,7 @@ fn edit_header_on_a_page_creates_its_slot() {
     s.run("insert.closeHeader", &json!({})).unwrap();
     assert_eq!(s.doc.last_section.headers, Default::default());
     assert!(!s.doc.parts.contains_key(&id));
-    let back = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+    let back = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
     assert!(back.parts.values().all(|p| !matches!(p.kind, PartKind::Header | PartKind::Footer)), "no empty header saved");
     // Written footer stays.
     let r = s.run("insert.editFooter", &json!({"page": 0})).unwrap();
@@ -120,7 +120,7 @@ fn different_first_page_header_is_reachable_from_page_one() {
 }
 
 fn two_pages() -> Session {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("text.insert", &json!({"text": "One"})).unwrap();
     s.run("insert.pageBreak", &json!({})).unwrap();
     s.run("text.insert", &json!({"text": "Two"})).unwrap();
@@ -161,13 +161,13 @@ fn creating_a_header_is_an_undoable_protected_edit() {
 #[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn an_empty_new_header_is_never_saved() {
-    let dir = std::env::temp_dir().join(format!("wordcraft-hf960-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-hf960-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("x.docx");
     let mut s = two_pages();
     s.run("insert.editHeader", &json!({"page": 0})).unwrap();
     s.run("file.save", &json!({"path": path.to_string_lossy()})).unwrap();
-    let back = wordcraft_docx::read(&std::fs::read(&path).unwrap()).unwrap();
+    let back = docufy_docx::read(&std::fs::read(&path).unwrap()).unwrap();
     assert!(back.parts.values().all(|p| p.kind != PartKind::Header), "no empty header saved");
     assert_eq!(headers(&s), 1, "still open for typing");
     s.run("insert.closeHeader", &json!({})).unwrap();
@@ -228,7 +228,7 @@ fn bookmark_marks(s: &Session) -> Vec<(usize, bool, String)> {
 /// selects the bookmark's text, as in Word.
 #[test]
 fn deleting_a_bookmark_removes_its_start_and_end() {
-    let mut s = Session::new(wordcraft_doc::Document::from_text("Alpha beta\ngamma delta"));
+    let mut s = Session::new(docufy_doc::Document::from_text("Alpha beta\ngamma delta"));
     s.sel = Selection { anchor: Pos::body(0, 6), focus: Pos::body(1, 5) };
     s.run("insert.bookmark", &json!({"name": "Across"})).unwrap();
     assert_eq!(bookmark_marks(&s), vec![(0, true, "Across".into()), (1, false, "Across".into())]);
@@ -249,7 +249,7 @@ fn deleting_a_bookmark_removes_its_start_and_end() {
 /// looked for in the start's paragraph, so a bookmark across paragraphs left a stray end.
 #[test]
 fn adding_a_bookmark_again_moves_all_of_it() {
-    let mut s = Session::new(wordcraft_doc::Document::from_text("Alpha beta\ngamma delta"));
+    let mut s = Session::new(docufy_doc::Document::from_text("Alpha beta\ngamma delta"));
     s.sel = Selection { anchor: Pos::body(0, 6), focus: Pos::body(1, 5) };
     s.run("insert.bookmark", &json!({"name": "Spot"})).unwrap();
     s.run("select.text", &json!({"text": "delta"})).unwrap();
@@ -291,7 +291,7 @@ fn bookmark_name_validation_rules() {
     assert!(!bookmark_name_ok(&"я".repeat(41)));
 
     // Verification through `insert.bookmark` command
-    let mut s = Session::new(wordcraft_doc::Document::from_text("Test content"));
+    let mut s = Session::new(docufy_doc::Document::from_text("Test content"));
     assert!(s.run("insert.bookmark", &json!({"name": "быстрый_доступ_к_документам"})).is_ok());
     assert!(s.run("insert.bookmark", &json!({"name": "_Hidden"})).is_ok());
     assert!(s.run("insert.bookmark", &json!({"name": "1mark"})).is_err());
@@ -302,7 +302,7 @@ fn bookmark_name_validation_rules() {
 /// Insert › Symbol with a font: only the symbol takes it, the caret's font carries on after.
 #[test]
 fn a_mixed_symbol_string_keeps_symbols_and_text_apart() {
-    let mut s = Session::new(wordcraft_doc::Document::from_text("a"));
+    let mut s = Session::new(docufy_doc::Document::from_text("a"));
     s.run("caret.docEnd", &json!({})).unwrap();
     s.run("insert.symbol", &json!({"char": "\u{F041}A", "font": "My Custom Font"})).unwrap();
     let p = s.doc.para(StoryRef::Body, &Path::top(0)).unwrap();
@@ -313,7 +313,7 @@ fn a_mixed_symbol_string_keeps_symbols_and_text_apart() {
 
 #[test]
 fn an_astral_symbol_stays_text_in_its_font() {
-    let mut s = Session::new(wordcraft_doc::Document::from_text("a"));
+    let mut s = Session::new(docufy_doc::Document::from_text("a"));
     s.run("caret.docEnd", &json!({})).unwrap();
     s.run("insert.symbol", &json!({"char": "\u{1F600}", "font": "Wingdings"})).unwrap();
     let p = s.doc.para(StoryRef::Body, &Path::top(0)).unwrap();
@@ -323,7 +323,7 @@ fn an_astral_symbol_stays_text_in_its_font() {
 
 #[test]
 fn symbol_takes_its_own_font() {
-    let mut s = Session::new(wordcraft_doc::Document::from_text("ab"));
+    let mut s = Session::new(docufy_doc::Document::from_text("ab"));
     s.run("caret.docEnd", &json!({})).unwrap();
     s.run("insert.symbol", &json!({"char": "\u{2665}", "font": "DejaVu Sans"})).unwrap();
     s.run("text.insert", &json!({"text": "c"})).unwrap();

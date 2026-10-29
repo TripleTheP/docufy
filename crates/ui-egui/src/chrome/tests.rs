@@ -24,7 +24,7 @@ fn click(ctx: &egui::Context, n: &mut u32, pos: egui::Pos2, a: &mut WordApp) {
 /// row undoes three steps at once.
 #[test]
 fn undo_list_matches_the_session_and_undoes_up_to_the_clicked_row() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), crate::Services::default());
     a.run("text.insert", json!({"text": "Hello"})).unwrap();
     a.run("select.all", json!({})).unwrap();
     a.run("format.bold", json!({})).unwrap();
@@ -52,7 +52,7 @@ fn undo_list_matches_the_session_and_undoes_up_to_the_clicked_row() {
     let third = ctx.read_response(undo_list_row_id(2)).unwrap();
     click(&ctx, &mut n, third.rect.center(), &mut a);
     assert_eq!(a.session.undo_history(), ["Typing"], "three steps undone in one go");
-    assert_eq!(a.session.doc.plain_text(wordcraft_doc::StoryRef::Body), "Hello");
+    assert_eq!(a.session.doc.plain_text(docufy_doc::StoryRef::Body), "Hello");
     frame(&ctx, &mut n, vec![], &mut a);
     assert!(!egui::Popup::is_id_open(&ctx, popup), "the list closes");
 }
@@ -61,7 +61,7 @@ fn undo_list_matches_the_session_and_undoes_up_to_the_clicked_row() {
 /// left must not shift with it.
 #[test]
 fn status_bar_controls_hold_still_across_zoom_levels() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), crate::Services::default());
     let ctx = ctx();
     ctx.enable_accesskit();
     let names = ["Focus", "Print Layout", "Web Layout"];
@@ -95,7 +95,7 @@ fn status_bar_controls_hold_still_across_zoom_levels() {
 /// before the controls on the right, instead of being drawn over the Focus button.
 #[test]
 fn a_long_status_message_stops_before_the_controls() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), crate::Services::default());
     let long = "C:\\Test\\Documents\\Reports\\Final individual test folder\\Second level folder\\Project - Gadgets and sleep of teenagers.docx: The system cannot find the path specified. (os error 3)";
     a.status_msg = Some((long.to_string(), crate::now_ms()));
     let ctx = ctx();
@@ -138,7 +138,7 @@ fn status_bar_names_the_actual_part_being_edited() {
         }
         "(none shown)".to_string()
     };
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), crate::Services::default());
     a.run("text.insert", json!({"text": "Body text"})).unwrap();
     a.run("references.footnote", json!({})).unwrap();
     assert_eq!(label(&mut a), "Editing footnote");
@@ -152,7 +152,7 @@ fn status_bar_names_the_actual_part_being_edited() {
 /// #1903: the footer's Cancel row closes the Undo list without undoing anything.
 #[test]
 fn undo_list_cancel_closes_without_undoing() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), crate::Services::default());
     a.run("text.insert", json!({"text": "Hello"})).unwrap();
     let before: Vec<String> = a.session.undo_history().into_iter().map(str::to_string).collect();
     assert!(!before.is_empty());
@@ -201,7 +201,7 @@ fn mac_title_bar_follows_the_measured_lights() {
 #[test]
 fn hide_quick_access_toolbar_takes_the_toolbar_out_of_the_title_bar() {
     use egui_kittest::kittest::Queryable;
-    let a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), crate::Services::default());
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
         |ui, app: &mut WordApp| {
             let ctx = ui.ctx().clone();
@@ -247,7 +247,7 @@ fn hide_quick_access_toolbar_takes_the_toolbar_out_of_the_title_bar() {
 /// #3040: clicking a row in the Undo list hands the keyboard back to the document.
 #[test]
 fn undo_list_row_returns_focus_to_the_document() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), crate::Services::default());
     a.run("text.insert", json!({"text": "Hello"})).unwrap();
     assert_eq!(a.session.undo_history().len(), 1);
 
@@ -267,11 +267,11 @@ fn undo_list_row_returns_focus_to_the_document() {
 
 /// A saved .docx (so AutoSave can cover it) with the title bar drawn over it.
 fn autosave_harness() -> (egui_kittest::Harness<'static, WordApp>, std::path::PathBuf) {
-    let dir = std::env::temp_dir().join(format!("wordcraft-ui-autosave-label-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-ui-autosave-label-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("draft.docx");
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), crate::Services::default());
     a.run("text.insert", json!({"text": "Hello"})).unwrap();
     a.run("file.save", json!({"path": path.to_string_lossy()})).unwrap();
     assert!(a.autosaves(), "a saved .docx is covered by AutoSave");

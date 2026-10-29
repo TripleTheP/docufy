@@ -17,7 +17,7 @@ fn cell_rect(s: &mut Session, row: usize, cell: usize) -> Rect {
 }
 
 fn table_session(rows: usize, cols: usize) -> Session {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("insert.table", &json!({"rows": rows, "cols": cols})).unwrap();
     s
 }
@@ -91,7 +91,7 @@ fn a_row_border_drag_sets_the_row_height() {
 fn an_exact_row_border_drag_leaves_out_the_bottom_margin() {
     let mut s = table_session(2, 2);
     let t = s.doc.body.iter_mut().find_map(|b| match std::sync::Arc::make_mut(b) {
-        wordcraft_doc::Block::Table(t) => Some(t),
+        docufy_doc::Block::Table(t) => Some(t),
         _ => None,
     });
     let t = t.unwrap();
@@ -151,7 +151,7 @@ fn a_vertical_merge_keeps_each_rows_border() {
     let mut s = table_session(3, 2);
     let (m, a, b) = (cell_rect(&mut s, 0, 0), cell_rect(&mut s, 0, 1), cell_rect(&mut s, 1, 1));
     s.run("table.eraser", &json!({"page": 0, "x": m.x + m.w / 2.0, "y": m.bottom() + 0.5})).unwrap();
-    assert_eq!(first_table(&s).rows[1].cells[0].props.vmerge, wordcraft_doc::props::VMerge::Continue);
+    assert_eq!(first_table(&s).rows[1].cells[0].props.vmerge, docufy_doc::props::VMerge::Continue);
     let l = s.layout();
     let x = b.x + b.w / 2.0;
     let t = resize_target(&l, &s.doc, 0, x, a.bottom() + 1.0, REACH).unwrap();

@@ -59,7 +59,7 @@ pub struct EquationFrame {
 /// Lay the frame out around `bx` on the page drawn at `page` (`scale` screen pixels a point):
 /// the equation's width and its line's height, plus the strip; the frame's pieces keep their
 /// screen size at every zoom.
-pub(super) fn equation_frame(page: Rect, bx: &wordcraft_layout::hit::EquationBox, scale: f32) -> EquationFrame {
+pub(super) fn equation_frame(page: Rect, bx: &docufy_layout::hit::EquationBox, scale: f32) -> EquationFrame {
     let (pad, strip_w) = (2.0, 10.0);
     let x0 = page.min.x + bx.x * scale - pad;
     let x1 = page.min.x + (bx.x + bx.math.width) * scale + pad;

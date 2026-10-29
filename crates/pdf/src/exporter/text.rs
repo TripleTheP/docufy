@@ -182,9 +182,9 @@ impl Exporter<'_> {
 
     /// Draws a metafile text run as PDF text (outlines when the font cannot be embedded). `tf` maps
     /// the run's own space (see [`PlacedItem::Text`]) to the page.
-    pub(crate) fn vector_text(&mut self, s: &mut Surface, t: &wordcraft_metafile::Text, tf: kurbo::Affine) {
-        let face = wordcraft_fonts::word::resolve(&t.font, t.bold, t.italic).face;
-        let shaped = wordcraft_fonts::shape(&face, &t.text, &[], |c| c);
+    pub(crate) fn vector_text(&mut self, s: &mut Surface, t: &docufy_metafile::Text, tf: kurbo::Affine) {
+        let face = docufy_fonts::word::resolve(&t.font, t.bold, t.italic).face;
+        let shaped = docufy_fonts::shape(&face, &t.text, &[], |c| c);
         let glyphs: Vec<_> = shaped.iter().map(|g| (g.cluster, f64::from(g.x_advance), f64::from(g.x_offset), f64::from(g.y_offset))).collect();
         let Some(lay) = t.layout(face.upem, face.ascent, face.descent, &glyphs) else { return };
         let font = self.font(&face);

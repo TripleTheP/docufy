@@ -1,6 +1,6 @@
+use docufy_doc::Document;
+use docufy_layout::display::{DisplayOptions, Draw, page_display};
 use serde_json::json;
-use wordcraft_doc::Document;
-use wordcraft_layout::display::{DisplayOptions, Draw, page_display};
 
 use crate::Session;
 
@@ -12,7 +12,7 @@ fn draws(s: &mut Session) -> (Vec<Draw>, f32) {
     (page_display(&s.doc, page, &opts), page.body.x)
 }
 
-fn glyph_colors(d: &[Draw]) -> Vec<(wordcraft_doc::Rgb, bool)> {
+fn glyph_colors(d: &[Draw]) -> Vec<(docufy_doc::Rgb, bool)> {
     d.iter().filter_map(|x| if let Draw::Glyphs { color, synth_bold, .. } = x { Some((*color, *synth_bold)) } else { None }).collect()
 }
 
@@ -41,7 +41,7 @@ fn tracking_options_change_how_revisions_are_drawn() {
     assert_eq!(bars.len(), 1, "one changed line, one bar in the left margin");
     let horizontal = lines(&d).into_iter().filter(|(_, y0, _, y1)| y0 == y1).count();
     assert_eq!(horizontal, 2, "an underline and a strikethrough: {:?}", lines(&d));
-    let author = glyph_colors(&d).iter().filter(|(c, _)| *c != wordcraft_doc::Rgb::BLACK).count();
+    let author = glyph_colors(&d).iter().filter(|(c, _)| *c != docufy_doc::Rgb::BLACK).count();
     assert!(author >= 2, "insertion and deletion in the author's colour");
 
     // Bold, fixed-colour insertions; hidden deletions; no bars.
@@ -54,7 +54,7 @@ fn tracking_options_change_how_revisions_are_drawn() {
     assert_eq!((r["insertMark"].as_str(), r["deleteColor"].as_str(), r["balloons"].as_str()), (Some("bold"), Some("byAuthor"), Some("inline")));
     let (d, _) = draws(&mut s);
     assert!(lines(&d).is_empty(), "no underline, no strikethrough, no bar: {:?}", lines(&d));
-    assert!(glyph_colors(&d).contains(&(wordcraft_doc::Rgb(0, 0xAA, 0), true)), "a bold green insertion");
+    assert!(glyph_colors(&d).contains(&(docufy_doc::Rgb(0, 0xAA, 0), true)), "a bold green insertion");
     let text: String = d.iter().filter_map(|x| if let Draw::Glyphs { text, .. } = x { Some(text.as_str()) } else { None }).collect();
     assert!(!text.contains("gone"), "the deletion takes no room: {text:?}");
 
@@ -66,7 +66,7 @@ fn tracking_options_change_how_revisions_are_drawn() {
 /// #1055: comments show in the margin as in Word unless the option says otherwise.
 #[test]
 fn comment_display_defaults_to_margin_and_is_validated() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     assert_eq!(s.run("review.trackingOptions", &json!({})).unwrap()["commentDisplay"], "margin");
     assert_eq!(s.run("review.trackingOptions", &json!({"commentDisplay": "selected"})).unwrap()["commentDisplay"], "selected");
     assert_eq!(s.run("review.trackingOptions", &json!({})).unwrap()["commentDisplay"], "selected");
@@ -79,8 +79,8 @@ fn comment_display_defaults_to_margin_and_is_validated() {
 /// double underline where it went.
 #[test]
 fn move_marks_and_colours_change_how_moved_text_is_drawn() {
-    use wordcraft_doc::Rgb;
-    use wordcraft_layout::display::{MOVE_COLOR, Stroke};
+    use docufy_doc::Rgb;
+    use docufy_layout::display::{MOVE_COLOR, Stroke};
     let mut s = Session::new(Document::new());
     s.view.proofing = false;
     s.run("document.setText", &json!({"text": "First one.\nSecond one.\nThird one."})).unwrap();
@@ -124,7 +124,7 @@ fn move_marks_and_colours_change_how_moved_text_is_drawn() {
     // By author: the insertion and deletion colour of the author.
     s.run("review.trackingOptions", &json!({"moveToColor": "byAuthor"})).unwrap();
     let (d, _) = draws(&mut s);
-    let author = wordcraft_layout::display::revision_color(0);
+    let author = docufy_layout::display::revision_color(0);
     assert!(glyph_colors(&d).contains(&(author, true)), "{:?}", glyph_colors(&d));
 
     // Unknown choices are refused.
@@ -149,7 +149,7 @@ fn moved_with(opts: serde_json::Value) -> Session {
 
 /// The caret at body paragraph `block`, offset `off`: (x, top).
 fn caret_at(s: &mut Session, block: usize, off: usize) -> (f32, f32) {
-    let c = s.layout().caret(&wordcraft_doc::Pos::body(block, off)).unwrap();
+    let c = s.layout().caret(&docufy_doc::Pos::body(block, off)).unwrap();
     (c.x, c.top)
 }
 
@@ -179,7 +179,7 @@ fn hidden_moved_from_text_takes_no_room() {
 
 /// Each "Second" run drawn, in page order (the moved-to paragraph first, then the moved-from
 /// one): (colour, bold, italic).
-fn seconds(d: &[Draw]) -> Vec<(wordcraft_doc::Rgb, bool, bool)> {
+fn seconds(d: &[Draw]) -> Vec<(docufy_doc::Rgb, bool, bool)> {
     d.iter()
         .filter_map(|x| match x {
             Draw::Glyphs { text, color, synth_bold, synth_italic, .. } if text.starts_with("Second") => Some((*color, *synth_bold, *synth_italic)),
@@ -189,7 +189,7 @@ fn seconds(d: &[Draw]) -> Vec<(wordcraft_doc::Rgb, bool, bool)> {
 }
 
 /// Horizontal lines (underlines and strikethroughs): their strokes.
-fn h_strokes(d: &[Draw]) -> Vec<wordcraft_layout::display::Stroke> {
+fn h_strokes(d: &[Draw]) -> Vec<docufy_layout::display::Stroke> {
     d.iter().filter_map(|x| if let Draw::Line { y0, y1, stroke, .. } = x { (y0 == y1).then_some(*stroke) } else { None }).collect()
 }
 
@@ -202,7 +202,7 @@ fn bars(d: &[Draw], body_x: f32) -> usize {
 /// plain text, no mark and no colour, although the colour stays set; the change bar stays.
 #[test]
 fn moved_to_none_is_plain_text_with_its_change_bar() {
-    use wordcraft_layout::display::{MOVE_COLOR, Stroke};
+    use docufy_layout::display::{MOVE_COLOR, Stroke};
     let mut s = moved_with(json!({}));
     let (d, body_x) = draws(&mut s);
     let default_bars = bars(&d, body_x);
@@ -211,7 +211,7 @@ fn moved_to_none_is_plain_text_with_its_change_bar() {
     assert_eq!(s.run("review.trackingOptions", &json!({})).unwrap()["moveToColor"], MOVE_COLOR.hex());
     let (d, body_x) = draws(&mut s);
     let sec = seconds(&d);
-    assert_eq!(sec.first().map(|c| c.0), Some(wordcraft_doc::Rgb::BLACK), "{sec:?}");
+    assert_eq!(sec.first().map(|c| c.0), Some(docufy_doc::Rgb::BLACK), "{sec:?}");
     assert_eq!(sec.get(1).map(|c| c.0), Some(MOVE_COLOR), "the moved-from end keeps its colour");
     assert_eq!(h_strokes(&d), vec![Stroke::Double], "only the moved-from strikethrough");
     assert_eq!(bars(&d, body_x), default_bars, "the change bars stay");
@@ -222,7 +222,7 @@ fn moved_to_none_is_plain_text_with_its_change_bar() {
 /// deletion marked (none) keeps its colour.
 #[test]
 fn deletion_marks_none_bold_italic_and_double_underline() {
-    use wordcraft_layout::display::{MOVE_COLOR, Stroke};
+    use docufy_layout::display::{MOVE_COLOR, Stroke};
     let plain = json!({"moveToMark": "none", "moveToColor": "byAuthor"});
     let with = |extra: serde_json::Value| {
         let mut o = plain.clone();
@@ -231,7 +231,7 @@ fn deletion_marks_none_bold_italic_and_double_underline() {
     };
     let mut s = with(json!({"moveFromMark": "none"}));
     let (d, _) = draws(&mut s);
-    assert_eq!(seconds(&d).get(1).map(|c| c.0), Some(wordcraft_doc::Rgb::BLACK), "{:?}", seconds(&d));
+    assert_eq!(seconds(&d).get(1).map(|c| c.0), Some(docufy_doc::Rgb::BLACK), "{:?}", seconds(&d));
     assert!(h_strokes(&d).is_empty(), "{:?}", h_strokes(&d));
     let mut s = with(json!({"moveFromMark": "bold"}));
     let (d, _) = draws(&mut s);
@@ -257,7 +257,7 @@ fn deletion_marks_none_bold_italic_and_double_underline() {
     let (d, _) = draws(&mut s);
     assert!(h_strokes(&d).is_empty());
     let gone = d.iter().find_map(|x| if let Draw::Glyphs { text, color, .. } = x { text.contains("gone").then_some(*color) } else { None });
-    assert_eq!(gone, Some(wordcraft_layout::display::revision_color(0)));
+    assert_eq!(gone, Some(docufy_layout::display::revision_color(0)));
 }
 
 /// Review of gap #5: Deletions = Hidden hides deletions, not moved-away text, which follows
@@ -265,7 +265,7 @@ fn deletion_marks_none_bold_italic_and_double_underline() {
 /// as in Word for Mac 16.113.4 (user-checked 2026-10-15).
 #[test]
 fn hidden_deletions_leave_moved_from_text_shown() {
-    use wordcraft_layout::display::{MOVE_COLOR, Stroke};
+    use docufy_layout::display::{MOVE_COLOR, Stroke};
     let mut accepted = moved_with(json!({}));
     accepted.run("review.acceptAll", &json!({})).unwrap();
     let third_accepted = caret_at(&mut accepted, 2, 0).1;
@@ -296,14 +296,14 @@ fn track_moves_is_a_document_setting_with_one_undo_step() {
     assert!(s.run("review.trackingOptions", &json!({"trackMoves": false, "moveToMark": "sparkles"})).is_err());
     assert!(s.doc.settings.track_moves);
     // Documents saved before the setting existed keep tracking moves.
-    let old: wordcraft_doc::Settings = serde_json::from_value(json!({"trackChanges": true})).unwrap();
+    let old: docufy_doc::Settings = serde_json::from_value(json!({"trackChanges": true})).unwrap();
     assert!(old.track_moves);
 }
 
 /// #1055: the caret's own comment is the one whose range holds it, not any in its paragraph.
 #[test]
 fn comment_range_at_caret_needs_the_caret_inside_the_range() {
-    let mut s = Session::new(wordcraft_doc::Document::from_text("one two three"));
+    let mut s = Session::new(docufy_doc::Document::from_text("one two three"));
     s.run("select.text", &json!({"text": "two"})).unwrap();
     let id = s.run("review.newComment", &json!({"text": "note"})).unwrap()["id"].as_u64().unwrap() as u32;
     s.run("select.text", &json!({"text": "two"})).unwrap();
@@ -344,11 +344,11 @@ fn revisions_in_balloons_take_deletions_out_of_the_text() {
     let horizontal = lines(&d).into_iter().filter(|(_, y0, _, y1)| y0 == y1).count();
     assert_eq!(horizontal, 0, "no strikethrough left behind: {:?}", lines(&d));
     assert_eq!(lines(&d).into_iter().filter(|(x0, _, x1, _)| x0 == x1 && *x0 < body_x).count(), 1, "the changed line keeps its bar");
-    let at = wordcraft_doc::Pos::body(0, 5);
+    let at = docufy_doc::Pos::body(0, 5);
     assert_eq!(deletion_balloons(&s), vec![DeletionBalloon { at: at.clone(), author: "Ana".into(), text: "gone ".into() }]);
     // The balloon's anchor is where the deletion was: between "keep " and "stay".
     let l = s.layout();
-    let (anchor, stay) = (l.caret(&at).unwrap().x, l.caret(&wordcraft_doc::Pos::body(0, 10)).unwrap().x);
+    let (anchor, stay) = (l.caret(&at).unwrap().x, l.caret(&docufy_doc::Pos::body(0, 10)).unwrap().x);
     assert!((anchor - stay).abs() < 0.01, "the deletion takes no room: {anchor} vs {stay}");
 
     // No balloons beside the page while the Comments pane lists comments: inline again.
@@ -383,7 +383,7 @@ fn deletion_balloons_join_runs_and_paragraph_marks_and_stay_short() {
     let b = deletion_balloons(&s);
     let got: Vec<(&str, &str)> = b.iter().map(|d| (d.author.as_str(), d.text.as_str())).collect();
     assert_eq!(got, vec![("Ana", "two¶three"), ("Bo", " four")]);
-    assert_eq!(b[0].at, wordcraft_doc::Pos::body(0, 4));
+    assert_eq!(b[0].at, docufy_doc::Pos::body(0, 4));
 
     // A deletion far longer than a balloon shows: its first characters and an ellipsis.
     let mut s = Session::new(Document::new());
@@ -404,7 +404,7 @@ fn deletion_balloons_join_runs_and_paragraph_marks_and_stay_short() {
 #[test]
 fn a_moves_source_gets_no_deletion_balloon() {
     use super::{DeletionBalloon, deletion_balloons, has_deletions, move_changes};
-    use wordcraft_doc::Pos;
+    use docufy_doc::Pos;
     let mut s = Session::new(Document::new());
     s.run("document.setText", &json!({"text": "First one.\nSecond one.\nThird one."})).unwrap();
     s.run("file.setAuthor", &json!({"name": "Ana"})).unwrap();
@@ -437,7 +437,7 @@ fn a_moves_source_gets_no_deletion_balloon() {
 #[test]
 fn deletions_outside_the_body_stay_inline_when_revisions_go_in_balloons() {
     use super::{DeletionBalloon, deletion_balloons};
-    use wordcraft_doc::{Path, Pos, StoryRef};
+    use docufy_doc::{Path, Pos, StoryRef};
     let mut s = Session::new(Document::new());
     s.view.proofing = false;
     s.author = "Ana".into();
@@ -491,8 +491,8 @@ fn deletions_outside_the_body_stay_inline_when_revisions_go_in_balloons() {
     assert_eq!(deletion_balloons(&s), vec![DeletionBalloon { at: Pos::body(0, at), author: "Ana".into(), text: "zeta".into() }]);
 }
 
-fn body_para(s: &Session) -> &wordcraft_doc::Paragraph {
-    s.doc.para(wordcraft_doc::StoryRef::Body, &wordcraft_doc::Path::top(0)).unwrap()
+fn body_para(s: &Session) -> &docufy_doc::Paragraph {
+    s.doc.para(docufy_doc::StoryRef::Body, &docufy_doc::Path::top(0)).unwrap()
 }
 
 /// A comment inside a tracked insertion splits it into several runs; Accept and Reject at the
@@ -513,7 +513,7 @@ fn accept_and_reject_cover_a_change_split_by_a_comment() {
         let p = body_para(&s);
         assert!(p.runs.iter().all(|r| r.props.ins.is_none()), "no tracked insertion is left");
         // The comment's anchors are objects in the text; read past them.
-        let shown: String = p.text.chars().filter(|c| *c != wordcraft_doc::para::OBJ).collect();
+        let shown: String = p.text.chars().filter(|c| *c != docufy_doc::para::OBJ).collect();
         assert_eq!(shown.contains("hello"), accept, "{:?}", p.text);
     }
 }
@@ -564,7 +564,7 @@ fn accept_and_reject_can_move_to_the_next_change() {
         assert_eq!(after[0].0, "delete", "{cmd}");
         let deletion = (after[0].1 as usize, after[0].2 as usize);
         assert_eq!(selected(&s), deletion, "{cmd}: the deletion is selected next");
-        assert_eq!(s.doc.plain_text(wordcraft_doc::StoryRef::Body).starts_with("new "), accept, "{cmd}");
+        assert_eq!(s.doc.plain_text(docufy_doc::StoryRef::Body).starts_with("new "), accept, "{cmd}");
 
         // Without `next`, the caret stays at the resolved change.
         let mut s = three_changes();
@@ -607,7 +607,7 @@ fn move_to_next_selects_a_change_left_at_the_caret() {
     let after = change_spans(&mut s);
     assert_eq!(after.iter().map(|c| c.0.as_str()).collect::<Vec<_>>(), ["format", "insert"], "{after:?}");
     let (a, b) = s.sel.ordered();
-    let at = (wordcraft_doc::Path::top(1), 0);
+    let at = (docufy_doc::Path::top(1), 0);
     assert_eq!(((a.path.clone(), a.off), (b.path.clone(), b.off)), (at.clone(), at), "the centering is selected");
 }
 
@@ -659,7 +659,7 @@ fn formatting_is_tracked_while_tracking_changes() {
     let ch = p.props_of_char(6).fmt_change.as_deref().expect("a formatting change on \"words\"");
     assert_eq!((ch.old.bold, ch.old.size), (None, None), "the formatting before the first change is kept");
     let rev = &s.doc.revisions[ch.rev as usize];
-    assert_eq!((rev.kind, rev.author.as_str()), (wordcraft_doc::RevisionKind::Format, "Ana"));
+    assert_eq!((rev.kind, rev.author.as_str()), (docufy_doc::RevisionKind::Format, "Ana"));
     assert!(p.props_of_char(0).fmt_change.is_none() && p.props_of_char(13).fmt_change.is_none());
     assert_eq!(p.props.fmt_change.as_deref().map(|c| c.old.align), Some(None));
 
@@ -699,7 +699,7 @@ fn formatting_changes_are_accepted_and_rejected() {
     assert!(p.props.fmt_change.is_some(), "the paragraph's change is still there");
     s.run("review.acceptAll", &json!({})).unwrap();
     let p = body_para(&s);
-    assert_eq!((p.props.align, p.props.fmt_change.is_none()), (Some(wordcraft_doc::props::Align::Center), true));
+    assert_eq!((p.props.align, p.props.fmt_change.is_none()), (Some(docufy_doc::props::Align::Center), true));
     assert!(s.run("review.changes", &json!({})).unwrap().as_array().unwrap().is_empty());
 }
 
@@ -720,9 +720,9 @@ fn inspector_clear_keeps_formatting_changes() {
 
 /// Comment anchors left in any story (the body, headers, footers, notes and text boxes), with
 /// the story each sits in.
-fn anchors(s: &Session) -> Vec<(wordcraft_doc::StoryRef, u32)> {
-    use wordcraft_doc::StoryRef;
-    use wordcraft_doc::para::InlineObject;
+fn anchors(s: &Session) -> Vec<(docufy_doc::StoryRef, u32)> {
+    use docufy_doc::StoryRef;
+    use docufy_doc::para::InlineObject;
     let stories = std::iter::once(StoryRef::Body).chain(s.doc.parts.keys().map(|k| StoryRef::Part(*k)));
     let mut ids = Vec::new();
     for story in stories {
@@ -748,7 +748,7 @@ fn deleting_a_header_comment_removes_its_anchors() {
     let hdr = s.run("insert.header", &json!({"text": "Header text"})).unwrap()["story"].as_u64().unwrap() as u32;
     s.run("select.all", &json!({})).unwrap();
     let id = s.run("review.newComment", &json!({"text": "in the header"})).unwrap()["id"].as_u64().unwrap() as u32;
-    let in_header = vec![(wordcraft_doc::StoryRef::Part(hdr), id); 2];
+    let in_header = vec![(docufy_doc::StoryRef::Part(hdr), id); 2];
     assert_eq!(anchors(&s), in_header, "both anchors sit in the header");
     s.run("review.deleteComment", &json!({"id": id})).unwrap();
     assert!(anchors(&s).is_empty(), "no anchor points at the deleted comment");
@@ -807,7 +807,7 @@ fn deleting_a_long_reply_chain_stays_fast() {
     let root = s.run("review.newComment", &json!({"text": "root"})).unwrap()["id"].as_u64().unwrap() as u32;
     let template = s.doc.comments.get(&root).unwrap().clone();
     for k in 1..=50_000u32 {
-        s.doc.comments.insert(root + k, wordcraft_doc::Comment { parent: Some(root + k - 1), ..template.clone() });
+        s.doc.comments.insert(root + k, docufy_doc::Comment { parent: Some(root + k - 1), ..template.clone() });
     }
     let started = std::time::Instant::now();
     s.run("review.deleteComment", &json!({"id": root})).unwrap();
@@ -816,7 +816,7 @@ fn deleting_a_long_reply_chain_stays_fast() {
 }
 
 /// A comment on the whole of the story the caret is in; its id and that story.
-fn comment_here(s: &mut Session, text: &str) -> (u64, wordcraft_doc::StoryRef) {
+fn comment_here(s: &mut Session, text: &str) -> (u64, docufy_doc::StoryRef) {
     let story = s.sel.focus.story;
     s.run("select.all", &json!({})).unwrap();
     (s.run("review.newComment", &json!({"text": text})).unwrap()["id"].as_u64().unwrap(), story)
@@ -826,7 +826,7 @@ fn comment_here(s: &mut Session, text: &str) -> (u64, wordcraft_doc::StoryRef) {
 /// on a word of the body. Returns each comment's id and story in reading order, which isn't
 /// the order they were made: the body, the text box and footnote it shows, then the header
 /// and the footer.
-fn comments_in_every_story(s: &mut Session) -> Vec<(u64, wordcraft_doc::StoryRef)> {
+fn comments_in_every_story(s: &mut Session) -> Vec<(u64, docufy_doc::StoryRef)> {
     s.view.proofing = false;
     s.run("document.setText", &json!({"text": "Body text with a comment on it."})).unwrap();
     s.run("insert.header", &json!({"text": "header"})).unwrap();
@@ -844,19 +844,19 @@ fn comments_in_every_story(s: &mut Session) -> Vec<(u64, wordcraft_doc::StoryRef
     let note = comment_here(s, "footnote");
     s.run("insert.closeHeader", &json!({})).unwrap();
     s.run("select.text", &json!({"text": "comment"})).unwrap();
-    let body = (s.run("review.newComment", &json!({"text": "body"})).unwrap()["id"].as_u64().unwrap(), wordcraft_doc::StoryRef::Body);
+    let body = (s.run("review.newComment", &json!({"text": "body"})).unwrap()["id"].as_u64().unwrap(), docufy_doc::StoryRef::Body);
     s.run("caret.docStart", &json!({})).unwrap();
     vec![body, text_box, note, header, footer]
 }
 
 /// `review.comments` as (id, the anchor's story).
-fn listed(s: &mut Session) -> Vec<(u64, Option<wordcraft_doc::StoryRef>)> {
+fn listed(s: &mut Session) -> Vec<(u64, Option<docufy_doc::StoryRef>)> {
     let list = s.run("review.comments", &json!({})).unwrap();
     list.as_array().unwrap().iter().map(|c| (c["id"].as_u64().unwrap(), serde_json::from_value(c["anchor"]["story"].clone()).ok())).collect()
 }
 
 /// The stories Next Comment visits, `n` presses from the caret.
-fn next_stories(s: &mut Session, n: usize) -> Vec<wordcraft_doc::StoryRef> {
+fn next_stories(s: &mut Session, n: usize) -> Vec<docufy_doc::StoryRef> {
     (0..n)
         .map(|_| {
             s.run("review.nextComment", &json!({})).unwrap();
@@ -932,7 +932,7 @@ fn comments_in_hidden_stories_are_not_navigated_to() {
 
 /// A body comment, then, with `option` on, a comment in the header of page `page`; `option`
 /// is turned off again. Returns the header comment's id and story.
-fn comment_in_header_version(s: &mut Session, option: &str, page: usize) -> (u64, wordcraft_doc::StoryRef) {
+fn comment_in_header_version(s: &mut Session, option: &str, page: usize) -> (u64, docufy_doc::StoryRef) {
     s.view.proofing = false;
     s.run("document.setText", &json!({"text": "Body text with a comment on it."})).unwrap();
     s.run("select.text", &json!({"text": "comment"})).unwrap();
@@ -958,10 +958,10 @@ fn comments_in_header_versions_whose_option_is_off_are_not_navigated_to() {
         let (id, story) = comment_in_header_version(&mut s, option, page);
         let headers = s.doc.sections().first().map(|(_, sec)| sec.headers).unwrap();
         let want = if slot == "first" { headers.first } else { headers.even };
-        assert_eq!(want.map(wordcraft_doc::StoryRef::Part), Some(story), "{option}: the comment is in the {slot} header");
+        assert_eq!(want.map(docufy_doc::StoryRef::Part), Some(story), "{option}: the comment is in the {slot} header");
         assert!(listed(&mut s).contains(&(id, None)), "{option} off: no anchor");
         for st in next_stories(&mut s, 3) {
-            assert_eq!(st, wordcraft_doc::StoryRef::Body, "{option} off: Next went to the hidden {slot} header");
+            assert_eq!(st, docufy_doc::StoryRef::Body, "{option} off: Next went to the hidden {slot} header");
         }
         s.run(option, &json!({"value": true})).unwrap();
         assert!(listed(&mut s).contains(&(id, Some(story))), "{option} on: anchored again");
@@ -1012,7 +1012,7 @@ fn comments_in_a_linked_text_box_own_text_are_not_navigated_to() {
     s.run("insert.closeHeader", &json!({})).unwrap();
     s.run("caret.set", &json!({"pos": {"story": first, "path": [0], "off": 0}})).unwrap();
     s.run("shape.link", &json!({"target": 1})).unwrap();
-    assert_eq!(s.doc.text_box_chains().first().and_then(|c| c.get(1)).copied().map(wordcraft_doc::StoryRef::Part), Some(follower));
+    assert_eq!(s.doc.text_box_chains().first().and_then(|c| c.get(1)).copied().map(docufy_doc::StoryRef::Part), Some(follower));
     s.run("caret.docStart", &json!({})).unwrap();
     assert!(listed(&mut s).contains(&(id, None)), "linked: no anchor");
     for st in next_stories(&mut s, 3) {
@@ -1033,27 +1033,27 @@ fn comment_list_skips_comment_text() {
     s.run("select.all", &json!({})).unwrap();
     let id = s.run("review.newComment", &json!({"text": "note"})).unwrap()["id"].as_u64().unwrap() as u32;
     let part = s.doc.comments.get(&id).unwrap().part;
-    let at = wordcraft_doc::Pos { story: wordcraft_doc::StoryRef::Part(part), path: wordcraft_doc::Path::top(0), off: 0 };
-    s.doc.insert_object(&at, wordcraft_doc::InlineObject::CommentStart { id }, &Default::default()).unwrap();
+    let at = docufy_doc::Pos { story: docufy_doc::StoryRef::Part(part), path: docufy_doc::Path::top(0), off: 0 };
+    s.doc.insert_object(&at, docufy_doc::InlineObject::CommentStart { id }, &Default::default()).unwrap();
     let list = super::comment_list(&s);
     assert_eq!(list.iter().filter(|(x, _)| *x == id).count(), 1);
-    assert_eq!(list.first().and_then(|(_, p)| p.as_ref()).map(|p| p.story), Some(wordcraft_doc::StoryRef::Body));
+    assert_eq!(list.first().and_then(|(_, p)| p.as_ref()).map(|p| p.story), Some(docufy_doc::StoryRef::Body));
 }
 
 #[test]
 fn rtf_tracked_changes_accept_and_reject_after_opening_and_round_trip() {
     // Gap 19: an RTF file's tracked insertions and deletions open as tracked changes, also
-    // after a WordCraft → RTF → WordCraft round trip.
+    // after a Docufy → RTF → Docufy round trip.
     let rtf: &[u8] = br"{\rtf1\ansi\deff0{\fonttbl{\f0 Arial;}}{\*\revtbl {Unknown;}{Alice;}{Bob;}}
 \pard Keep {\revised\revauth1\revdttm-1480361314 added }text{\deleted\revauthdel2\revdttmdel-2016341499  gone} end{\revised\revauth1\revdttm-1480361314\deleted\revauthdel2\revdttmdel-2016341499  both}.\par}";
-    let opened = wordcraft_formats::rtf::import(rtf).unwrap();
-    let again = wordcraft_formats::rtf::import(wordcraft_formats::rtf::export(&opened).as_bytes()).unwrap();
+    let opened = docufy_formats::rtf::import(rtf).unwrap();
+    let again = docufy_formats::rtf::import(docufy_formats::rtf::export(&opened).as_bytes()).unwrap();
     for doc in [opened, again] {
         for (cmd, want) in [("review.acceptAll", "Keep added text end."), ("review.rejectAll", "Keep text gone end.")] {
             let mut s = Session::new(doc.clone());
             assert!(!s.run("review.changes", &json!({})).unwrap().as_array().unwrap().is_empty(), "{cmd}");
             s.run(cmd, &json!({})).unwrap();
-            assert_eq!(s.doc.plain_text(wordcraft_doc::StoryRef::Body).trim_end(), want, "{cmd}");
+            assert_eq!(s.doc.plain_text(docufy_doc::StoryRef::Body).trim_end(), want, "{cmd}");
             assert!(s.run("review.changes", &json!({})).unwrap().as_array().unwrap().is_empty(), "{cmd}");
         }
     }

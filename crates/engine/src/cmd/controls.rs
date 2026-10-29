@@ -1,4 +1,4 @@
-//! Developer › Controls: content controls (see [`wordcraft_doc::control`]) — insert each kind,
+//! Developer › Controls: content controls (see [`docufy_doc::control`]) — insert each kind,
 //! set their properties, tick check boxes, choose list entries and dates, Design Mode.
 //!
 //! Typing into a control that shows its placeholder replaces the placeholder; deleting all of a
@@ -6,12 +6,12 @@
 //! (`sdtLocked`) or edited (`contentLocked`). Those rules live here and are called from the
 //! typing and deleting commands.
 
+use docufy_doc::control::{ContentControl, ControlKind, ControlLock, ControlRange, ListItem, MAX_CONTROL_TEXT, MAX_LIST_ITEMS};
+use docufy_doc::para::OBJ;
+use docufy_doc::props::{CharProps, Rgb, TextColor};
+use docufy_doc::styles::{Style, StyleKind};
+use docufy_doc::{InlineObject, Pos, StoryRef};
 use serde_json::{Value, json};
-use wordcraft_doc::control::{ContentControl, ControlKind, ControlLock, ControlRange, ListItem, MAX_CONTROL_TEXT, MAX_LIST_ITEMS};
-use wordcraft_doc::para::OBJ;
-use wordcraft_doc::props::{CharProps, Rgb, TextColor};
-use wordcraft_doc::styles::{Style, StyleKind};
-use wordcraft_doc::{InlineObject, Pos, StoryRef};
 
 use super::{delete_selection, sel_result};
 use crate::{CmdError, CmdResult, CommandSpec, Selection, Session, p};
@@ -160,7 +160,7 @@ const PLACEHOLDER_STYLE_NAME: &str = "Placeholder Text";
 
 /// The id of the document's placeholder style: the one named "Placeholder Text", else the
 /// English id.
-fn placeholder_style_id(doc: &wordcraft_doc::Document) -> String {
+fn placeholder_style_id(doc: &docufy_doc::Document) -> String {
     doc.styles
         .styles
         .iter()
@@ -192,7 +192,7 @@ fn placeholder_props(s: &mut Session, base: &CharProps) -> CharProps {
 }
 
 /// `base` without the placeholder style (for real content), whatever its localized id.
-fn content_props(doc: &wordcraft_doc::Document, base: &CharProps) -> CharProps {
+fn content_props(doc: &docufy_doc::Document, base: &CharProps) -> CharProps {
     let mut p = base.clone();
     if p.style.as_deref().is_some_and(|id| id == PLACEHOLDER_STYLE || id == placeholder_style_id(doc)) {
         p.style = None;
@@ -203,8 +203,8 @@ fn content_props(doc: &wordcraft_doc::Document, base: &CharProps) -> CharProps {
 /// An id no control in the document has.
 fn new_id(s: &Session) -> i64 {
     let mut used = std::collections::BTreeSet::new();
-    let mut add = |bl: &wordcraft_doc::Blocks| {
-        wordcraft_doc::control::walk_controls(bl, &mut |c| {
+    let mut add = |bl: &docufy_doc::Blocks| {
+        docufy_doc::control::walk_controls(bl, &mut |c| {
             if let Some(id) = c.id {
                 used.insert(id);
             }
@@ -799,9 +799,9 @@ mod tests {
 
 #[cfg(test)]
 mod editing_tests {
+    use docufy_doc::StoryRef;
+    use docufy_doc::control::ControlKind;
     use serde_json::json;
-    use wordcraft_doc::StoryRef;
-    use wordcraft_doc::control::ControlKind;
 
     use crate::Session;
 
@@ -819,15 +819,15 @@ mod editing_tests {
     /// and each control's `w:rPr` gives the style entered text takes (`Eingabe`, bold black).
     /// Text typed over the placeholder takes the control's run properties, as in Word (17 of 17
     /// values filled in Word did); without them it drops the placeholder style whatever its id.
-    /// WordCraft kept the German placeholder style, so entries stayed grey.
+    /// Docufy kept the German placeholder style, so entries stayed grey.
     #[test]
     fn typing_over_a_localized_placeholder_takes_the_controls_formatting() {
-        use wordcraft_doc::props::{CharProps, Rgb, TextColor};
-        use wordcraft_doc::styles::{Style, StyleKind};
+        use docufy_doc::props::{CharProps, Rgb, TextColor};
+        use docufy_doc::styles::{Style, StyleKind};
         let style =
             |id: &str, name: &str, chr: CharProps| Style { id: id.into(), name: name.into(), kind: StyleKind::Character, chr, ..Default::default() };
         let typed_style = |run_props: Option<CharProps>| {
-            let mut s = Session::new(wordcraft_doc::Document::new());
+            let mut s = Session::new(docufy_doc::Document::new());
             let grey = CharProps { color: Some(TextColor::Rgb(Rgb(0x80, 0x80, 0x80))), ..Default::default() };
             s.doc.styles.styles.push(style("Platzhaltertext", "Placeholder Text", grey));
             s.doc.styles.styles.push(style("Eingabe", "Eingabe", CharProps { bold: Some(true), ..Default::default() }));
@@ -850,7 +850,7 @@ mod editing_tests {
         assert_eq!(typed_style(None), None, "no placeholder style left");
         // A producer that localizes the style's name as well: the showing placeholder's own
         // style goes all the same.
-        let mut s = Session::new(wordcraft_doc::Document::new());
+        let mut s = Session::new(docufy_doc::Document::new());
         let grey = CharProps { color: Some(TextColor::Rgb(Rgb(0x80, 0x80, 0x80))), ..Default::default() };
         s.doc.styles.styles.push(style("TexteEspaceReserve", "Texte de l'espace réservé", grey));
         run(&mut s, "text.insert", json!({"text": "Nom : "}));
@@ -871,7 +871,7 @@ mod editing_tests {
     #[test]
     fn typed_line_breaks_do_not_split_a_one_line_control() {
         for (multi_line, paragraphs) in [(false, 1), (true, 2)] {
-            let mut s = Session::new(wordcraft_doc::Document::new());
+            let mut s = Session::new(docufy_doc::Document::new());
             run(&mut s, "text.insert", json!({"text": "Name: "}));
             run(&mut s, "developer.plainText", json!({"title": "Name", "tag": "name"}));
             run(&mut s, "developer.properties", json!({"control": "name", "multiLine": multi_line}));
@@ -885,7 +885,7 @@ mod editing_tests {
 
     #[test]
     fn typing_replaces_the_placeholder_and_emptying_brings_it_back() {
-        let mut s = Session::new(wordcraft_doc::Document::new());
+        let mut s = Session::new(docufy_doc::Document::new());
         run(&mut s, "text.insert", json!({"text": "Name: "}));
         run(&mut s, "developer.plainText", json!({"title": "Name", "tag": "name"}));
         let i = info(&mut s);
@@ -919,13 +919,13 @@ mod editing_tests {
         run(&mut s, "edit.undo", json!({}));
         assert_eq!(text(&s), "Name: A");
         // And the file keeps it.
-        let back = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+        let back = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
         assert_eq!(back.control_ranges(StoryRef::Body).first().map(|r| r.control.tag.clone()), Some("name".into()));
     }
 
     #[test]
     fn check_boxes_toggle_and_locks_refuse() {
-        let mut s = Session::new(wordcraft_doc::Document::new());
+        let mut s = Session::new(docufy_doc::Document::new());
         run(&mut s, "developer.checkBox", json!({"tag": "ok"}));
         assert_eq!(text(&s), "\u{2610}");
         // A check box takes no typing: at its edge the text goes beside it, over it it's refused.
@@ -957,7 +957,7 @@ mod editing_tests {
     }
 
     fn replacement_control() -> Session {
-        let mut s = Session::new(wordcraft_doc::Document::from_text("cat cat"));
+        let mut s = Session::new(docufy_doc::Document::from_text("cat cat"));
         run(&mut s, "edit.find", json!({"text": "cat"}));
         run(&mut s, "developer.richText", json!({"tag": "protected"}));
         assert_eq!(text(&s), "cat cat");
@@ -1001,7 +1001,7 @@ mod editing_tests {
 
     #[test]
     fn lists_dates_and_blocks() {
-        let mut s = Session::new(wordcraft_doc::Document::new());
+        let mut s = Session::new(docufy_doc::Document::new());
         run(&mut s, "developer.dropDown", json!({"tag": "size", "items": ["Small", {"display": "Large", "value": "L"}]}));
         run(&mut s, "developer.chooseItem", json!({"control": "size", "value": "L"}));
         run(&mut s, "text.insert", json!({"text": " on "}));
@@ -1015,7 +1015,7 @@ mod editing_tests {
         run(&mut s, "select.all", json!({}));
         run(&mut s, "developer.richText", json!({"title": "All"}));
         run(&mut s, "developer.repeatingSection", json!({}));
-        let doc = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+        let doc = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
         let kinds: Vec<_> = doc.control_ranges(StoryRef::Body).iter().map(|r| (r.control.kind.name(), r.control.block)).collect();
         for k in [("dropDown", false), ("date", false), ("richText", true), ("repeatingSection", true), ("repeatingSectionItem", true)] {
             assert!(kinds.contains(&k), "{k:?} in {kinds:?}");

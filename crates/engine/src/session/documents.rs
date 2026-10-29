@@ -7,11 +7,11 @@ use std::path::{Path as FsPath, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use docufy_doc::props::CharProps;
+use docufy_doc::{Document, Pos, StoryRef};
+use docufy_layout::LayoutCache;
 use serde::Serialize;
 use serde_json::json;
-use wordcraft_doc::props::CharProps;
-use wordcraft_doc::{Document, Pos, StoryRef};
-use wordcraft_layout::LayoutCache;
 
 use super::{ColumnBlock, FindState, LayoutSlots, MathEdit, Selection, Session, TypedWord, Undo, ViewState, Widened, doc_bib_style};
 use crate::CmdError;

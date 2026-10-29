@@ -1,11 +1,11 @@
 //! File format dispatch by extension. Format crates plug in here.
 
-use wordcraft_doc::Document;
+use docufy_doc::Document;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod safe_save;
 
-/// Formats WordCraft opens.
+/// Formats Docufy opens.
 pub const OPEN_EXTS: &[&str] = &[
     "docx",
     "docm",
@@ -27,7 +27,7 @@ pub const OPEN_EXTS: &[&str] = &[
     "wcraft.json",
     "json",
 ];
-/// Formats WordCraft saves (Save As).
+/// Formats Docufy saves (Save As).
 pub const SAVE_EXTS: &[&str] = &["docx", "docm", "dotx", "dotm", "pdf", "txt", "md", "html", "rtf", "odt", "tex", "png", "json", "xml"];
 
 /// Magic number for ZIP package signatures (used by .docx/.docm/.dotx/.dotm).
@@ -44,7 +44,7 @@ fn ext_of(name: &str) -> String {
 
 /// Is `ext` one of Word's package formats (.docx/.docm/.dotx/.dotm), which save without loss?
 pub fn is_word_package(ext: &str) -> bool {
-    wordcraft_docx::Flavor::from_ext(ext).is_some()
+    docufy_docx::Flavor::from_ext(ext).is_some()
 }
 
 /// How a copy in another format is written.
@@ -60,7 +60,7 @@ pub struct ExportOptions {
     /// Document (Flat OPC): `format: "wordml2003"` on the save commands.
     pub word2003: bool,
     /// How digits look in PDFs and page images (the Numeral setting, `System` resolved).
-    pub numeral: wordcraft_layout::NumeralMode,
+    pub numeral: docufy_layout::NumeralMode,
 }
 
 /// A document password: wiped from memory when dropped, never printed (`Debug` shows `***`).
@@ -91,12 +91,12 @@ impl std::fmt::Debug for Password {
 
 /// Does this open error mean the file is password-protected and no password was given?
 pub fn needs_password(err: &str) -> bool {
-    err.contains(wordcraft_docx::PASSWORD_REQUIRED)
+    err.contains(docufy_docx::PASSWORD_REQUIRED)
 }
 
 /// Does this open error mean the password given was wrong?
 pub fn wrong_password(err: &str) -> bool {
-    err.contains(wordcraft_docx::WRONG_PASSWORD)
+    err.contains(docufy_docx::WRONG_PASSWORD)
 }
 
 /// Is the file at `path` empty, zero bytes long? File Explorer's New › Microsoft Word Document
@@ -149,12 +149,12 @@ pub fn open_bytes(name: &str, bytes: &[u8]) -> Result<Document, String> {
 /// (XOR, RC4, RC4 CryptoAPI). The errors for a missing or wrong password are the same texts the
 /// `.docx` reader gives, so [`needs_password`] and [`wrong_password`] recognise them.
 fn open_binary_doc(bytes: &[u8], password: Option<&str>) -> Result<(Document, bool), String> {
-    use wordcraft_docbin::DocbinError;
-    let encrypted = wordcraft_docbin::is_encrypted(bytes);
-    match wordcraft_docbin::read_with_password(bytes, password) {
+    use docufy_docbin::DocbinError;
+    let encrypted = docufy_docbin::is_encrypted(bytes);
+    match docufy_docbin::read_with_password(bytes, password) {
         Ok(doc) => Ok((doc, encrypted)),
-        Err(DocbinError::PasswordRequired) => Err(wordcraft_docx::PASSWORD_REQUIRED.to_string()),
-        Err(DocbinError::WrongPassword) => Err(wordcraft_docx::WRONG_PASSWORD.to_string()),
+        Err(DocbinError::PasswordRequired) => Err(docufy_docx::PASSWORD_REQUIRED.to_string()),
+        Err(DocbinError::WrongPassword) => Err(docufy_docx::WRONG_PASSWORD.to_string()),
         Err(e) => Err(e.to_string()),
     }
 }
@@ -166,19 +166,19 @@ fn open_binary_doc(bytes: &[u8], password: Option<&str>) -> Result<(Document, bo
 /// whether the file was encrypted. Without the password needed the error satisfies
 /// [`needs_password`]; with a wrong one, [`wrong_password`].
 pub fn open_bytes_with(name: &str, bytes: &[u8], password: Option<&str>) -> Result<(Document, bool), String> {
-    open_bytes_in(name, bytes, password, &wordcraft_geom::Region::default())
+    open_bytes_in(name, bytes, password, &docufy_geom::Region::default())
 }
 
 /// The page a file that gives no page size (plain text, Markdown, HTML) opens on: `region`'s
 /// paper, as a new blank document (#838, #1381), with the default margins.
-pub fn region_page(region: &wordcraft_geom::Region) -> wordcraft_doc::SectionProps {
+pub fn region_page(region: &docufy_geom::Region) -> docufy_doc::SectionProps {
     let (_, w, h) = region.paper();
-    wordcraft_doc::SectionProps { page_w: w, page_h: h, ..Default::default() }
+    docufy_doc::SectionProps { page_w: w, page_h: h, ..Default::default() }
 }
 
 /// [`open_bytes_with`] in `region`: a file that gives no page size opens on the region's paper
 /// (see [`region_page`]); a document with its own page size keeps it.
-pub fn open_bytes_in(name: &str, bytes: &[u8], password: Option<&str>, region: &wordcraft_geom::Region) -> Result<(Document, bool), String> {
+pub fn open_bytes_in(name: &str, bytes: &[u8], password: Option<&str>, region: &docufy_geom::Region) -> Result<(Document, bool), String> {
     let page = region_page(region);
     let (doc, encrypted) = read_bytes(name, bytes, password, &page)?;
     load_embedded_fonts(&doc);
@@ -189,19 +189,19 @@ pub fn open_bytes_in(name: &str, bytes: &[u8], password: Option<&str>, region: &
 /// installed then lays out and exports with it instead of a fallback. Faces already available
 /// stay as they are.
 fn load_embedded_fonts(doc: &Document) {
-    let files: Vec<(Vec<u8>, String)> = wordcraft_docx::embedded_fonts(doc)
+    let files: Vec<(Vec<u8>, String)> = docufy_docx::embedded_fonts(doc)
         .into_iter()
-        .filter_map(|f| wordcraft_fonts::decode_font_file(&f.data).ok().map(|data| (data, f.name)))
+        .filter_map(|f| docufy_fonts::decode_font_file(&f.data).ok().map(|data| (data, f.name)))
         .collect();
     if !files.is_empty() {
-        wordcraft_fonts::FontDb::global().add_document_fonts(files);
+        docufy_fonts::FontDb::global().add_document_fonts(files);
     }
 }
 
-fn read_bytes(name: &str, bytes: &[u8], password: Option<&str>, page: &wordcraft_doc::SectionProps) -> Result<(Document, bool), String> {
+fn read_bytes(name: &str, bytes: &[u8], password: Option<&str>, page: &docufy_doc::SectionProps) -> Result<(Document, bool), String> {
     let ext = ext_of(name);
-    if matches!(ext.as_str(), "docx" | "docm" | "dotx" | "dotm" | "doc" | "dot") && wordcraft_docx::is_encrypted(bytes) {
-        let mut doc = wordcraft_docx::read_with_password(bytes, password).map_err(|e| e.to_string())?;
+    if matches!(ext.as_str(), "docx" | "docm" | "dotx" | "dotm" | "doc" | "dot") && docufy_docx::is_encrypted(bytes) {
+        let mut doc = docufy_docx::read_with_password(bytes, password).map_err(|e| e.to_string())?;
         opened(&mut doc);
         return Ok((doc, true));
     }
@@ -215,7 +215,7 @@ fn read_bytes(name: &str, bytes: &[u8], password: Option<&str>, page: &wordcraft
             return Ok((doc, encrypted));
         }
         // Plain text goes through the formats importer: BOMs, unmarked UTF-16, Windows-1252.
-        "txt" | "text" => wordcraft_formats::txt::import_on(bytes, page),
+        "txt" | "text" => docufy_formats::txt::import_on(bytes, page),
         "json" => {
             let mut d = serde_json::from_slice::<Document>(bytes).map_err(|e| format!("{name}: {e}"))?;
             d.normalize_runs();
@@ -238,12 +238,12 @@ pub(crate) fn text_width(doc: &Document) -> f32 {
 /// Shrink inline pictures wider than `max_w` to it, keeping their proportions. Layout keeps a
 /// picture's size (as Word does), so formats whose pictures come at their pixel size (HTML,
 /// Markdown, ODT, RTF) are fitted when they are read, as Insert › Pictures does.
-pub(crate) fn fit_block_pictures(b: &mut wordcraft_doc::Block, max_w: f32) {
+pub(crate) fn fit_block_pictures(b: &mut docufy_doc::Block, max_w: f32) {
     crate::cmd::paste::each_para(b, 0, &mut |p| {
         let mut changed = false;
         for o in &mut p.objects {
-            if let wordcraft_doc::InlineObject::Image { w, h, float, .. } = o
-                && float.wrap == wordcraft_doc::para::Wrap::Inline
+            if let docufy_doc::InlineObject::Image { w, h, float, .. } = o
+                && float.wrap == docufy_doc::para::Wrap::Inline
                 && w.is_finite()
                 && *w > max_w
             {
@@ -306,14 +306,14 @@ fn after_bom(bytes: &[u8]) -> &[u8] {
 /// Only text that starts with markup is parsed (UTF-16 has its byte-order mark).
 fn is_word_xml(bytes: &[u8]) -> bool {
     let utf16 = bytes.starts_with(&[0xFF, 0xFE]) || bytes.starts_with(&[0xFE, 0xFF]);
-    (utf16 || after_bom(bytes).starts_with(b"<")) && !matches!(wordcraft_docx::sniff_xml(bytes), wordcraft_docx::XmlKind::Other)
+    (utf16 || after_bom(bytes).starts_with(b"<")) && !matches!(docufy_docx::sniff_xml(bytes), docufy_docx::XmlKind::Other)
 }
 
 /// Does the file start like a web page (`<!DOCTYPE html …>` or `<html …>`, after an XML
 /// declaration and comments)? Word's Save as Web Page and many report generators write HTML
 /// under a `.doc` name, and Word opens it as a web page.
 fn looks_like_web_page(bytes: &[u8]) -> bool {
-    let head = wordcraft_formats::txt::decode(bytes.get(..bytes.len().min(4096)).unwrap_or(bytes)).to_ascii_lowercase();
+    let head = docufy_formats::txt::decode(bytes.get(..bytes.len().min(4096)).unwrap_or(bytes)).to_ascii_lowercase();
     let mut t = head.trim_start_matches(['\u{FEFF}', ' ', '\t', '\r', '\n']);
     for _ in 0..64 {
         let skip = if t.starts_with("<!--") {
@@ -333,36 +333,30 @@ fn looks_like_web_page(bytes: &[u8]) -> bool {
     tag("<!doctype html") || tag("<html")
 }
 
-/// A file whose extension names no format WordCraft knows (`.m3u`, `.log`, `.ini`, none…),
+/// A file whose extension names no format Docufy knows (`.m3u`, `.log`, `.ini`, none…),
 /// opened by what it holds, as Word does: a Word document or RTF file by its signature, a Word
 /// XML Document by its root element, a web page under a Word or RTF name as one
 /// (#2853), any other text through the plain-text import with encoding detection (#569).
 /// Anything else is refused with a clear error rather than shown as garbage.
-fn open_by_content(
-    name: &str,
-    ext: &str,
-    bytes: &[u8],
-    password: Option<&str>,
-    page: &wordcraft_doc::SectionProps,
-) -> Result<(Document, bool), String> {
-    let (mut doc, encrypted) = if bytes.starts_with(OLE_SIG) && wordcraft_docx::is_encrypted(bytes) {
-        (wordcraft_docx::read_with_password(bytes, password).map_err(|e| e.to_string())?, true)
+fn open_by_content(name: &str, ext: &str, bytes: &[u8], password: Option<&str>, page: &docufy_doc::SectionProps) -> Result<(Document, bool), String> {
+    let (mut doc, encrypted) = if bytes.starts_with(OLE_SIG) && docufy_docx::is_encrypted(bytes) {
+        (docufy_docx::read_with_password(bytes, password).map_err(|e| e.to_string())?, true)
     } else if bytes.starts_with(ZIP_SIG) {
-        (wordcraft_docx::read(bytes).map_err(|e| format!("{name}: not a document WordCraft can open ({e})"))?, false)
+        (docufy_docx::read(bytes).map_err(|e| format!("{name}: not a document Docufy can open ({e})"))?, false)
     } else if bytes.starts_with(OLE_SIG) {
         open_binary_doc(bytes, password)
-            .map_err(|e| if needs_password(&e) || wrong_password(&e) { e } else { format!("{name}: not a document WordCraft can open ({e})") })?
+            .map_err(|e| if needs_password(&e) || wrong_password(&e) { e } else { format!("{name}: not a document Docufy can open ({e})") })?
     } else if bytes.starts_with(b"{\\rtf") {
-        (wordcraft_formats::rtf::import(bytes)?, false)
+        (docufy_formats::rtf::import(bytes)?, false)
     } else if is_word_xml(bytes) {
-        (wordcraft_docx::read_xml(bytes).map_err(|e| format!("{name}: {e}"))?, false)
+        (docufy_docx::read_xml(bytes).map_err(|e| format!("{name}: {e}"))?, false)
     } else if matches!(ext, "doc" | "dot" | "docx" | "docm" | "dotx" | "dotm" | "rtf") && looks_like_web_page(bytes) {
         let opened = crate::io_ext::open("html", bytes, page).unwrap_or_else(|| Err(format!("{name}: can't open web pages")));
         (opened?, false)
-    } else if wordcraft_formats::txt::is_text(bytes) {
-        (wordcraft_formats::txt::import_on(bytes, page), false)
+    } else if docufy_formats::txt::is_text(bytes) {
+        (docufy_formats::txt::import_on(bytes, page), false)
     } else if ext.is_empty() {
-        return Err(format!("{name}: not a document or text file WordCraft can open"));
+        return Err(format!("{name}: not a document or text file Docufy can open"));
     } else {
         return Err(format!("{name}: unsupported format `.{ext}` (not a document or text file)"));
     };
@@ -381,8 +375,8 @@ pub fn save_bytes_opts(name: &str, doc: &Document, opts: &ExportOptions) -> Resu
     match ext.as_str() {
         // List paragraphs get their label and a tab, as in Word's plain-text save.
         "txt" | "text" => {
-            let bytes = wordcraft_formats::txt::export(doc);
-            Ok(if opts.markup && opts.comments { wordcraft_formats::comments::append("txt", doc, bytes) } else { bytes })
+            let bytes = docufy_formats::txt::export(doc);
+            Ok(if opts.markup && opts.comments { docufy_formats::comments::append("txt", doc, bytes) } else { bytes })
         }
         "json" => serde_json::to_vec_pretty(doc).map_err(|e| e.to_string()),
         other => match crate::io_ext::save(other, doc, opts) {
@@ -397,7 +391,7 @@ pub fn save_bytes_opts(name: &str, doc: &Document, opts: &ExportOptions) -> Resu
 pub fn save_bytes_with(name: &str, doc: &Document, password: Option<&str>, opts: &ExportOptions) -> Result<Vec<u8>, String> {
     let bytes = save_bytes_opts(name, doc, opts)?;
     match password {
-        Some(pw) if can_encrypt(name) => wordcraft_docx::encrypt(&bytes, pw).map_err(|e| e.to_string()),
+        Some(pw) if can_encrypt(name) => docufy_docx::encrypt(&bytes, pw).map_err(|e| e.to_string()),
         _ => Ok(bytes),
     }
 }
@@ -409,19 +403,19 @@ pub fn open_path(path: &std::path::Path) -> Result<Document, String> {
 /// [`open_path`] for a file that may be password-protected (see [`open_bytes_with`]).
 #[cfg(not(target_arch = "wasm32"))]
 pub fn open_path_with(path: &std::path::Path, password: Option<&str>) -> Result<(Document, bool), String> {
-    open_path_in(path, password, &wordcraft_geom::Region::default())
+    open_path_in(path, password, &docufy_geom::Region::default())
 }
 
 /// [`open_path_with`] in `region` (see [`open_bytes_in`]).
 #[cfg(not(target_arch = "wasm32"))]
-pub fn open_path_in(path: &std::path::Path, password: Option<&str>, region: &wordcraft_geom::Region) -> Result<(Document, bool), String> {
+pub fn open_path_in(path: &std::path::Path, password: Option<&str>, region: &docufy_geom::Region) -> Result<(Document, bool), String> {
     let bytes = read_document(path)?;
     let name = path.to_string_lossy();
     if matches!(ext_of(&name).as_str(), "html" | "htm" | "xhtml") {
         // Pictures referenced by a relative path load from beside the HTML file.
         let images = LocalImages::new(path.parent().unwrap_or(std::path::Path::new("")));
-        let html = wordcraft_formats::html::decode(&bytes);
-        let mut doc = wordcraft_formats::html::import_on(&html, &|src| images.load(src), &region_page(region));
+        let html = docufy_formats::html::decode(&bytes);
+        let mut doc = docufy_formats::html::import_on(&html, &|src| images.load(src), &region_page(region));
         fit_pictures(&mut doc);
         opened(&mut doc);
         return Ok((doc, false));
@@ -527,7 +521,7 @@ impl LocalImages {
         if src.is_empty() || src.starts_with("//") || src.split_once(':').is_some_and(|(scheme, _)| !scheme.contains('/')) {
             return None;
         }
-        let rel = String::from_utf8(wordcraft_formats::model::percent_decode(src)).ok()?;
+        let rel = String::from_utf8(docufy_formats::model::percent_decode(src)).ok()?;
         let rel = std::path::Path::new(&rel);
         if rel.components().any(|c| matches!(c, std::path::Component::Prefix(_) | std::path::Component::RootDir)) {
             return None;
@@ -707,7 +701,7 @@ pub fn package_title(path: &std::path::Path, max_file: u64, max_part: u64) -> Op
     if file.metadata().ok()?.len() > max_file {
         return None;
     }
-    wordcraft_docx::package_title(std::io::BufReader::new(file), max_part)
+    docufy_docx::package_title(std::io::BufReader::new(file), max_part)
 }
 
 /// Rename without replacing another file, respecting both automation access roots.
@@ -763,7 +757,7 @@ pub fn open_path_with(path: &std::path::Path, _password: Option<&str>) -> Result
 }
 
 #[cfg(target_arch = "wasm32")]
-pub fn open_path_in(path: &std::path::Path, password: Option<&str>, _region: &wordcraft_geom::Region) -> Result<(Document, bool), String> {
+pub fn open_path_in(path: &std::path::Path, password: Option<&str>, _region: &docufy_geom::Region) -> Result<(Document, bool), String> {
     open_path_with(path, password)
 }
 
@@ -786,7 +780,7 @@ pub fn save_path_with(path: &std::path::Path, _doc: &Document, _password: Option
 
 /// Decode text bytes: UTF-8 (with or without BOM), UTF-16 LE/BE (BOM or sniffed), else the
 /// legacy encoding they look like — GBK, Big5, Shift_JIS, Windows-1252… (see
-/// [`wordcraft_formats::txt::decode`]).
+/// [`docufy_formats::txt::decode`]).
 pub fn decode_text(b: &[u8]) -> String {
-    wordcraft_formats::txt::decode(b)
+    docufy_formats::txt::decode(b)
 }

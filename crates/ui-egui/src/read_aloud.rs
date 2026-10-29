@@ -1,13 +1,13 @@
 //! The Read Aloud player: a small floating window with previous / play-pause / next / stop,
 //! a speed slider and "Skip citations & bibliography". Every control runs a `readAloud.*`
-//! command; the player itself is [`wordcraft_engine::speech::ReadAloud`].
+//! command; the player itself is [`docufy_engine::speech::ReadAloud`].
 //!
 //! While reading, the caret follows the sentence being spoken (so stopping leaves it where
 //! reading stopped) and the sentence is highlighted on the page.
 
+use docufy_engine::speech::{MAX_RATE, MIN_RATE, State};
 use egui::{Color32, Rect, Sense, Ui, vec2};
 use serde_json::json;
-use wordcraft_engine::speech::{MAX_RATE, MIN_RATE, State};
 
 use crate::WordApp;
 use crate::theme::Tokens;
@@ -33,7 +33,7 @@ pub fn poll(app: &mut WordApp, ctx: &egui::Context) {
     let current = if reads_shown_document(app) { app.session.read_aloud.current().map(|u| u.start) } else { None };
     if current != app.read_aloud_at {
         if let Some(start) = &current {
-            app.session.sel = wordcraft_engine::Selection::caret(app.session.doc.clamp(start));
+            app.session.sel = docufy_engine::Selection::caret(app.session.doc.clamp(start));
             app.session.goal_x = None;
             app.canvas.scroll_to_caret = true;
         }
@@ -42,7 +42,7 @@ pub fn poll(app: &mut WordApp, ctx: &egui::Context) {
 }
 
 /// The page rectangles (in page units) of the sentence being read, to highlight.
-pub fn highlight(app: &mut WordApp) -> Option<(wordcraft_engine::doc::Pos, wordcraft_engine::doc::Pos)> {
+pub fn highlight(app: &mut WordApp) -> Option<(docufy_engine::doc::Pos, docufy_engine::doc::Pos)> {
     if !app.session.read_aloud.open || !reads_shown_document(app) {
         return None;
     }

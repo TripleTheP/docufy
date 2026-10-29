@@ -59,8 +59,8 @@ impl Paint {
 /// gradient runs from the centre of its focus rectangle out to the farthest corner, drawn
 /// circular whatever its outline (rectangular and shape-following ones are approximated).
 /// `tileRect` and `flip` are kept but not drawn. `None` for no fill.
-pub fn paint_for(fill: &wordcraft_doc::fill::Fill, frame: Rect) -> Option<Paint> {
-    use wordcraft_doc::fill::{Fill, GradientKind};
+pub fn paint_for(fill: &docufy_doc::fill::Fill, frame: Rect) -> Option<Paint> {
+    use docufy_doc::fill::{Fill, GradientKind};
     let g = match fill.sanitized()? {
         Fill::Solid { color, transparency } => return Some(Paint::Solid(color, 1.0 - transparency / 100.0)),
         Fill::Gradient(g) => g,

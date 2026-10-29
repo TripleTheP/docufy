@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
-use wordcraft_doc::para::{InlineObject, ShapeKind};
-use wordcraft_doc::{Document, Pos};
+use docufy_doc::para::{InlineObject, ShapeKind};
+use docufy_doc::{Document, Pos};
 
 use super::*;
 
 /// An app whose first paragraph holds `obj`, and where it's laid out.
 fn app_with(obj: InlineObject) -> (WordApp, ObjectHit) {
-    let mut app = WordApp::new(wordcraft_engine::Session::new(Document::new()), crate::Services::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(Document::new()), crate::Services::default());
     app.session.doc.insert_object(&Pos::body(0, 0), obj, &Default::default()).unwrap();
     let hit = app.session.layout().object(&Pos::body(0, 0), 0).expect("laid out");
     (app, hit)
@@ -37,7 +37,7 @@ fn charts_get_no_handles_or_drag_but_shapes_do() {
 
 #[test]
 fn editable_smart_art_takes_resize_handles_but_not_a_move() {
-    let mut app = WordApp::new(wordcraft_engine::Session::new(Document::new()), crate::Services::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(Document::new()), crate::Services::default());
     app.run("insert.smartArt", json!({"layout": "pyramid", "items": ["a", "b"]})).unwrap();
     let hit = app.session.layout().object(&Pos::body(0, 0), 0).expect("laid out");
     assert!(!fixed(&app, &hit));
@@ -57,7 +57,7 @@ fn editable_smart_art_takes_resize_handles_but_not_a_move() {
 #[test]
 fn dragging_a_shape_snaps_to_the_page_centre_unless_alt() {
     use egui::{Event, Modifiers, PointerButton};
-    let mut a = WordApp::new(wordcraft_engine::Session::new(Document::new()), crate::Services::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(Document::new()), crate::Services::default());
     a.run("view.commentsPane", json!({"value": false})).unwrap();
     a.run("insert.shape", json!({"kind": "rectangle", "width": 100, "height": 50})).unwrap();
     a.run("arrange.bounds", json!({"page": 0, "x": 100, "y": 250})).unwrap();
@@ -119,11 +119,11 @@ fn dragging_a_shape_snaps_to_the_page_centre_unless_alt() {
 #[test]
 fn dropping_a_shape_on_another_page_keeps_the_view_where_it_is() {
     use egui::{Event, PointerButton};
-    let mut a = WordApp::new(wordcraft_engine::Session::new(Document::new()), crate::Services::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(Document::new()), crate::Services::default());
     a.run("view.commentsPane", json!({"value": false})).unwrap();
     a.run("insert.shape", json!({"kind": "rectangle", "width": 100, "height": 50})).unwrap();
     a.run("arrange.bounds", json!({"page": 0, "x": 100, "y": 250})).unwrap();
-    let end = Pos::body(0, wordcraft_doc::para::OBJ.len_utf8());
+    let end = Pos::body(0, docufy_doc::para::OBJ.len_utf8());
     a.run("caret.set", json!({"pos": end})).unwrap();
     a.run("text.insert", json!({"text": "one"})).unwrap();
     a.run("text.newParagraph", json!({})).unwrap();
@@ -171,7 +171,7 @@ fn floating_rect(w: f32, h: f32) -> InlineObject {
         fill: None,
         stroke: None,
         stroke_width: 1.0,
-        float: wordcraft_doc::para::Float { wrap: Wrap::InFrontOfText, x: 10.0, y: 10.0, ..Default::default() },
+        float: docufy_doc::para::Float { wrap: Wrap::InFrontOfText, x: 10.0, y: 10.0, ..Default::default() },
         story: None,
         freeform: None,
         effects: Default::default(),
@@ -182,14 +182,14 @@ fn floating_rect(w: f32, h: f32) -> InlineObject {
 /// A text box doesn't snap to the objects inside it (they move with it).
 #[test]
 fn a_text_box_does_not_snap_to_its_own_contents() {
-    let mut app = WordApp::new(wordcraft_engine::Session::new(Document::new()), crate::Services::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(Document::new()), crate::Services::default());
     app.run("insert.textBox", json!({"text": "Box"})).unwrap();
     let bx = app.session.layout().find_object(0, |o| o.text_box.is_some()).expect("the box");
     let end = Pos { off: bx.off + OBJ.len_utf8(), ..bx.pos() };
     app.run("select.range", json!({"anchor": bx.pos(), "focus": end})).unwrap();
     app.run("arrange.bounds", json!({"page": 0, "x": 100, "y": 200, "width": 200, "height": 150})).unwrap();
     let id = app.session.layout().find_object(0, |o| o.text_box.is_some()).and_then(|o| o.text_box).unwrap();
-    let inner = Pos { story: StoryRef::Part(id), path: wordcraft_doc::Path::top(0), off: 0 };
+    let inner = Pos { story: StoryRef::Part(id), path: docufy_doc::Path::top(0), off: 0 };
     app.session.doc.insert_object(&inner, floating_rect(30.0, 20.0), &Default::default()).unwrap();
     app.session.touch();
     let layout = app.session.layout();
@@ -208,7 +208,7 @@ fn a_text_box_does_not_snap_to_its_own_contents() {
 #[test]
 fn alt_pressed_during_a_drag_unsnaps_and_keeps_keytips_off() {
     use egui::{Event, Modifiers, PointerButton};
-    let mut a = WordApp::new(wordcraft_engine::Session::new(Document::new()), crate::Services::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(Document::new()), crate::Services::default());
     a.run("view.commentsPane", json!({"value": false})).unwrap();
     a.run("insert.shape", json!({"kind": "rectangle", "width": 100, "height": 50})).unwrap();
     a.run("arrange.bounds", json!({"page": 0, "x": 100, "y": 250})).unwrap();
@@ -263,7 +263,7 @@ fn alt_pressed_during_a_drag_unsnaps_and_keeps_keytips_off() {
 fn an_inline_picture_drags_to_the_insertion_cursor_and_stays_inline() {
     use crate::table_resize::tests::{H, button, steps};
     let mut a = WordApp::new(
-        wordcraft_engine::Session::new(Document::from_text("The first paragraph of text.\nThe second paragraph, where the picture starts.")),
+        docufy_engine::Session::new(Document::from_text("The first paragraph of text.\nThe second paragraph, where the picture starts.")),
         Default::default(),
     );
     a.run("view.commentsPane", json!({"value": false})).unwrap();
@@ -329,15 +329,15 @@ fn an_inline_picture_drags_to_the_insertion_cursor_and_stays_inline() {
 fn a_dragged_shape_leaves_the_text_behind_it() {
     use crate::table_resize::tests::{H, button, steps};
     let text = "MMMMMMMMMMMM ".repeat(12);
-    let mut a = WordApp::new(wordcraft_engine::Session::new(Document::from_text(&text)), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(Document::from_text(&text)), Default::default());
     let shape = InlineObject::Shape {
         kind: ShapeKind::Rectangle,
         w: 120.0,
         h: 60.0,
         fill: None,
-        stroke: Some(wordcraft_doc::Rgb(0xFF, 0, 0)),
+        stroke: Some(docufy_doc::Rgb(0xFF, 0, 0)),
         stroke_width: 3.0,
-        float: wordcraft_doc::para::Float { wrap: wordcraft_doc::para::Wrap::InFrontOfText, ..Default::default() },
+        float: docufy_doc::para::Float { wrap: docufy_doc::para::Wrap::InFrontOfText, ..Default::default() },
         story: None,
         freeform: None,
         effects: Default::default(),
@@ -394,7 +394,7 @@ fn filled_shape() -> InlineObject {
         kind: ShapeKind::Rectangle,
         w: 100.0,
         h: 60.0,
-        fill: Some(wordcraft_doc::fill::Fill::solid(wordcraft_doc::props::Rgb(0xE2, 0xEF, 0xDA))),
+        fill: Some(docufy_doc::fill::Fill::solid(docufy_doc::props::Rgb(0xE2, 0xEF, 0xDA))),
         stroke: None,
         stroke_width: 0.0,
         float: Default::default(),
@@ -407,9 +407,9 @@ fn filled_shape() -> InlineObject {
 
 /// How many pixels of the first page have the fill colour: how many copies of the shape the
 /// page shows.
-fn fill_pixels(app: &mut WordApp, opts: &wordcraft_render::RenderOptions) -> usize {
+fn fill_pixels(app: &mut WordApp, opts: &docufy_render::RenderOptions) -> usize {
     let layout = app.session.layout();
-    let img = wordcraft_render::render_page(&app.session.doc, &layout.pages[0], 1.0, opts);
+    let img = docufy_render::render_page(&app.session.doc, &layout.pages[0], 1.0, opts);
     img.to_straight().as_chunks::<4>().0.iter().filter(|p| (p[0], p[1], p[2]) == (0xE2, 0xEF, 0xDA)).count()
 }
 
@@ -423,7 +423,7 @@ fn fill_pixels(app: &mut WordApp, opts: &wordcraft_render::RenderOptions) -> usi
 fn a_dragged_inline_object_is_left_out_of_its_page() {
     let (mut app, hit) = app_with(filled_shape());
     let pos = hit.pos();
-    let on = wordcraft_render::RenderOptions::default();
+    let on = docufy_render::RenderOptions::default();
     let before = fill_pixels(&mut app, &on);
     assert!(before > 1000, "the shape is on its page to begin with: {before} px");
     let mut hidden = on.clone();
@@ -437,13 +437,13 @@ fn a_dragged_inline_object_is_left_out_of_its_page() {
 fn a_dragged_floating_shape_is_left_out_of_its_page() {
     let (mut app, hit) = app_with(filled_shape());
     let pos = hit.pos();
-    let end = Pos { off: pos.off + wordcraft_doc::para::OBJ.len_utf8(), ..pos.clone() };
+    let end = Pos { off: pos.off + docufy_doc::para::OBJ.len_utf8(), ..pos.clone() };
     let _ = app.run("select.range", serde_json::json!({"anchor": pos, "focus": end}));
     app.run("arrange.bounds", serde_json::json!({"page": 0, "x": 100.0, "y": 150.0})).expect("floats it");
     let hit = app.session.layout().object(&pos, 0).expect("laid out");
     assert!(hit.floating(), "arrange.bounds makes it float");
 
-    let on = wordcraft_render::RenderOptions::default();
+    let on = docufy_render::RenderOptions::default();
     let before = fill_pixels(&mut app, &on);
     assert!(before > 1000, "the floating shape is on its page to begin with: {before} px");
     let mut hidden = on.clone();
@@ -458,7 +458,7 @@ fn a_dragged_floating_shape_is_left_out_of_its_page() {
 #[test]
 fn a_shape_dragged_onto_the_next_page_is_dropped_there() {
     use egui::{Event, PointerButton};
-    let mut a = WordApp::new(wordcraft_engine::Session::new(Document::new()), crate::Services::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(Document::new()), crate::Services::default());
     a.run("view.commentsPane", json!({"value": false})).unwrap();
     for i in 0..40 {
         if i > 0 {
@@ -544,7 +544,7 @@ fn rotation_drag_turns_picture_pixels_live_and_commits_once_or_cancels() {
             w: 200.0,
             h: 100.0,
             alt: String::new(),
-            float: wordcraft_doc::para::Float { wrap: Wrap::InFrontOfText, x: 150.0, y: 180.0, rot: initial, flip_h, flip_v, ..Default::default() },
+            float: docufy_doc::para::Float { wrap: Wrap::InFrontOfText, x: 150.0, y: 180.0, rot: initial, flip_h, flip_v, ..Default::default() },
             crop: [0.0; 4],
             ole: None,
         };
@@ -562,7 +562,7 @@ fn rotation_drag_turns_picture_pixels_live_and_commits_once_or_cancels() {
         let top = crate::canvas::page_to_screen(h.state_mut(), 0, cx, o.rect.y).unwrap();
         let radius = center.distance(top) + 22.0;
         let handle = |degrees: f32| center + egui::emath::Rot2::from_angle(degrees.to_radians()) * egui::vec2(0.0, -radius);
-        let target = wordcraft_geom::normalize_degrees(initial + 90.0);
+        let target = docufy_geom::normalize_degrees(initial + 90.0);
         let start = handle(initial);
         let end = handle(target);
         h.event(egui::Event::PointerMoved(start));
@@ -578,12 +578,12 @@ fn rotation_drag_turns_picture_pixels_live_and_commits_once_or_cancels() {
         assert_eq!(h.state().session.undo_depth(), depth);
         let rendered = h.render().unwrap();
         if initial == 0.0
-            && let Ok(path) = std::env::var("WORDCRAFT_ROTATION_SHOT")
+            && let Ok(path) = std::env::var("DOCUFY_ROTATION_SHOT")
         {
             rendered.save(path).unwrap();
         }
         let ppp = h.ctx.pixels_per_point();
-        let spin = wordcraft_geom::Spin::new(target, flip_h, flip_v);
+        let spin = docufy_geom::Spin::new(target, flip_h, flip_v);
         for ((x, y), colour) in [(-75.0, -20.0), (75.0, -20.0), (75.0, 20.0), (-75.0, 20.0)].into_iter().zip(colours) {
             let (x, y) = spin.apply(cx, cy, cx + x, cy + y);
             let at = crate::canvas::page_to_screen(h.state_mut(), 0, x, y).unwrap();
@@ -630,7 +630,7 @@ fn rotation_drag_turns_picture_pixels_live_and_commits_once_or_cancels() {
 #[test]
 fn rotation_drag_keeps_text_boxes_outline_only_until_their_text_can_rotate() {
     use crate::table_resize::tests::{button, steps};
-    let mut app = WordApp::new(wordcraft_engine::Session::new(Document::new()), Default::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(Document::new()), Default::default());
     app.run("insert.textBox", json!({"text": "Text stays upright on release"})).unwrap();
     let bx = app.session.layout().find_object(0, |o| o.text_box.is_some()).unwrap();
     app.run("select.range", json!({"anchor": bx.pos(), "focus": Pos { off: bx.off + OBJ.len_utf8(), ..bx.pos() }})).unwrap();

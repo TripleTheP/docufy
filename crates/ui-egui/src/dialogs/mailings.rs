@@ -94,7 +94,7 @@ fn op_id<S: serde::Serializer>(op: &FilterOp, s: S) -> Result<S::Ok, S::Error> {
 
 impl RecipientFilter {
     /// The session's current filter and sort.
-    pub fn from_session(m: &wordcraft_engine::cmd::mailings::MergeState) -> Self {
+    pub fn from_session(m: &docufy_engine::cmd::mailings::MergeState) -> Self {
         let mut sort: [(String, bool); 3] = Default::default();
         for (slot, k) in sort.iter_mut().zip(&m.sort) {
             *slot = (k.field.clone(), k.descending);
@@ -135,7 +135,7 @@ impl RecipientFilter {
         let key = h.finish();
         if self.order_cache.as_ref().is_none_or(|(k, _)| *k != key) {
             let mut order = vec![None; rows.len()];
-            for (n, i) in wordcraft_engine::cmd::mailings::select_records(fields, rows, &rules, &sort).into_iter().enumerate() {
+            for (n, i) in docufy_engine::cmd::mailings::select_records(fields, rows, &rules, &sort).into_iter().enumerate() {
                 if let Some(slot) = order.get_mut(i) {
                     *slot = Some(n + 1);
                 }
@@ -165,7 +165,7 @@ pub(crate) fn merge_order(fields: &[String], rows: &[Vec<String>], filter: &Reci
     (!filter.is_empty()).then(|| {
         let (rules, sort) = filter.engine(fields);
         let mut order = vec![None; rows.len()];
-        for (k, i) in wordcraft_engine::cmd::mailings::select_records(fields, rows, &rules, &sort).into_iter().enumerate() {
+        for (k, i) in docufy_engine::cmd::mailings::select_records(fields, rows, &rules, &sort).into_iter().enumerate() {
             if let Some(slot) = order.get_mut(i) {
                 *slot = Some(k + 1);
             }

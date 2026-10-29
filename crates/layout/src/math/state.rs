@@ -77,7 +77,7 @@ pub(super) fn fallback(c: C) -> f32 {
 
 /// Characters drawn as operators with their own spacing class.
 pub(super) fn class_of(c: char) -> Cls {
-    match wordcraft_doc::math::math_class(c) {
+    match docufy_doc::math::math_class(c) {
         MClass::Ord => Cls::Ord,
         MClass::Op => Cls::Op,
         MClass::Bin => Cls::Bin,

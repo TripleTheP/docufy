@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use egui::{Align2, Color32, CornerRadius, FontData, FontDefinitions, FontFamily, FontId, Rect, Stroke, Visuals};
 
-/// WordCraft's app colour (and its darker ink for text on light backgrounds).
+/// Docufy's app colour (and its darker ink for text on light backgrounds).
 pub const APP_COLOR: Color32 = Color32::from_rgb(0x3B, 0x5B, 0xDB);
 pub const APP_INK: Color32 = Color32::from_rgb(0x2B, 0x47, 0xB5);
 
@@ -472,7 +472,7 @@ pub fn install_fonts_language_with(ctx: &egui::Context, prefer_hans: bool, prefe
 /// [`install_fonts_with`], also adding document-font `faces` as last-resort fallbacks (#565): the
 /// faces that cover text the interface fonts cannot draw (an input method's composition, or a
 /// file name in the window caption).
-pub fn install_fonts_extra(ctx: &egui::Context, prefer_hans: bool, system_cjk: bool, faces: &[Arc<wordcraft_fonts::FontFace>]) {
+pub fn install_fonts_extra(ctx: &egui::Context, prefer_hans: bool, system_cjk: bool, faces: &[Arc<docufy_fonts::FontFace>]) {
     install_fonts_language_extra(ctx, prefer_hans, false, system_cjk, faces);
 }
 
@@ -482,7 +482,7 @@ pub fn install_fonts_language_extra(
     prefer_hans: bool,
     prefer_korean: bool,
     system_cjk: bool,
-    faces: &[Arc<wordcraft_fonts::FontFace>],
+    faces: &[Arc<docufy_fonts::FontFace>],
 ) {
     let mut fonts = font_definitions_language(prefer_hans, prefer_korean, system_cjk);
     add_fallback_faces(&mut fonts, faces);
@@ -490,7 +490,7 @@ pub fn install_fonts_language_extra(
 }
 
 /// Add `faces` after every other font of the interface families.
-pub fn add_fallback_faces(fonts: &mut FontDefinitions, faces: &[Arc<wordcraft_fonts::FontFace>]) {
+pub fn add_fallback_faces(fonts: &mut FontDefinitions, faces: &[Arc<docufy_fonts::FontFace>]) {
     for f in faces {
         let name = format!("fallback {} {} {}", f.family, f.style, f.id());
         let mut data = FontData::from_owned(f.data().to_vec());
@@ -508,7 +508,7 @@ pub fn add_fallback_faces(fonts: &mut FontDefinitions, faces: &[Arc<wordcraft_fo
 /// the interface faces cover, or CJK, which uses the CJK UI font ([`install_fonts_with`]) rather
 /// than a document face. System CJK collections are larger than [`faces_for_preedit`] will load.
 pub fn caption_char_covered(c: char) -> bool {
-    (c as u32) < 0x250 || wordcraft_fonts::is_cjk(c)
+    (c as u32) < 0x250 || docufy_fonts::is_cjk(c)
 }
 
 /// Document faces needed to draw `text` (the input method's composition, or a file name in the
@@ -517,11 +517,11 @@ pub fn caption_char_covered(c: char) -> bool {
 /// (system CJK collections) are left to the CJK fallback.
 pub fn faces_for_preedit(
     text: &str,
-    have: &[Arc<wordcraft_fonts::FontFace>],
+    have: &[Arc<docufy_fonts::FontFace>],
     covered: impl Fn(char) -> bool,
-    lookup: impl Fn(char) -> Option<Arc<wordcraft_fonts::FontFace>>,
-) -> Vec<Arc<wordcraft_fonts::FontFace>> {
-    let mut out: Vec<Arc<wordcraft_fonts::FontFace>> = Vec::new();
+    lookup: impl Fn(char) -> Option<Arc<docufy_fonts::FontFace>>,
+) -> Vec<Arc<docufy_fonts::FontFace>> {
+    let mut out: Vec<Arc<docufy_fonts::FontFace>> = Vec::new();
     for c in text.chars().filter(|c| !c.is_ascii() && !c.is_whitespace() && !covered(*c)) {
         if have.iter().chain(&out).any(|f| f.covers(c)) {
             continue;
@@ -566,13 +566,13 @@ pub fn font_definitions_language(prefer_hans: bool, prefer_korean: bool, system_
             }
         }
     };
-    let cjk = wordcraft_fonts::ui_cjk_fonts_for(prefer_hans, prefer_korean);
+    let cjk = docufy_fonts::ui_cjk_fonts_for(prefer_hans, prefer_korean);
     for f in &cjk {
         // The same static bytes the document fonts use: one copy in the binary.
         add_cjk(&mut fonts, format!("{} {}", f.family, f.style), FontData::from_static(f.bytes));
     }
     // Georgian has no glyphs in Inter, Source Sans or the CJK faces: the craft-fonts Geor face.
-    for f in wordcraft_fonts::georgian_fonts() {
+    for f in docufy_fonts::georgian_fonts() {
         add_cjk(&mut fonts, format!("{} {}", f.family, f.style), FontData::from_static(f.bytes));
     }
     // The embedded faces leave interface characters without a glyph (a build without craft-fonts,
@@ -595,10 +595,10 @@ pub fn font_definitions_language(prefer_hans: bool, prefer_korean: bool, system_
 /// ([`cjk_font_text`](crate::i18n::Lang::cjk_font_text)). The font is picked for the catalogs'
 /// missing characters, or for the language names when only those are missing.
 #[cfg(not(target_arch = "wasm32"))]
-fn system_cjk_font(hans: bool, korean: bool) -> Option<&'static wordcraft_fonts::SystemUiFont> {
-    static ZH: std::sync::OnceLock<Option<wordcraft_fonts::SystemUiFont>> = std::sync::OnceLock::new();
-    static OTHER: std::sync::OnceLock<Option<wordcraft_fonts::SystemUiFont>> = std::sync::OnceLock::new();
-    static KO: std::sync::OnceLock<Option<wordcraft_fonts::SystemUiFont>> = std::sync::OnceLock::new();
+fn system_cjk_font(hans: bool, korean: bool) -> Option<&'static docufy_fonts::SystemUiFont> {
+    static ZH: std::sync::OnceLock<Option<docufy_fonts::SystemUiFont>> = std::sync::OnceLock::new();
+    static OTHER: std::sync::OnceLock<Option<docufy_fonts::SystemUiFont>> = std::sync::OnceLock::new();
+    static KO: std::sync::OnceLock<Option<docufy_fonts::SystemUiFont>> = std::sync::OnceLock::new();
     (if hans {
         &ZH
     } else if korean {
@@ -607,17 +607,17 @@ fn system_cjk_font(hans: bool, korean: bool) -> Option<&'static wordcraft_fonts:
         &OTHER
     })
     .get_or_init(|| {
-        let embedded = wordcraft_fonts::ui_cjk_fonts_for(hans, korean);
+        let embedded = docufy_fonts::ui_cjk_fonts_for(hans, korean);
         let (catalogs, names) = crate::i18n::Lang::cjk_font_text_for(hans, korean);
-        let mut needed = wordcraft_fonts::ui_uncovered_cjk(&catalogs, &embedded);
+        let mut needed = docufy_fonts::ui_uncovered_cjk(&catalogs, &embedded);
         if needed.is_empty() {
-            needed = wordcraft_fonts::ui_uncovered_cjk(&[&names], &embedded);
+            needed = docufy_fonts::ui_uncovered_cjk(&[&names], &embedded);
             if needed.is_empty() {
                 return None;
             }
         }
         log::debug!("interface: {} CJK characters lack an embedded glyph", needed.len());
-        wordcraft_fonts::system_cjk_ui_font_for(hans, korean, &needed)
+        docufy_fonts::system_cjk_ui_font_for(hans, korean, &needed)
     })
     .as_ref()
 }
@@ -813,7 +813,7 @@ fn visuals(t: &Tokens) -> Visuals {
     v
 }
 
-pub fn c32(c: wordcraft_doc::Rgb) -> Color32 {
+pub fn c32(c: docufy_doc::Rgb) -> Color32 {
     Color32::from_rgb(c.0, c.1, c.2)
 }
 
@@ -921,7 +921,7 @@ mod tests {
     }
 
     /// The test root declares egui's `default_fonts` and `monochrome_emoji_fonts` features
-    /// explicitly (kittest's own dev-dependencies do not propagate). WordCraft inserts Inter at
+    /// explicitly (kittest's own dev-dependencies do not propagate). Docufy inserts Inter at
     /// the front and SourceSans after egui's complete default fallback block, including the
     /// monochrome emoji faces. Production keeps only `default_fonts` through eframe.
     #[test]
@@ -939,7 +939,7 @@ mod tests {
     /// once, and not for characters the interface fonts draw.
     #[test]
     fn preedit_gets_document_fallback_faces() {
-        let face = wordcraft_fonts::FontDb::global().face("Source Sans 3", "Regular");
+        let face = docufy_fonts::FontDb::global().face("Source Sans 3", "Regular");
         let lookup = |_: char| Some(face.clone());
         let bangla = "\u{0986}\u{09AE}\u{09BF}";
         let got = super::faces_for_preedit(bangla, &[], |_| false, lookup);
@@ -960,7 +960,7 @@ mod tests {
     /// add here.
     #[test]
     fn caption_borrows_one_fallback_face_for_hebrew() {
-        let face = wordcraft_fonts::FontDb::global().face("Source Sans 3", "Regular");
+        let face = docufy_fonts::FontDb::global().face("Source Sans 3", "Regular");
         let lookup = |c: char| {
             assert!(!super::caption_char_covered(c), "{c} is already drawn by the interface fonts");
             Some(face.clone())

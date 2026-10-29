@@ -1,288 +1,288 @@
 {
-  "id": "wordcraft",
-  "name": "WordCraft",
+  "id": "docufy",
+  "name": "Docufy",
   "upgradeCode": "075497F9-E861-45D0-9C7F-A74F8C34E6BA",
   "sources": [
-    "wordcraft.wxs"
+    "docufy.wxs"
   ],
-  "icon": "assets/app-icon/wordcraft.ico",
+  "icon": "assets/app-icon/docufy.ico",
   "localization": [],
   "extensions": [
     "UI",
     "Util"
   ],
   "payloads": [
-    "wordcraft-cli.exe",
-    "wordcraft.exe"
+    "docufy-cli.exe",
+    "docufy.exe"
   ],
   "registry": [
     [
       "-1",
-      "Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\wordcraft.exe",
+      "Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\docufy.exe",
       "",
-      "[#WordcraftExe]"
+      "[#DocufyExe]"
     ],
     [
       "-1",
       "Software\\RegisteredApplications",
-      "WordCraft",
-      "Software\\WordCraft\\Capabilities"
+      "Docufy",
+      "Software\\Docufy\\Capabilities"
     ],
     [
       "-1",
-      "Software\\WordCraft\\Capabilities",
+      "Software\\Docufy\\Capabilities",
       "ApplicationName",
-      "WordCraft"
+      "Docufy"
     ],
     [
       "-1",
-      "Software\\WordCraft\\Capabilities",
+      "Software\\Docufy\\Capabilities",
       "ApplicationDescription",
       "Write and design documents; open and save Word files."
     ],
     [
       "-1",
-      "Software\\WordCraft\\Capabilities",
+      "Software\\Docufy\\Capabilities",
       "ApplicationIcon",
-      "\"[#WordcraftExe]\",0"
+      "\"[#DocufyExe]\",0"
     ],
     [
       "-1",
-      "Software\\Classes\\Applications\\wordcraft.exe",
+      "Software\\Classes\\Applications\\docufy.exe",
       "FriendlyAppName",
-      "WordCraft"
+      "Docufy"
     ],
     [
       "-1",
-      "Software\\Classes\\Applications\\wordcraft.exe\\shell\\open\\command",
+      "Software\\Classes\\Applications\\docufy.exe\\shell\\open\\command",
       "",
-      "\"[#WordcraftExe]\" \"%1\""
+      "\"[#DocufyExe]\" \"%1\""
     ],
     [
       "-1",
-      "Software\\Classes\\WordCraft.Document\\shell\\open\\command",
+      "Software\\Classes\\Docufy.Document\\shell\\open\\command",
       "",
-      "\"[#WordcraftExe]\" \"%1\""
+      "\"[#DocufyExe]\" \"%1\""
     ],
     [
       "-1",
       "Software\\Classes\\.docx\\OpenWithProgids",
-      "WordCraft.Document",
+      "Docufy.Document",
       ""
     ],
     [
       "-1",
-      "Software\\Classes\\Applications\\wordcraft.exe\\SupportedTypes",
+      "Software\\Classes\\Applications\\docufy.exe\\SupportedTypes",
       ".docx",
       ""
     ],
     [
       "-1",
-      "Software\\WordCraft\\Capabilities\\FileAssociations",
+      "Software\\Docufy\\Capabilities\\FileAssociations",
       ".docx",
-      "WordCraft.Document"
+      "Docufy.Document"
     ],
     [
       "-1",
-      "Software\\Classes\\WordCraft.DocumentMacroEnabled\\shell\\open\\command",
+      "Software\\Classes\\Docufy.DocumentMacroEnabled\\shell\\open\\command",
       "",
-      "\"[#WordcraftExe]\" \"%1\""
+      "\"[#DocufyExe]\" \"%1\""
     ],
     [
       "-1",
       "Software\\Classes\\.docm\\OpenWithProgids",
-      "WordCraft.DocumentMacroEnabled",
+      "Docufy.DocumentMacroEnabled",
       ""
     ],
     [
       "-1",
-      "Software\\Classes\\Applications\\wordcraft.exe\\SupportedTypes",
+      "Software\\Classes\\Applications\\docufy.exe\\SupportedTypes",
       ".docm",
       ""
     ],
     [
       "-1",
-      "Software\\WordCraft\\Capabilities\\FileAssociations",
+      "Software\\Docufy\\Capabilities\\FileAssociations",
       ".docm",
-      "WordCraft.DocumentMacroEnabled"
+      "Docufy.DocumentMacroEnabled"
     ],
     [
       "-1",
-      "Software\\Classes\\WordCraft.Template\\shell\\open\\command",
+      "Software\\Classes\\Docufy.Template\\shell\\open\\command",
       "",
-      "\"[#WordcraftExe]\" \"%1\""
+      "\"[#DocufyExe]\" \"%1\""
     ],
     [
       "-1",
       "Software\\Classes\\.dotx\\OpenWithProgids",
-      "WordCraft.Template",
+      "Docufy.Template",
       ""
     ],
     [
       "-1",
-      "Software\\Classes\\Applications\\wordcraft.exe\\SupportedTypes",
+      "Software\\Classes\\Applications\\docufy.exe\\SupportedTypes",
       ".dotx",
       ""
     ],
     [
       "-1",
-      "Software\\WordCraft\\Capabilities\\FileAssociations",
+      "Software\\Docufy\\Capabilities\\FileAssociations",
       ".dotx",
-      "WordCraft.Template"
+      "Docufy.Template"
     ],
     [
       "-1",
-      "Software\\Classes\\WordCraft.TemplateMacroEnabled\\shell\\open\\command",
+      "Software\\Classes\\Docufy.TemplateMacroEnabled\\shell\\open\\command",
       "",
-      "\"[#WordcraftExe]\" \"%1\""
+      "\"[#DocufyExe]\" \"%1\""
     ],
     [
       "-1",
       "Software\\Classes\\.dotm\\OpenWithProgids",
-      "WordCraft.TemplateMacroEnabled",
+      "Docufy.TemplateMacroEnabled",
       ""
     ],
     [
       "-1",
-      "Software\\Classes\\Applications\\wordcraft.exe\\SupportedTypes",
+      "Software\\Classes\\Applications\\docufy.exe\\SupportedTypes",
       ".dotm",
       ""
     ],
     [
       "-1",
-      "Software\\WordCraft\\Capabilities\\FileAssociations",
+      "Software\\Docufy\\Capabilities\\FileAssociations",
       ".dotm",
-      "WordCraft.TemplateMacroEnabled"
+      "Docufy.TemplateMacroEnabled"
     ],
     [
       "-1",
-      "Software\\Classes\\WordCraft.LegacyDocument\\shell\\open\\command",
+      "Software\\Classes\\Docufy.LegacyDocument\\shell\\open\\command",
       "",
-      "\"[#WordcraftExe]\" \"%1\""
+      "\"[#DocufyExe]\" \"%1\""
     ],
     [
       "-1",
       "Software\\Classes\\.doc\\OpenWithProgids",
-      "WordCraft.LegacyDocument",
+      "Docufy.LegacyDocument",
       ""
     ],
     [
       "-1",
-      "Software\\Classes\\Applications\\wordcraft.exe\\SupportedTypes",
+      "Software\\Classes\\Applications\\docufy.exe\\SupportedTypes",
       ".doc",
       ""
     ],
     [
       "-1",
-      "Software\\WordCraft\\Capabilities\\FileAssociations",
+      "Software\\Docufy\\Capabilities\\FileAssociations",
       ".doc",
-      "WordCraft.LegacyDocument"
+      "Docufy.LegacyDocument"
     ],
     [
       "-1",
-      "Software\\Classes\\WordCraft.LegacyTemplate\\shell\\open\\command",
+      "Software\\Classes\\Docufy.LegacyTemplate\\shell\\open\\command",
       "",
-      "\"[#WordcraftExe]\" \"%1\""
+      "\"[#DocufyExe]\" \"%1\""
     ],
     [
       "-1",
       "Software\\Classes\\.dot\\OpenWithProgids",
-      "WordCraft.LegacyTemplate",
+      "Docufy.LegacyTemplate",
       ""
     ],
     [
       "-1",
-      "Software\\Classes\\Applications\\wordcraft.exe\\SupportedTypes",
+      "Software\\Classes\\Applications\\docufy.exe\\SupportedTypes",
       ".dot",
       ""
     ],
     [
       "-1",
-      "Software\\WordCraft\\Capabilities\\FileAssociations",
+      "Software\\Docufy\\Capabilities\\FileAssociations",
       ".dot",
-      "WordCraft.LegacyTemplate"
+      "Docufy.LegacyTemplate"
     ],
     [
       "-1",
-      "Software\\Classes\\WordCraft.RichText\\shell\\open\\command",
+      "Software\\Classes\\Docufy.RichText\\shell\\open\\command",
       "",
-      "\"[#WordcraftExe]\" \"%1\""
+      "\"[#DocufyExe]\" \"%1\""
     ],
     [
       "-1",
       "Software\\Classes\\.rtf\\OpenWithProgids",
-      "WordCraft.RichText",
+      "Docufy.RichText",
       ""
     ],
     [
       "-1",
-      "Software\\Classes\\Applications\\wordcraft.exe\\SupportedTypes",
+      "Software\\Classes\\Applications\\docufy.exe\\SupportedTypes",
       ".rtf",
       ""
     ],
     [
       "-1",
-      "Software\\WordCraft\\Capabilities\\FileAssociations",
+      "Software\\Docufy\\Capabilities\\FileAssociations",
       ".rtf",
-      "WordCraft.RichText"
+      "Docufy.RichText"
     ],
     [
       "-1",
-      "Software\\Classes\\WordCraft.OpenDocumentText\\shell\\open\\command",
+      "Software\\Classes\\Docufy.OpenDocumentText\\shell\\open\\command",
       "",
-      "\"[#WordcraftExe]\" \"%1\""
+      "\"[#DocufyExe]\" \"%1\""
     ],
     [
       "-1",
       "Software\\Classes\\.odt\\OpenWithProgids",
-      "WordCraft.OpenDocumentText",
+      "Docufy.OpenDocumentText",
       ""
     ],
     [
       "-1",
-      "Software\\Classes\\Applications\\wordcraft.exe\\SupportedTypes",
+      "Software\\Classes\\Applications\\docufy.exe\\SupportedTypes",
       ".odt",
       ""
     ],
     [
       "-1",
-      "Software\\WordCraft\\Capabilities\\FileAssociations",
+      "Software\\Docufy\\Capabilities\\FileAssociations",
       ".odt",
-      "WordCraft.OpenDocumentText"
+      "Docufy.OpenDocumentText"
     ],
     [
       "-1",
-      "Software\\Classes\\WordCraft.Markdown\\shell\\open\\command",
+      "Software\\Classes\\Docufy.Markdown\\shell\\open\\command",
       "",
-      "\"[#WordcraftExe]\" \"%1\""
+      "\"[#DocufyExe]\" \"%1\""
     ],
     [
       "-1",
       "Software\\Classes\\.md\\OpenWithProgids",
-      "WordCraft.Markdown",
+      "Docufy.Markdown",
       ""
     ],
     [
       "-1",
-      "Software\\Classes\\Applications\\wordcraft.exe\\SupportedTypes",
+      "Software\\Classes\\Applications\\docufy.exe\\SupportedTypes",
       ".md",
       ""
     ],
     [
       "-1",
-      "Software\\Classes\\WordCraft.PlainText\\shell\\open\\command",
+      "Software\\Classes\\Docufy.PlainText\\shell\\open\\command",
       "",
-      "\"[#WordcraftExe]\" \"%1\""
+      "\"[#DocufyExe]\" \"%1\""
     ],
     [
       "-1",
       "Software\\Classes\\.txt\\OpenWithProgids",
-      "WordCraft.PlainText",
+      "Docufy.PlainText",
       ""
     ],
     [
       "-1",
-      "Software\\Classes\\Applications\\wordcraft.exe\\SupportedTypes",
+      "Software\\Classes\\Applications\\docufy.exe\\SupportedTypes",
       ".txt",
       ""
     ]

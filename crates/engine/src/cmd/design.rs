@@ -1,8 +1,8 @@
 //! Design tab: themes, style sets, colours, fonts, paragraph spacing, watermark, page colour, borders.
 
+use docufy_doc::props::{Border, BorderStyle, Borders, CharProps, LineSpacing, Rgb, TextColor};
+use docufy_doc::{Watermark, styles};
 use serde_json::{Value, json};
-use wordcraft_doc::props::{Border, BorderStyle, Borders, CharProps, LineSpacing, Rgb, TextColor};
-use wordcraft_doc::{Watermark, styles};
 
 use super::sel_result;
 use crate::{CmdError, CmdResult, CommandSpec, Session, p};
@@ -146,7 +146,7 @@ fn theme(s: &mut Session, v: &Value) -> CmdResult {
 fn style_set(s: &mut Session, v: &Value) -> CmdResult {
     let name = p::req_str(v, "name")?;
     let accent = s.doc.settings.theme_colors.get(4).copied().unwrap_or(styles::HEADING_BLUE);
-    let mut fresh = wordcraft_doc::StyleSheet::builtin();
+    let mut fresh = docufy_doc::StyleSheet::builtin();
     let line = Border { style: BorderStyle::Single, width: 0.75, color: Some(accent), space: 1.0 };
     for st in &mut fresh.styles {
         let heading = st.id.starts_with("Heading") || st.id == "Title";
@@ -161,7 +161,7 @@ fn style_set(s: &mut Session, v: &Value) -> CmdResult {
                 st.chr.color = Some(TextColor::Rgb(Rgb::WHITE));
             }
             "casual" if heading => st.chr.italic = Some(true),
-            "centered" if heading => st.para.align = Some(wordcraft_doc::Align::Center),
+            "centered" if heading => st.para.align = Some(docufy_doc::Align::Center),
             "minimalist" if heading => {
                 st.chr.caps = Some(true);
                 st.chr.spacing = Some(1.0);
@@ -229,7 +229,7 @@ fn scale_font_sizes(s: &mut Session, v: &Value) -> CmdResult {
     };
     let st = &mut s.doc.styles;
     // An unset document default resolves to the fallback size; make it explicit so inheriting styles follow.
-    st.default_chr.size = Some(scale(st.default_chr.size.unwrap_or(wordcraft_doc::props::DEFAULT_FONT_SIZE)));
+    st.default_chr.size = Some(scale(st.default_chr.size.unwrap_or(docufy_doc::props::DEFAULT_FONT_SIZE)));
     st.default_chr.size_cs = st.default_chr.size_cs.map(scale);
     for style in &mut st.styles {
         scale_chr(&mut style.chr);

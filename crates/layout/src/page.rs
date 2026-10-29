@@ -53,7 +53,7 @@ pub(crate) struct PageBuilder<'a> {
     pub(crate) block_marks: Vec<usize>,
     /// The vertical alignment of the section the current page started in: a page finished when
     /// the next section starts is aligned as its own section asks, not the next one.
-    pub(crate) page_valign: wordcraft_doc::section::PageVAlign,
+    pub(crate) page_valign: docufy_doc::section::PageVAlign,
     /// The document's own footnote separators, laid out for the section's text width.
     pub(crate) seps: NoteSeps,
     /// Where the last paragraph's lines ended: page count, column and y.
@@ -244,10 +244,10 @@ impl PageBuilder<'_> {
     /// blocks out (justified).
     pub(crate) fn apply_valign(&mut self) {
         let k = match self.page_valign {
-            wordcraft_doc::section::PageVAlign::Top => return,
-            wordcraft_doc::section::PageVAlign::Justify => return self.justify_page(),
-            wordcraft_doc::section::PageVAlign::Center => 0.5,
-            wordcraft_doc::section::PageVAlign::Bottom => 1.0,
+            docufy_doc::section::PageVAlign::Top => return,
+            docufy_doc::section::PageVAlign::Justify => return self.justify_page(),
+            docufy_doc::section::PageVAlign::Center => 0.5,
+            docufy_doc::section::PageVAlign::Bottom => 1.0,
         };
         if self.web {
             return;
@@ -290,7 +290,7 @@ impl PageBuilder<'_> {
         self.excl.extend(early.get(&self.pages.len()).into_iter().flatten().map(|(_, _, a)| a.clone()));
         self.seeded = self.excl.len();
         self.float_tables.clear();
-        if self.sect.line_numbers.as_ref().is_some_and(|l| l.restart == wordcraft_doc::section::LineNumberRestart::Page) {
+        if self.sect.line_numbers.as_ref().is_some_and(|l| l.restart == docufy_doc::section::LineNumberRestart::Page) {
             self.line_no = 0;
         }
         let s = self.sect;

@@ -8,11 +8,11 @@
 //! Extending the selection from one cell into another (Shift+arrows, Shift+click, a drag) makes
 //! such cells, as in Word (`table::extend_selection`).
 
+use docufy_doc::edit::Fragment;
+use docufy_doc::props::CharProps;
+use docufy_doc::{Block, Paragraph, Pos};
+use docufy_layout::hit::ColumnSelection;
 use serde_json::{Value, json};
-use wordcraft_doc::edit::Fragment;
-use wordcraft_doc::props::CharProps;
-use wordcraft_doc::{Block, Paragraph, Pos};
-use wordcraft_layout::hit::ColumnSelection;
 
 use super::{parse_pos, pos_json};
 use crate::{CmdError, CmdResult, ColumnBlock, CommandSpec, Selection, Session, p};

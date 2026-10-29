@@ -1,7 +1,7 @@
 //! #1690, finding 3: malformed command IDs must never target another comment.
+use docufy_doc::{Document, StoryRef};
+use docufy_engine::{CmdError, Session};
 use serde_json::{Value, json};
-use wordcraft_doc::{Document, StoryRef};
-use wordcraft_engine::{CmdError, Session};
 
 fn commented() -> Session {
     let mut s = Session::new(Document::new());
@@ -33,11 +33,11 @@ fn invalid_ids_leave_state_untouched(command: &str) {
                 before,
                 "{command}, id={id}, at_comment={at_comment}"
             );
-            let back = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+            let back = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
             assert_eq!(back.comments.len(), 1);
             let comment = back.comments.get(&0).unwrap();
             assert!(!comment.resolved);
-            assert_eq!(back.plain_text(wordcraft_doc::StoryRef::Part(comment.part)), "Keep this comment");
+            assert_eq!(back.plain_text(docufy_doc::StoryRef::Part(comment.part)), "Keep this comment");
         }
     }
 }
@@ -83,8 +83,8 @@ fn largest_comment_id_is_accepted_without_a_caret_fallback() {
     let mut s = commented();
     let comment = s.doc.comments.remove(&0).unwrap();
     s.doc.comments.insert(u32::MAX, comment);
-    for object in &mut s.doc.para_mut(StoryRef::Body, &wordcraft_doc::Path::top(0)).unwrap().objects {
-        if let wordcraft_doc::para::InlineObject::CommentStart { id } | wordcraft_doc::para::InlineObject::CommentEnd { id } = object {
+    for object in &mut s.doc.para_mut(StoryRef::Body, &docufy_doc::Path::top(0)).unwrap().objects {
+        if let docufy_doc::para::InlineObject::CommentStart { id } | docufy_doc::para::InlineObject::CommentEnd { id } = object {
             *id = u32::MAX;
         }
     }
@@ -127,7 +127,7 @@ fn valid_comment_ids_and_omitted_caret_ids_keep_undo_redo_and_docx_fidelity() {
             };
             let mut back = after.clone();
             for _ in 0..2 {
-                back = wordcraft_docx::read(&wordcraft_docx::write(&back).unwrap()).unwrap();
+                back = docufy_docx::read(&docufy_docx::write(&back).unwrap()).unwrap();
                 assert_eq!(comments(&back), comments(&after), "{command}");
                 assert_eq!(back.plain_text(StoryRef::Body), after.plain_text(StoryRef::Body), "{command}");
             }

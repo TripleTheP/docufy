@@ -7,8 +7,8 @@
 //! closes the shown one, and quitting asks about every document with unsaved changes, one after
 //! another, each in its window.
 
+use docufy_engine::DocInfo;
 use serde_json::{Value, json};
-use wordcraft_engine::DocInfo;
 
 use crate::{WordApp, panes};
 
@@ -217,14 +217,14 @@ pub(crate) fn switch_windows_menu(ui: &mut egui::Ui, app: &mut WordApp) {
 
 #[cfg(test)]
 mod tests {
+    use docufy_doc::StoryRef;
+    use docufy_engine::Session;
     use serde_json::json;
-    use wordcraft_doc::StoryRef;
-    use wordcraft_engine::Session;
 
     use crate::{Services, WordApp};
 
     fn app() -> WordApp {
-        WordApp::new(Session::new(wordcraft_doc::Document::new()), Services::default())
+        WordApp::new(Session::new(docufy_doc::Document::new()), Services::default())
     }
 
     fn harness(a: WordApp) -> egui_kittest::Harness<'static, WordApp> {

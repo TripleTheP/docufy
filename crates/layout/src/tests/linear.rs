@@ -10,9 +10,9 @@ use crate::{
     Block, CharProps, DocLayout, Document, HeaderSet, HeightRule, InlineObject, LayoutCache, LayoutOptions, Page, ParaLayout, Paragraph, Path,
     Placed, SectionProps, SectionStart, StoryRef, display, layout, para, work,
 };
-use wordcraft_doc::para::Run;
-use wordcraft_doc::props::Rgb;
-use wordcraft_doc::{Pos, Table};
+use docufy_doc::para::Run;
+use docufy_doc::props::Rgb;
+use docufy_doc::{Pos, Table};
 
 fn lay(d: &Document, opts: &LayoutOptions) -> DocLayout {
     layout(d, &mut LayoutCache::new(), opts)
@@ -147,9 +147,9 @@ fn autofit_tables_with_a_spanning_cell_in_every_row_lay_out_in_linear_time() {
 /// first section names every header and footer; the others name them too, or (`inherit`) name
 /// none and link to the previous section's.
 fn sections(n: usize, inherit: bool) -> Document {
-    use wordcraft_doc::PartKind::{Footer, Header};
+    use docufy_doc::PartKind::{Footer, Header};
     let mut d = Document::from_text(&"\n".repeat(n.saturating_sub(1)));
-    let mut part = |k| d.add_part(k, vec![wordcraft_doc::para_block(Paragraph::with_text("Head", CharProps::default()))]);
+    let mut part = |k| d.add_part(k, vec![docufy_doc::para_block(Paragraph::with_text("Head", CharProps::default()))]);
     let ids = [part(Header), part(Header), part(Header), part(Footer), part(Footer), part(Footer)];
     let named = SectionProps {
         start: SectionStart::Continuous,
@@ -184,8 +184,8 @@ fn headers_inherited_through_many_sections_lay_out_in_linear_time() {
 /// A header of `n` short paragraphs.
 fn tall_header(n: usize) -> (Document, u32) {
     let mut d = Document::from_text("Body");
-    let paras = (0..n).map(|i| wordcraft_doc::para_block(Paragraph::with_text(&format!("h{i}"), CharProps::default()))).collect();
-    let id = d.add_part(wordcraft_doc::PartKind::Header, paras);
+    let paras = (0..n).map(|i| docufy_doc::para_block(Paragraph::with_text(&format!("h{i}"), CharProps::default()))).collect();
+    let id = d.add_part(docufy_doc::PartKind::Header, paras);
     d.last_section.headers.default = Some(id);
     (d, id)
 }
@@ -211,9 +211,9 @@ fn long_endnote(n: usize) -> (Document, u32) {
     // One huge letter to a paragraph, one line high enough for a page, so the pages are as many as
     // the paragraphs and each paragraph costs next to nothing.
     let huge = CharProps { size: Some(400.0), ..Default::default() };
-    let paras = (0..n).map(|_| wordcraft_doc::para_block(Paragraph::with_text("n", huge.clone()))).collect();
-    let id = d.add_part(wordcraft_doc::PartKind::Endnote, paras);
-    let r = InlineObject::NoteRef { kind: wordcraft_doc::para::NoteKind::Endnote, id, custom: String::new() };
+    let paras = (0..n).map(|_| docufy_doc::para_block(Paragraph::with_text("n", huge.clone()))).collect();
+    let id = d.add_part(docufy_doc::PartKind::Endnote, paras);
+    let r = InlineObject::NoteRef { kind: docufy_doc::para::NoteKind::Endnote, id, custom: String::new() };
     d.insert_object(&Pos::body(0, 4), r, &Default::default()).unwrap();
     (d, id)
 }
@@ -270,8 +270,8 @@ fn tracked_words(n: usize) -> Document {
         runs: (0..n).map(|i| Run { len: 5, props: CharProps { ins: u32::try_from(i).ok(), size: Some(1.0), ..Default::default() } }).collect(),
         ..Paragraph::with_text("", CharProps::default())
     };
-    d.body = vec![wordcraft_doc::para_block(p)];
-    d.revisions = (0..n).map(|i| wordcraft_doc::Revision::new(wordcraft_doc::RevisionKind::Insert, format!("Author {i}"), "")).collect();
+    d.body = vec![docufy_doc::para_block(p)];
+    d.revisions = (0..n).map(|i| docufy_doc::Revision::new(docufy_doc::RevisionKind::Insert, format!("Author {i}"), "")).collect();
     d
 }
 
@@ -315,9 +315,9 @@ fn balloons_for_many_authors_lay_out_in_linear_time() {
     let doc = |n: usize| {
         let mut d = Document::from_text(&"word ".repeat(n));
         for i in (0..n).rev() {
-            let part = d.add_part(wordcraft_doc::PartKind::Comment, vec![wordcraft_doc::para_block(Paragraph::with_text("c", CharProps::default()))]);
+            let part = d.add_part(docufy_doc::PartKind::Comment, vec![docufy_doc::para_block(Paragraph::with_text("c", CharProps::default()))]);
             let id = u32::try_from(i).unwrap();
-            d.comments.insert(id, wordcraft_doc::Comment { author: format!("Author {i}"), part, ..Default::default() });
+            d.comments.insert(id, docufy_doc::Comment { author: format!("Author {i}"), part, ..Default::default() });
             let p = CharProps::default();
             d.insert_object(&Pos::body(0, 5 * i + 4), InlineObject::CommentEnd { id }, &p).unwrap();
             d.insert_object(&Pos::body(0, 5 * i), InlineObject::CommentStart { id }, &p).unwrap();
@@ -338,10 +338,10 @@ fn tracked_paras(n: usize) -> Document {
             p.mark.size = Some(1.0);
             p.props.space_before = Some(0.0);
             p.props.space_after = Some(0.0);
-            wordcraft_doc::para_block(p)
+            docufy_doc::para_block(p)
         })
         .collect();
-    d.revisions = (0..n).map(|i| wordcraft_doc::Revision::new(wordcraft_doc::RevisionKind::Insert, format!("Author {i}"), "")).collect();
+    d.revisions = (0..n).map(|i| docufy_doc::Revision::new(docufy_doc::RevisionKind::Insert, format!("Author {i}"), "")).collect();
     d
 }
 
@@ -386,9 +386,9 @@ fn drawing_items_one_by_one_collects_the_clipped_cells_once() {
 fn balloons_are_in_their_authors_colours() {
     let mut d = Document::from_text("one two three");
     for (i, a) in ["Ana", "Ben", "Ana"].into_iter().enumerate() {
-        let part = d.add_part(wordcraft_doc::PartKind::Comment, vec![wordcraft_doc::para_block(Paragraph::with_text("c", CharProps::default()))]);
+        let part = d.add_part(docufy_doc::PartKind::Comment, vec![docufy_doc::para_block(Paragraph::with_text("c", CharProps::default()))]);
         let id = u32::try_from(i).unwrap();
-        d.comments.insert(id, wordcraft_doc::Comment { author: a.into(), part, ..Default::default() });
+        d.comments.insert(id, docufy_doc::Comment { author: a.into(), part, ..Default::default() });
         let p = CharProps::default();
         d.insert_object(&Pos::body(0, 0), InlineObject::CommentEnd { id }, &p).unwrap();
         d.insert_object(&Pos::body(0, 0), InlineObject::CommentStart { id }, &p).unwrap();
@@ -415,7 +415,7 @@ fn mixed_page() -> (Document, DocLayout) {
     let mut d = tracked_paras(6);
     let mut hp = Paragraph::with_text("head", CharProps::default());
     hp.runs = vec![Run { len: 4, props: CharProps { ins: Some(2), ..Default::default() } }];
-    let id = d.add_part(wordcraft_doc::PartKind::Header, vec![wordcraft_doc::para_block(hp)]);
+    let id = d.add_part(docufy_doc::PartKind::Header, vec![docufy_doc::para_block(hp)]);
     d.last_section.headers.default = Some(id);
     let exact = |rows, cols| {
         let mut t = Table::new(rows, cols, 200.0);
@@ -477,8 +477,8 @@ fn selecting_a_header_on_the_hinted_page_does_not_walk_every_page() {
     let laid = |n: usize| {
         let mut d = Document::from_text("n");
         let huge = CharProps { size: Some(400.0), ..Default::default() };
-        d.body = (0..n).map(|_| wordcraft_doc::para_block(Paragraph::with_text("n", huge.clone()))).collect();
-        let id = d.add_part(wordcraft_doc::PartKind::Header, vec![wordcraft_doc::para_block(Paragraph::with_text("head", CharProps::default()))]);
+        d.body = (0..n).map(|_| docufy_doc::para_block(Paragraph::with_text("n", huge.clone()))).collect();
+        let id = d.add_part(docufy_doc::PartKind::Header, vec![docufy_doc::para_block(Paragraph::with_text("head", CharProps::default()))]);
         d.last_section.headers.default = Some(id);
         let l = lay(&d, &LayoutOptions::default());
         let ends = (Pos::new(StoryRef::Part(id), Path::top(0), 0), Pos::new(StoryRef::Part(id), Path::top(0), 2));

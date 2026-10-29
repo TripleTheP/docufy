@@ -49,7 +49,7 @@ pub(super) fn font_props(d: &Dialog) -> serde_json::Map<String, Value> {
     if let Ok(s) = size.trim().parse::<f64>() {
         props.insert("size".into(), json!(s));
     }
-    if let Some(c) = wordcraft_doc::Rgb::parse(color) {
+    if let Some(c) = docufy_doc::Rgb::parse(color) {
         props.insert("color".into(), json!({"Rgb": [c.0, c.1, c.2]}));
     } else if color.eq_ignore_ascii_case("auto") {
         // Automatic, from the colour field's drop-down (#606).

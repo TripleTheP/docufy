@@ -3,7 +3,7 @@ use super::{Align2, Rect, Sense, Tokens, Ui, Value, WordApp, big, group, json, s
 
 /// Custom groups (Customize Ribbon, #379): up to three commands as large buttons, more as small
 /// labelled buttons in columns of three. Each shows the command's own icon and label.
-pub(super) fn custom_groups(app: &mut WordApp, ui: &mut Ui, groups: &[wordcraft_engine::ribbon::CustomGroup]) {
+pub(super) fn custom_groups(app: &mut WordApp, ui: &mut Ui, groups: &[docufy_engine::ribbon::CustomGroup]) {
     for g in groups {
         let ids: Vec<(&str, String)> =
             g.commands.iter().filter_map(|id| app.session.registry.get(id).map(|s| (s.id, tl!(s.label).to_string()))).collect();
@@ -76,9 +76,9 @@ pub(super) fn stack(ui: &mut Ui, add: impl FnOnce(&mut Ui)) {
 /// Setup (#1433).
 pub(crate) fn size_menu(ui: &mut Ui, app: &mut WordApp) {
     // The current paper size is checked.
-    let x = wordcraft_engine::cmd::page::sect(&app.session);
-    let current = wordcraft_geom::paper_name(x.page_w, x.page_h);
-    for (n, w, h) in wordcraft_geom::PAPER_SIZES {
+    let x = docufy_engine::cmd::page::sect(&app.session);
+    let current = docufy_geom::paper_name(x.page_w, x.page_h);
+    for (n, w, h) in docufy_geom::PAPER_SIZES {
         // Paper names are the industry's (Letter, A4, B5 (JIS)) and stay as they are; the
         // envelopes say what they are. Sizes in the measurement unit, written the region's
         // way (`21 cm × 29,7 cm`, #838).
@@ -120,8 +120,7 @@ pub(super) fn mi_text(ui: &mut Ui, app: &mut WordApp, text: &str, id: &str, para
 /// Chart Design and SmartArt Design › Size: the selected graphic's height and width.
 pub(super) fn graphic_size(ui: &mut Ui, app: &mut WordApp) {
     group(ui, "Size", None, app, |ui, app| {
-        let (w0, h0) =
-            wordcraft_engine::cmd::objects::selected(&app.session).and_then(|(_, o)| o.frame().map(|(w, h, _)| (w, h))).unwrap_or((0.0, 0.0));
+        let (w0, h0) = docufy_engine::cmd::objects::selected(&app.session).and_then(|(_, o)| o.frame().map(|(w, h, _)| (w, h))).unwrap_or((0.0, 0.0));
         stack(ui, |ui| {
             for (label, key, v0) in [("H:", "height", h0), ("W:", "width", w0)] {
                 crate::widgets::row(ui, |ui| {

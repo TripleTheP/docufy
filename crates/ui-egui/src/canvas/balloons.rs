@@ -170,7 +170,7 @@ pub(super) fn balloons(app: &mut WordApp, ui: &mut Ui, painter: &egui::Painter, 
     }
     if let Some((id, p)) = clicked {
         select_balloon(app, id);
-        app.session.sel = wordcraft_engine::Selection::caret(p);
+        app.session.sel = docufy_engine::Selection::caret(p);
     }
 }
 
@@ -190,7 +190,7 @@ struct BalloonItems {
 fn collect_items(app: &WordApp, layout: &DocLayout, only_shown: bool, shown: Option<u32>) -> BalloonItems {
     let comments_by_id = &app.session.doc.comments;
     // Replies hang under the comment they answer rather than getting balloons of their own.
-    let is_reply = |comment: &wordcraft_doc::Comment| comment.parent.is_some_and(|parent| comments_by_id.contains_key(&parent));
+    let is_reply = |comment: &docufy_doc::Comment| comment.parent.is_some_and(|parent| comments_by_id.contains_key(&parent));
     let mut replies: HashMap<u32, Vec<u32>> = HashMap::new();
     for (id, comment) in comments_by_id {
         if let Some(parent) = comment.parent.filter(|_| is_reply(comment)) {
@@ -199,7 +199,7 @@ fn collect_items(app: &WordApp, layout: &DocLayout, only_shown: bool, shown: Opt
     }
     let mut by_page: HashMap<usize, Vec<(f32, f32, Balloon, Pos)>> = HashMap::new();
     let markup = &app.session.prefs.markup;
-    let comments = if markup.comments { wordcraft_engine::cmd::review::comment_list(&app.session) } else { Vec::new() };
+    let comments = if markup.comments { docufy_engine::cmd::review::comment_list(&app.session) } else { Vec::new() };
     for (id, pos) in comments {
         let Some(pos) = pos else { continue };
         if comments_by_id.get(&id).is_some_and(is_reply) || (only_shown && shown != Some(id)) {
@@ -208,20 +208,20 @@ fn collect_items(app: &WordApp, layout: &DocLayout, only_shown: bool, shown: Opt
         add_balloon_anchor(&mut by_page, layout, app.session.page_hint, pos, Balloon::Comment(id));
     }
     if markup.formatting {
-        for (pos, author, props) in wordcraft_engine::cmd::review::format_changes(&app.session).into_iter().take(500) {
+        for (pos, author, props) in docufy_engine::cmd::review::format_changes(&app.session).into_iter().take(500) {
             let what = crate::panes::describe_props(&props).join(", ");
             let text = if what.is_empty() { tl!("Formatted").to_string() } else { format!("{}: {what}", tl!("Formatted")) };
             add_balloon_anchor(&mut by_page, layout, app.session.page_hint, pos, Balloon::Format(author, text));
         }
     }
     if markup.insertions_deletions {
-        for (pos, author, from) in wordcraft_engine::cmd::review::move_changes(&app.session).into_iter().take(500) {
+        for (pos, author, from) in docufy_engine::cmd::review::move_changes(&app.session).into_iter().take(500) {
             let text = if from { tl!("Moved from") } else { tl!("Moved to") }.to_string();
             add_balloon_anchor(&mut by_page, layout, app.session.page_hint, pos, Balloon::Format(author, text));
         }
     }
     if app.session.revisions_in_balloons() {
-        for deletion in wordcraft_engine::cmd::review::deletion_balloons(&app.session) {
+        for deletion in docufy_engine::cmd::review::deletion_balloons(&app.session) {
             let text = format!("{}: {}", tl!("Deleted"), deletion.text);
             add_balloon_anchor(&mut by_page, layout, app.session.page_hint, deletion.at, Balloon::Format(deletion.author, text));
         }

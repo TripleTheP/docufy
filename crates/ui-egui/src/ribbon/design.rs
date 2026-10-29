@@ -18,7 +18,7 @@ pub(super) fn style_set_box(app: &mut WordApp, ui: &mut Ui) -> (Rect, Rect) {
 pub(super) fn design(app: &mut WordApp, ui: &mut Ui) {
     group(ui, "Themes", None, app, |ui, app| {
         menu_button(ui, app, crate::widgets::MenuButtonOptions::new("themes", Some("Themes"), "Themes", true, "design.themes"), |ui, app| {
-            for (name, ..) in wordcraft_engine::cmd::design::THEMES {
+            for (name, ..) in docufy_engine::cmd::design::THEMES {
                 mi(ui, app, name, "design.theme", json!({"name": name}));
             }
         });
@@ -31,7 +31,7 @@ pub(super) fn design(app: &mut WordApp, ui: &mut Ui) {
                 app,
                 crate::widgets::MenuButtonOptions::new("colors", Some("Colors"), "Theme Colors", false, "design.themeColors"),
                 |ui, app| {
-                    for (name, ..) in wordcraft_engine::cmd::design::THEMES {
+                    for (name, ..) in docufy_engine::cmd::design::THEMES {
                         mi(ui, app, name, "design.themeColors", json!({"name": name}));
                     }
                 },
@@ -41,7 +41,7 @@ pub(super) fn design(app: &mut WordApp, ui: &mut Ui) {
                 app,
                 crate::widgets::MenuButtonOptions::new("fonts", Some("Fonts"), "Theme Fonts", false, "design.themeFonts"),
                 |ui, app| {
-                    for (name, h, b, _) in wordcraft_engine::cmd::design::THEMES {
+                    for (name, h, b, _) in docufy_engine::cmd::design::THEMES {
                         mi_text(ui, app, &format!("{}: {h} / {b}", tl!(name)), "design.themeFonts", json!({"heading": h, "body": b}));
                     }
                 },

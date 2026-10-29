@@ -44,7 +44,7 @@ pub(crate) struct WindowUi {
     pub(crate) smart_art_row_focused: bool,
     pub(crate) smart_art_typing: Option<usize>,
     pub(crate) outline_prev_tab: Option<String>,
-    pub(crate) read_aloud_at: Option<wordcraft_engine::doc::Pos>,
+    pub(crate) read_aloud_at: Option<docufy_engine::doc::Pos>,
     pub(crate) awaiting_save: Option<AwaitingSave>,
     pub(crate) file_dialog: Option<file_dialogs::PendingDialog>,
     #[cfg(not(target_arch = "wasm32"))]
@@ -56,7 +56,7 @@ pub(crate) struct WindowUi {
     pub(crate) backstage: bool,
     pub(crate) backstage_page: String,
     pub(crate) print: print_page::PrintSettings,
-    pub(crate) nav_collapsed: std::collections::HashSet<wordcraft_doc::Path>,
+    pub(crate) nav_collapsed: std::collections::HashSet<docufy_doc::Path>,
     pub(crate) keytip_prefix: String,
     pub(crate) keytips: keytips::Phase,
     pub(crate) alt_pressed: bool,
@@ -354,8 +354,8 @@ impl WordApp {
 
 #[cfg(test)]
 mod tests {
+    use docufy_engine::Session;
     use serde_json::json;
-    use wordcraft_engine::Session;
 
     use super::WindowUi;
     use crate::{Services, WordApp, dialogs::Dialog};
@@ -365,7 +365,7 @@ mod tests {
     /// preferences stay put both ways.
     #[test]
     fn swap_window_round_trip() {
-        let mut a = WordApp::new(Session::new(wordcraft_doc::Document::new()), Services::default());
+        let mut a = WordApp::new(Session::new(docufy_doc::Document::new()), Services::default());
         a.run("text.insert", json!({"text": "Kept"})).unwrap();
         let doc = a.session.document_id();
         let rev = a.session.rev();
@@ -396,6 +396,6 @@ mod tests {
         assert_eq!(a.ui.tab, "Insert");
         assert!(w.dialog.is_none() && w.tab == crate::DEFAULT_TAB);
         assert_eq!((a.session.document_id(), a.session.rev(), a.ui.recent_count), (doc, rev, 7));
-        assert_eq!(a.session.doc.plain_text(wordcraft_doc::StoryRef::Body).trim(), "Kept");
+        assert_eq!(a.session.doc.plain_text(docufy_doc::StoryRef::Body).trim(), "Kept");
     }
 }

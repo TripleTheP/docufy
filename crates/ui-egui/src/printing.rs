@@ -2,7 +2,7 @@
 use craft_ui::printing::Labels;
 pub use craft_ui::printing::{Discover, Duplex, Feedback, Printer, Settings, State};
 
-/// Native submission adds WordCraft's PDF-page collation setting and spooler options to the shared spooler settings.
+/// Native submission adds Docufy's PDF-page collation setting and spooler options to the shared spooler settings.
 pub type Submit = Box<dyn Fn(Vec<u8>, Settings, bool, Vec<(String, String)>) -> std::sync::mpsc::Receiver<Result<String, String>>>;
 
 /// Metadata for the app-owned commands. Inspecting it never discovers printers or submits.
@@ -34,7 +34,7 @@ pub fn show(state: &mut State, ui: &mut egui::Ui, discover: &Discover, translate
         short_edge: &translate("Two-sided: short edge"),
         grayscale: &translate("Grayscale"),
     };
-    state.show(ui, egui::Id::unique("wordcraft_print_settings"), discover, &labels);
+    state.show(ui, egui::Id::unique("docufy_print_settings"), discover, &labels);
     if let Some(message) = &state.message {
         ui.label(feedback(message, translate));
     }
@@ -183,7 +183,7 @@ pub fn submit(app: &mut crate::WordApp, params: &serde_json::Value) -> Result<se
         app.session.doc.settings.page_picture = picture;
     }
     let result = pdf.and_then(|(bytes, plan)| {
-        if native && plan.chosen.checked_mul(settings.copies as usize).is_none_or(|pages| pages > wordcraft_engine::print::MAX_PRINT_PAGES) {
+        if native && plan.chosen.checked_mul(settings.copies as usize).is_none_or(|pages| pages > docufy_engine::print::MAX_PRINT_PAGES) {
             return Err("the selected pages and copies exceed the print-job page limit".into());
         }
         let len = bytes.len();
@@ -199,7 +199,7 @@ pub fn submit(app: &mut crate::WordApp, params: &serde_json::Value) -> Result<se
                 lay.pages.first().is_some_and(|p| p.w > p.h)
             };
             // Scale to paper size: ask the printer for that paper too, so it takes it from the right tray.
-            if let Some(media) = wordcraft_engine::print::paper(params).ok().flatten().and_then(|(name, _, _)| pwg_media(name)) {
+            if let Some(media) = docufy_engine::print::paper(params).ok().flatten().and_then(|(name, _, _)| pwg_media(name)) {
                 print_options.push(("media".into(), media.into()));
             }
             if is_landscape {
@@ -234,7 +234,7 @@ mod tests {
     /// Every Layout › Size paper has a printer media name (#2108) the spooler accepts as a keyword.
     #[test]
     fn every_paper_size_has_a_media_name() {
-        for (name, _, _) in wordcraft_geom::PAPER_SIZES {
+        for (name, _, _) in docufy_geom::PAPER_SIZES {
             let media = super::pwg_media(name).unwrap_or_else(|| panic!("{name} has no media name"));
             assert!(media.len() <= 64 && media.bytes().all(|b| b.is_ascii_graphic() && !matches!(b, b'/' | b':' | b'=' | b'"')), "{media}");
         }

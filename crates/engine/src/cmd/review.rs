@@ -2,9 +2,9 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use docufy_doc::para::InlineObject;
+use docufy_doc::{Comment, Paragraph, PartKind, Pos, StoryRef, para_block};
 use serde_json::{Value, json};
-use wordcraft_doc::para::InlineObject;
-use wordcraft_doc::{Comment, Paragraph, PartKind, Pos, StoryRef, para_block};
 
 use super::{fmt_revisions, now_iso, pos_json, sel_result};
 use crate::{CmdError, CmdResult, CommandSpec, Selection, Session, p};
@@ -94,11 +94,11 @@ pub fn specs() -> Vec<CommandSpec> {
                 return Err(CmdError::Params("no word".into()));
             }
             // The same rule as loading the dictionary file, so a word added is never dropped later.
-            if wordcraft_proof::custom_word(&w).is_none() {
-                let max = wordcraft_proof::MAX_CUSTOM_WORD_CHARS;
+            if docufy_proof::custom_word(&w).is_none() {
+                let max = docufy_proof::MAX_CUSTOM_WORD_CHARS;
                 return Err(CmdError::Params(format!("{w:?} isn't a single word of at most {max} characters")));
             }
-            wordcraft_proof::add_word(w.trim());
+            docufy_proof::add_word(w.trim());
             s.persist_user_dictionary(&[]);
             s.relayout();
             Ok(json!({"added": w}))
@@ -114,7 +114,7 @@ pub fn specs() -> Vec<CommandSpec> {
             };
             // For this session only, as in Word: not added to (or saved with) the dictionary.
             if !w.trim().is_empty() {
-                wordcraft_proof::ignore_word(w.trim());
+                docufy_proof::ignore_word(w.trim());
             }
             s.relayout();
             Ok(json!({"ignored": w}))

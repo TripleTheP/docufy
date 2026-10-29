@@ -14,7 +14,7 @@ impl WordApp {
         let mut ui = self.ui.clone();
         ui.author = self.session.author.clone();
         ui.initials = self.session.initials.clone();
-        ui.dictionary = wordcraft_engine::proof::user_dictionary();
+        ui.dictionary = docufy_engine::proof::user_dictionary();
         ui.editing = self.session.prefs.clone();
         ui.read_aloud_rate = self.session.read_aloud.rate();
         ui.read_aloud_skip_citations = self.session.read_aloud.skip_citations;
@@ -51,11 +51,11 @@ impl WordApp {
         if !author.trim().is_empty() {
             self.session.author = author;
         }
-        self.session.initials = std::mem::take(&mut self.ui.initials).chars().take(wordcraft_engine::cmd::options::MAX_INITIALS_CHARS).collect();
+        self.session.initials = std::mem::take(&mut self.ui.initials).chars().take(docufy_engine::cmd::options::MAX_INITIALS_CHARS).collect();
         for w in std::mem::take(&mut self.ui.dictionary).iter().take(MAX_DICTIONARY) {
             let w = w.trim();
-            if !w.is_empty() && w.chars().count() <= wordcraft_engine::cmd::options::MAX_WORD_CHARS {
-                wordcraft_engine::proof::add_word(w);
+            if !w.is_empty() && w.chars().count() <= docufy_engine::cmd::options::MAX_WORD_CHARS {
+                docufy_engine::proof::add_word(w);
             }
         }
         self.session.prefs = std::mem::take(&mut self.ui.editing);
@@ -63,7 +63,7 @@ impl WordApp {
         self.session.view.proofing = self.session.prefs.check_spelling;
         // The saved dictionaries folder (#1063) is searched from the start.
         if let Some(f) = self.session.prefs.dictionaries_folder.as_deref() {
-            wordcraft_engine::cmd::options::use_dictionaries_folder(Some(f));
+            docufy_engine::cmd::options::use_dictionaries_folder(Some(f));
         }
         self.session.read_aloud.set_rate(self.ui.read_aloud_rate);
         self.session.read_aloud.skip_citations = self.ui.read_aloud_skip_citations;

@@ -1,10 +1,10 @@
 use super::*;
-use wordcraft_engine::Session;
+use docufy_engine::Session;
 
 /// Two clicks arm and disarm the painter; the double-click handling then leaves it sticky (#2785).
 #[test]
 fn double_click_on_format_painter_makes_it_sticky() {
-    let mut app = WordApp::new(Session::new(wordcraft_doc::Document::from_text("Text")), crate::Services::default());
+    let mut app = WordApp::new(Session::new(docufy_doc::Document::from_text("Text")), crate::Services::default());
     app.run("edit.formatPainter", json!({})).unwrap();
     assert!(matches!(app.session.painter, Some((_, _, false))), "one click arms it for one use");
     app.run("edit.formatPainter", json!({})).unwrap();
@@ -19,14 +19,14 @@ fn png_data() -> String {
     });
     let mut b = Vec::new();
     image::DynamicImage::ImageRgba8(img).write_to(&mut std::io::Cursor::new(&mut b), image::ImageFormat::Png).unwrap();
-    wordcraft_engine::cmd::insert::base64_encode(&b)
+    docufy_engine::cmd::insert::base64_encode(&b)
 }
 
 /// The style set gallery fills exactly its own box and the next control starts after a gap,
 /// so Colors and Fonts can't overlap the thumbnails (#638).
 #[test]
 fn design_style_set_gallery_stays_in_its_box() {
-    let mut app = WordApp::new(Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut app = WordApp::new(Session::new(docufy_doc::Document::new()), crate::Services::default());
     let mut seen = None;
     let mut h = egui_kittest::Harness::builder().with_size(vec2(1440.0, 200.0)).build_ui(|ui| {
         ui.horizontal_top(|ui| {
@@ -47,9 +47,9 @@ fn design_style_set_gallery_stays_in_its_box() {
 /// Automatic do what they say.
 #[test]
 fn underline_menu_entries_apply_their_style() {
+    use docufy_doc::props::Underline;
     use egui_kittest::kittest::Queryable;
-    use wordcraft_doc::props::Underline;
-    let mut a = WordApp::new(Session::new(wordcraft_doc::Document::from_text("Lanterns")), crate::Services::default());
+    let mut a = WordApp::new(Session::new(docufy_doc::Document::from_text("Lanterns")), crate::Services::default());
     a.run("select.all", json!({})).unwrap();
     // The app's real interface fonts carry the macOS shortcut symbols (⌘⇧⌥⌃); egui's
     // bare test defaults do not.
@@ -58,7 +58,7 @@ fn underline_menu_entries_apply_their_style() {
         .with_context_setup(|ctx| ctx.set_fonts(crate::theme::font_definitions(false, false)))
         .build_ui_state(|ui, app: &mut WordApp| underline_menu(ui, app), a);
     h.run_steps(2);
-    let run = |h: &egui_kittest::Harness<'_, WordApp>| h.state().session.doc.para_at(&wordcraft_doc::Pos::body(0, 0)).unwrap().runs[0].props.clone();
+    let run = |h: &egui_kittest::Harness<'_, WordApp>| h.state().session.doc.para_at(&docufy_doc::Pos::body(0, 0)).unwrap().runs[0].props.clone();
     for (_, name) in UNDERLINE_STYLES {
         assert!(h.query_by_label(name).is_some(), "{name} is a named entry");
     }
@@ -91,7 +91,7 @@ fn underline_menu_entries_apply_their_style() {
     h.step();
     h.event(egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed: false, modifiers: Default::default() });
     h.run_steps(3);
-    assert_eq!(run(&h).underline_color, wordcraft_doc::Rgb::parse("C00000"));
+    assert_eq!(run(&h).underline_color, docufy_doc::Rgb::parse("C00000"));
     assert_eq!(run(&h).underline, Some(Underline::Double), "a colour keeps the style");
     open_colors(&mut h);
     h.get_by_label_contains("Automatic").click();
@@ -105,7 +105,7 @@ fn underline_menu_entries_apply_their_style() {
 #[test]
 fn menu_buttons_follow_their_command() {
     use crate::widgets::menu_enabled;
-    let mut a = crate::WordApp::new(Session::new(wordcraft_doc::Document::from_text("Text")), crate::Services::default());
+    let mut a = crate::WordApp::new(Session::new(docufy_doc::Document::from_text("Text")), crate::Services::default());
     for id in ["table.selectTable", "table.deleteTable", "table.autofit"] {
         assert!(!menu_enabled(&a, id), "{id} is off outside a table");
     }
@@ -122,7 +122,7 @@ fn menu_buttons_follow_their_command() {
 #[test]
 fn page_setup_menus_mark_the_current_setting() {
     use egui_kittest::kittest::{By, NodeT, Queryable};
-    let mut app = WordApp::new(Session::new(wordcraft_doc::Document::from_text("Text")), crate::Services::default());
+    let mut app = WordApp::new(Session::new(docufy_doc::Document::from_text("Text")), crate::Services::default());
     app.run("layout.margins", json!({"preset": "narrow"})).unwrap();
     app.run("layout.orientation", json!({"value": "landscape"})).unwrap();
     app.run("layout.size", json!({"name": "A4"})).unwrap();
@@ -169,7 +169,7 @@ fn other_regions_show_by_name_once() {
     assert_eq!(c.listed, PROOFING_LANGUAGES.map(|(t, _)| t == "pt-BR"));
 }
 
-/// The Englishes WordCraft proofs differently are in the menu, checked by their tags, and
+/// The Englishes Docufy proofs differently are in the menu, checked by their tags, and
 /// every English region has a name (#1281, #1045).
 #[test]
 fn english_dialects_are_in_the_language_menu() {
@@ -198,7 +198,7 @@ fn indonesian_has_a_name_in_the_language_menu() {
     }
 }
 
-/// #3360, #3553: the Spanishes WordCraft proofs are in the menu, checked by their tags; other
+/// #3360, #3553: the Spanishes Docufy proofs are in the menu, checked by their tags; other
 /// Spanish regions show by name, and a bare `es` is Spain's.
 #[test]
 fn spanish_varieties_are_in_the_language_menu() {
@@ -244,7 +244,7 @@ fn turkish_has_a_name_in_the_language_menu() {
 
 #[test]
 fn picture_format_tab_appears_when_picture_selected() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     assert!(!has_picture_selected(&s));
     assert!(!contextual_tabs(&s).contains(&"Picture Format"));
     s.run("insert.picture", &json!({"data": png_data()})).unwrap();
@@ -257,7 +257,7 @@ fn picture_format_tab_appears_when_picture_selected() {
 
 #[test]
 fn shape_format_tab_appears_when_shape_selected() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("insert.shape", &json!({"kind": "rectangle"})).unwrap();
     assert!(contextual_tabs(&s).contains(&"Shape Format"));
     assert!(!contextual_tabs(&s).contains(&"Picture Format"));
@@ -269,7 +269,7 @@ fn shape_format_tab_appears_when_shape_selected() {
 #[test]
 fn page_setup_launcher_opens_the_dialog() {
     // A group launcher runs its command with no parameters (#471).
-    let mut app = crate::WordApp::new(Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut app = crate::WordApp::new(Session::new(docufy_doc::Document::new()), crate::Services::default());
     app.run("layout.pageSetup", json!({})).unwrap();
     assert!(matches!(app.dialog, Some(crate::dialogs::Dialog::PageSetup { .. })));
     // `ui.dialog` needs a dialog name, so it can't be a launcher.
@@ -287,7 +287,7 @@ fn page_setup_launcher_opens_the_dialog() {
 
 #[test]
 fn smart_art_picker_inserts_and_design_tab_follows_the_selection() {
-    let mut app = crate::WordApp::new(Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut app = crate::WordApp::new(Session::new(docufy_doc::Document::new()), Default::default());
     // Insert › SmartArt without a layout opens the picker.
     let _ = app.run("insert.smartArt", json!({}));
     assert_eq!(app.dialog.as_ref().map(crate::dialogs::Dialog::name), Some("insertSmartArt"));
@@ -303,7 +303,7 @@ fn smart_art_picker_inserts_and_design_tab_follows_the_selection() {
 
 #[test]
 fn chart_design_tab_appears_when_chart_selected_and_buttons_open_dialogs() {
-    let mut app = crate::WordApp::new(Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut app = crate::WordApp::new(Session::new(docufy_doc::Document::new()), Default::default());
     // Insert › Chart without a type opens the gallery; choosing inserts.
     let _ = app.run("insert.chart", json!({}));
     assert_eq!(app.dialog.as_ref().map(crate::dialogs::Dialog::name), Some("insertChart"));
@@ -323,7 +323,7 @@ fn chart_design_tab_appears_when_chart_selected_and_buttons_open_dialogs() {
 /// made for three, so "Hide White Space" was drawn under "Show". Every tab, every language.
 #[test]
 fn ribbon_groups_fit_above_their_labels() {
-    let app = WordApp::new(Session::new(wordcraft_engine::sample::sample_document()), crate::Services::default());
+    let app = WordApp::new(Session::new(docufy_engine::sample::sample_document()), crate::Services::default());
     // Wide enough that no tab hides groups behind its scroll arrows.
     let mut h = egui_kittest::Harness::builder().with_size(vec2(2560.0, 900.0)).build_ui_state(
         |ui, app: &mut WordApp| {
@@ -358,7 +358,7 @@ fn table_tabs_stay_clickable_when_the_tab_strip_overflows() {
         return;
     }
     use egui_kittest::kittest::Queryable;
-    let mut app = WordApp::new(Session::new(wordcraft_doc::Document::from_text("Text")), crate::Services::default());
+    let mut app = WordApp::new(Session::new(docufy_doc::Document::from_text("Text")), crate::Services::default());
     app.run("insert.table", json!({"rows": 3, "cols": 3})).unwrap();
     app.run("ui.language", json!({"value": "pl"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(vec2(1280.0, 900.0)).build_ui_state(
@@ -390,7 +390,7 @@ fn tab_strip_never_overlaps_the_right_buttons() {
     use egui_kittest::kittest::Queryable;
     for lang in ["en", "pl", "de"] {
         for width in [300.0, 420.0, 520.0, 640.0, 765.0, 1280.0] {
-            let mut app = WordApp::new(Session::new(wordcraft_doc::Document::from_text("Text")), crate::Services::default());
+            let mut app = WordApp::new(Session::new(docufy_doc::Document::from_text("Text")), crate::Services::default());
             app.run("insert.table", json!({"rows": 3, "cols": 3})).unwrap();
             app.run("ui.language", json!({"value": lang})).unwrap();
             app.run("ui.tab", json!({"tab": "Table Layout"})).unwrap();
@@ -459,7 +459,7 @@ fn plan_strip_gives_way_in_order() {
 #[test]
 fn the_tab_strip_buttons_have_names() {
     use egui_kittest::kittest::Queryable;
-    let app = WordApp::new(Session::new(wordcraft_doc::Document::from_text("Text")), crate::Services::default());
+    let app = WordApp::new(Session::new(docufy_doc::Document::from_text("Text")), crate::Services::default());
     let mut h = egui_kittest::Harness::builder().with_size(vec2(760.0, 700.0)).build_ui_state(
         |ui, app: &mut WordApp| {
             let ctx = ui.ctx().clone();
@@ -499,7 +499,7 @@ fn fit_tabs_keeps_the_kept_tabs_and_drops_from_the_end() {
 fn language_menu_reaches_every_language() {
     use egui_kittest::kittest::{By, NodeT, Queryable};
     let item = |label: &'static str| By::new().label_contains(label);
-    let app = WordApp::new(Session::new(wordcraft_doc::Document::from_text("Bonjour")), crate::Services::default());
+    let app = WordApp::new(Session::new(docufy_doc::Document::from_text("Bonjour")), crate::Services::default());
     let mut h = egui_kittest::Harness::builder().with_size(vec2(400.0, 600.0)).build_ui_state(|ui, app: &mut WordApp| language_menu(ui, app), app);
     h.run();
     assert!(h.query(item("French (France)")).is_none(), "the short list only, on an English document");
@@ -526,7 +526,7 @@ fn language_menu_reaches_every_language() {
 #[test]
 fn every_proofing_language_is_picked_from_the_language_menu() {
     use egui_kittest::kittest::{By, NodeT, Queryable};
-    let mut app = WordApp::new(Session::new(wordcraft_doc::Document::from_text("Colour")), crate::Services::default());
+    let mut app = WordApp::new(Session::new(docufy_doc::Document::from_text("Colour")), crate::Services::default());
     app.run("select.all", json!({})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(vec2(400.0, 600.0)).build_ui_state(|ui, app: &mut WordApp| language_menu(ui, app), app);
     h.run();
@@ -558,11 +558,11 @@ fn resolve_tab_falls_back_when_contextual_tab_expires() {
 fn picture_width_typed_in_pixels_keeps_the_proportions() {
     use egui::accesskit::Role;
     use egui_kittest::kittest::Queryable;
-    let mut a = crate::WordApp::new(Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut a = crate::WordApp::new(Session::new(docufy_doc::Document::new()), crate::Services::default());
     a.run("file.options", json!({"units": "centimeters"})).unwrap();
     a.run("insert.picture", json!({"data": png_data()})).unwrap();
     a.run("ui.tab", json!({"tab": "Picture Format"})).unwrap();
-    let size = |a: &crate::WordApp| wordcraft_engine::cmd::objects::selected(&a.session).and_then(|(_, o)| o.frame().map(|(w, h, _)| (w, h)));
+    let size = |a: &crate::WordApp| docufy_engine::cmd::objects::selected(&a.session).and_then(|(_, o)| o.frame().map(|(w, h, _)| (w, h)));
     assert_eq!(size(&a), Some((15.0, 7.5)), "20×10 px at 96 ppi");
     // Wide enough for the whole tab: the Size group is its last.
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(2560.0, 900.0)).build_ui_state(
@@ -604,13 +604,13 @@ fn picture_width_typed_in_pixels_keeps_the_proportions() {
 /// it as a change.
 #[test]
 fn picture_format_leaves_a_tiny_picture_alone() {
-    let mut a = crate::WordApp::new(Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut a = crate::WordApp::new(Session::new(docufy_doc::Document::new()), crate::Services::default());
     let img = image::RgbaImage::from_pixel(1, 1, image::Rgba([0, 0, 0, 255]));
     let mut png = Vec::new();
     img.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
-    a.run("insert.picture", json!({"data": wordcraft_engine::cmd::insert::base64_encode(&png)})).unwrap();
+    a.run("insert.picture", json!({"data": docufy_engine::cmd::insert::base64_encode(&png)})).unwrap();
     a.run("ui.tab", json!({"tab": "Picture Format"})).unwrap();
-    let size = |a: &crate::WordApp| wordcraft_engine::cmd::objects::selected(&a.session).and_then(|(_, o)| o.frame().map(|(w, h, _)| (w, h)));
+    let size = |a: &crate::WordApp| docufy_engine::cmd::objects::selected(&a.session).and_then(|(_, o)| o.frame().map(|(w, h, _)| (w, h)));
     assert_eq!(size(&a), Some((0.75, 0.75)));
     let undo = a.session.undo_depth();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(2560.0, 900.0)).build_ui_state(
@@ -633,10 +633,10 @@ fn picture_format_leaves_a_tiny_picture_alone() {
 fn align_menu_reaches_left_and_right_not_just_center() {
     use egui_kittest::kittest::{By, Queryable};
     let item = |label: &'static str| By::new().label_contains(label);
-    let mut a = crate::WordApp::new(Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut a = crate::WordApp::new(Session::new(docufy_doc::Document::new()), crate::Services::default());
     a.run("insert.picture", json!({"data": png_data()})).unwrap();
-    let frame = |a: &crate::WordApp| wordcraft_engine::cmd::objects::selected(&a.session).and_then(|(_, o)| o.frame().map(|(_, _, f)| (f.wrap, f.x)));
-    assert!(matches!(frame(&a), Some((wordcraft_doc::para::Wrap::Inline, _))), "a freshly inserted picture is inline");
+    let frame = |a: &crate::WordApp| docufy_engine::cmd::objects::selected(&a.session).and_then(|(_, o)| o.frame().map(|(_, _, f)| (f.wrap, f.x)));
+    assert!(matches!(frame(&a), Some((docufy_doc::para::Wrap::Inline, _))), "a freshly inserted picture is inline");
     let mut h = egui_kittest::Harness::builder()
         .with_size(egui::vec2(300.0, 300.0))
         .build_ui_state(|ui, app: &mut crate::WordApp| align_menu(ui, app, None), a);
@@ -647,7 +647,7 @@ fn align_menu_reaches_left_and_right_not_just_center() {
     h.get(item("Align Right")).click();
     h.run();
     let (wrap, right_x) = frame(h.state()).unwrap();
-    assert_eq!(wrap, wordcraft_doc::para::Wrap::Square, "aligning floats an inline picture, as arrange.align already does");
+    assert_eq!(wrap, docufy_doc::para::Wrap::Square, "aligning floats an inline picture, as arrange.align already does");
     // A positive x alone doesn't pin Right down: Center's x is positive too whenever the
     // picture is narrower than the text column, so Right could silently dispatch Center.
     h.get(item("Align")).click();
@@ -667,7 +667,7 @@ fn align_menu_reaches_left_and_right_not_just_center() {
 /// too (a 0.5 pt high line; a chart narrower than 36 pt), as Picture Format does.
 #[test]
 fn shape_and_chart_formats_leave_out_of_range_sizes_alone() {
-    let size = |a: &crate::WordApp| wordcraft_engine::cmd::objects::selected(&a.session).and_then(|(_, o)| o.frame().map(|(w, h, _)| (w, h)));
+    let size = |a: &crate::WordApp| docufy_engine::cmd::objects::selected(&a.session).and_then(|(_, o)| o.frame().map(|(w, h, _)| (w, h)));
     let shown = |a: crate::WordApp| {
         let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(2560.0, 900.0)).build_ui_state(
             |ui, app: &mut crate::WordApp| {
@@ -681,7 +681,7 @@ fn shape_and_chart_formats_leave_out_of_range_sizes_alone() {
         let a = h.state();
         (size(a), a.session.undo_depth())
     };
-    let mut a = crate::WordApp::new(Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut a = crate::WordApp::new(Session::new(docufy_doc::Document::new()), crate::Services::default());
     a.run("insert.shape", json!({"kind": "rectangle"})).unwrap();
     a.run("picture.size", json!({"width": 3000.0, "height": 1.0, "lockAspect": false})).unwrap();
     a.run("ui.tab", json!({"tab": "Shape Format"})).unwrap();
@@ -689,7 +689,7 @@ fn shape_and_chart_formats_leave_out_of_range_sizes_alone() {
     assert_eq!(before.0, Some((3000.0, 1.0)));
     assert_eq!(shown(a), before, "Shape Format shown, the shape untouched");
 
-    let mut a = crate::WordApp::new(Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+    let mut a = crate::WordApp::new(Session::new(docufy_doc::Document::new()), crate::Services::default());
     a.run("insert.chart", json!({"type": "doughnut"})).unwrap();
     a.run("picture.size", json!({"width": 20.0, "height": 2500.0, "lockAspect": false})).unwrap();
     a.run("ui.tab", json!({"tab": "Chart Design"})).unwrap();

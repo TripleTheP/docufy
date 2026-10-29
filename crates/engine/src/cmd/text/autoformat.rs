@@ -295,7 +295,7 @@ pub(super) fn table_line(s: &Session, at: &Pos) -> Option<Vec<usize>> {
     let inner = text.strip_prefix('+')?.strip_suffix('+')?;
     let mut cols = Vec::new();
     for run in inner.split('+') {
-        if run.is_empty() || !run.bytes().all(|b| b == b'-') || cols.len() >= wordcraft_doc::table::MAX_COLS {
+        if run.is_empty() || !run.bytes().all(|b| b == b'-') || cols.len() >= docufy_doc::table::MAX_COLS {
             return None;
         }
         cols.push(run.len());
@@ -316,7 +316,7 @@ pub(super) fn heading_line(s: &Session, at: &Pos) -> Option<u8> {
     }
     let Some(Block::Para(prev)) = s.doc.block(at.story, &at.path.with_last(i - 1)) else { return None };
     // Normal and outside a list, also one the style sheet gives (a numbered Normal style).
-    let plain = |p: &wordcraft_doc::Paragraph| {
+    let plain = |p: &docufy_doc::Paragraph| {
         let r = s.doc.styles.resolve_para(&p.props);
         p.props.style.as_deref().is_none_or(|st| st == "Normal") && r.numbering.is_none_or(|n| n.num == 0) && r.outline_level.is_none_or(|l| l >= 9)
     };
@@ -361,9 +361,9 @@ pub(super) fn apply_heading_line(s: &mut Session, at: &Pos, level: u8) -> Result
         && s.prefs.markup.track_formatting
         && s.doc.para(at.story, &prev).is_some_and(|p| p.text != before.text && p.props.fmt_change.is_none())
     {
-        let rev = crate::cmd::new_revision(s, wordcraft_doc::RevisionKind::Format);
+        let rev = crate::cmd::new_revision(s, docufy_doc::RevisionKind::Format);
         let p = s.doc.para_mut(at.story, &prev)?;
-        p.props.fmt_change = wordcraft_doc::props::PropChange::boxed(rev, before.props.formatting());
+        p.props.fmt_change = docufy_doc::props::PropChange::boxed(rev, before.props.formatting());
         p.touch();
     }
     s.sel = Selection::caret(at.clone());
@@ -374,7 +374,7 @@ pub(super) fn apply_heading_line(s: &mut Session, at: &Pos, level: u8) -> Result
 /// at the top of a story). With Track Changes on, the characters are marked deleted (or
 /// removed, when this author typed them) and the border is a formatting revision.
 pub(super) fn apply_border_line(s: &mut Session, at: &Pos, line: Border) -> Result<(), CmdError> {
-    let set_bottom = |p: &mut wordcraft_doc::Paragraph| {
+    let set_bottom = |p: &mut docufy_doc::Paragraph| {
         let mut b = p.props.borders.unwrap_or_default();
         b.bottom = Some(line);
         p.props.borders = Some(b);
@@ -402,9 +402,9 @@ pub(super) fn apply_border_line(s: &mut Session, at: &Pos, line: Border) -> Resu
                 && s.prefs.markup.track_formatting
                 && let Some(before) = before.filter(|b| b.fmt_change.is_none())
             {
-                let rev = crate::cmd::new_revision(s, wordcraft_doc::RevisionKind::Format);
+                let rev = crate::cmd::new_revision(s, docufy_doc::RevisionKind::Format);
                 let p = s.doc.para_mut(at.story, &at.path)?;
-                p.props.fmt_change = wordcraft_doc::props::PropChange::boxed(rev, before.formatting());
+                p.props.fmt_change = docufy_doc::props::PropChange::boxed(rev, before.formatting());
                 p.touch();
             }
             s.sel = Selection::caret(new);

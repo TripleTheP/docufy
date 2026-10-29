@@ -1,14 +1,14 @@
-//! Zotero integration: WordCraft as a word processor Zotero can drive.
+//! Zotero integration: Docufy as a word processor Zotero can drive.
 //!
 //! Zotero's desktop app listens on `127.0.0.1:23116` for word-processor plugins (its published
 //! "LibreOffice plugin wire protocol"). The word processor sends one integration command
 //! ([`Command`]: add/edit citation, bibliography, refresh…); Zotero then shows its own dialogs
 //! and drives the document through calls such as `Document_insertField` and `Field_setText`,
 //! ending with `Document_complete`. [`client`] runs that exchange over a socket; [`Bridge`]
-//! answers each call against an engine [`wordcraft_engine::Session`].
+//! answers each call against an engine [`docufy_engine::Session`].
 //!
 //! Citations are stored the way Zotero's Word plugin stores them, so documents move freely
-//! between WordCraft and Word: range fields whose code is `ADDIN ZOTERO_ITEM CSL_CITATION {…}` or
+//! between Docufy and Word: range fields whose code is `ADDIN ZOTERO_ITEM CSL_CITATION {…}` or
 //! `ADDIN ZOTERO_BIBL {…} CSL_BIBLIOGRAPHY`, and document preferences in the custom properties
 //! `ZOTERO_PREF_1…n`.
 //!
@@ -40,7 +40,7 @@ pub enum ZoteroError {
     Protocol(String),
     /// What answered on Zotero's port may not be Zotero (another computer, on any system; on
     /// Linux only, another user's program); it gets no access to the document.
-    #[error("WordCraft won't let this program edit the document: {0}")]
+    #[error("Docufy won't let this program edit the document: {0}")]
     Refused(String),
 }
 

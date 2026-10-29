@@ -28,7 +28,7 @@ impl Writer<'_> {
         w.open("pic:blipFill", &[]);
         w.empty("a:blip", &[("r:embed", &rid)]);
         if crop.iter().any(|c| *c > 0.0) {
-            let c = |v: f32| n((wordcraft_geom::finite(v).clamp(0.0, 1.0) * 100_000.0).round() as i64);
+            let c = |v: f32| n((docufy_geom::finite(v).clamp(0.0, 1.0) * 100_000.0).round() as i64);
             w.empty("a:srcRect", &[("l", &c(crop[0])), ("t", &c(crop[1])), ("r", &c(crop[2])), ("b", &c(crop[3]))]);
         }
         w.open("a:stretch", &[]);
@@ -101,7 +101,7 @@ impl Writer<'_> {
                 match extra.corner.filter(|_| *kind == ShapeKind::RoundedRectangle) {
                     Some(c) => {
                         w.open("a:avLst", &[]);
-                        let fmla = format!("val {}", c.min(wordcraft_doc::connector::MAX_CORNER));
+                        let fmla = format!("val {}", c.min(docufy_doc::connector::MAX_CORNER));
                         w.empty("a:gd", &[("name", "adj"), ("fmla", &fmla)]);
                         w.close("a:avLst");
                     }
@@ -155,7 +155,7 @@ impl Writer<'_> {
         // Its text, within the same bounds layout shows boxes inside boxes with. A box linked
         // from another (Create Link) shows the rest of that box's text: it names the chain and
         // its place in it instead.
-        let part = (*story).and_then(|id| self.doc.parts.get(&id).filter(|p| p.kind == wordcraft_doc::PartKind::TextBox).map(|p| (id, p)));
+        let part = (*story).and_then(|id| self.doc.parts.get(&id).filter(|p| p.kind == docufy_doc::PartKind::TextBox).map(|p| (id, p)));
         let link = part.and_then(|(id, _)| self.txbx_links.get(&id).copied());
         if let Some((n, seq)) = link.filter(|(_, seq)| *seq > 0) {
             w.empty("wps:linkedTxbx", &[("id", &n.to_string()), ("seq", &seq.to_string())]);
@@ -180,14 +180,14 @@ impl Writer<'_> {
         // Text direction and alignment, when not the defaults.
         let body = part.map(|(_, p)| p.body).unwrap_or_default();
         let mut attrs: Vec<(&str, &str)> = Vec::new();
-        if body.vert != wordcraft_doc::props::TextVert::Horz {
+        if body.vert != docufy_doc::props::TextVert::Horz {
             attrs.push(("vert", body.vert.ooxml()));
         }
-        if body.anchor != wordcraft_doc::props::VAlign::Top {
-            attrs.push(("anchor", wordcraft_doc::props::anchor_ooxml(body.anchor)));
+        if body.anchor != docufy_doc::props::VAlign::Top {
+            attrs.push(("anchor", docufy_doc::props::anchor_ooxml(body.anchor)));
         }
         // Internal margins, when the box has its own.
-        let inset = body.inset.map(|i| i.map(|v| v.min(wordcraft_doc::MAX_TEXT_BOX_INSET).to_string()));
+        let inset = body.inset.map(|i| i.map(|v| v.min(docufy_doc::MAX_TEXT_BOX_INSET).to_string()));
         if let Some(inset) = &inset {
             for (n, v) in ["lIns", "tIns", "rIns", "bIns"].into_iter().zip(inset) {
                 attrs.push((n, v));
@@ -286,7 +286,7 @@ impl Writer<'_> {
                 let tag = if float.wrap == Wrap::Tight { "wp:wrapTight" } else { "wp:wrapThrough" };
                 w.open(tag, &[("wrapText", float.wrap_text.ooxml())]);
                 // The object's own polygon, or its rectangle (the schema requires one).
-                let s = wordcraft_doc::wrap::WRAP_SPACE;
+                let s = docufy_doc::wrap::WRAP_SPACE;
                 let (edited, pts) = match float.wrap_polygon.as_deref() {
                     Some(p) if p.points.len() >= 3 => (p.edited, p.points.clone()),
                     _ => (false, vec![[0, 0], [0, s], [s, s], [s, 0]]),
@@ -308,7 +308,7 @@ impl Writer<'_> {
 
 /// A shape's `cNvPr`/`docPr` name: ink is "Ink <pen> <id>" (and "#<order>" when its drawing
 /// order is known), which reading looks for.
-pub(super) fn shape_name(kind: ShapeKind, freeform: Option<&wordcraft_doc::freeform::Freeform>, id: &str) -> String {
+pub(super) fn shape_name(kind: ShapeKind, freeform: Option<&docufy_doc::freeform::Freeform>, id: &str) -> String {
     let f = freeform.filter(|_| kind == ShapeKind::Freeform);
     match (f.and_then(|f| f.ink), f.and_then(|f| f.order)) {
         // The drawing order rides along for Ink Replay: `Ink Pen 3 #12`.
@@ -320,7 +320,7 @@ pub(super) fn shape_name(kind: ShapeKind, freeform: Option<&wordcraft_doc::freef
 
 /// A freeform's geometry as DrawingML custom geometry (`a:custGeom`): each path in EMUs of its
 /// own coordinate space (the shape's size when it has none), from `a:moveTo` along `a:lnTo`.
-fn cust_geom(w: &mut W, f: &wordcraft_doc::freeform::Freeform, sw: f32, sh: f32) {
+fn cust_geom(w: &mut W, f: &docufy_doc::freeform::Freeform, sw: f32, sh: f32) {
     let (pw, ph) = (if f.w > 0.0 { f.w } else { sw.max(0.0) }, if f.h > 0.0 { f.h } else { sh.max(0.0) });
     w.open("a:custGeom", &[]);
     w.empty("a:avLst", &[]);
@@ -334,14 +334,14 @@ fn cust_geom(w: &mut W, f: &wordcraft_doc::freeform::Freeform, sw: f32, sh: f32)
         w.empty("a:pt", &[("x", &emu(x)), ("y", &emu(y))]);
         w.close(tag);
     };
-    for p in f.paths.iter().take(wordcraft_doc::freeform::MAX_PATHS) {
+    for p in f.paths.iter().take(docufy_doc::freeform::MAX_PATHS) {
         let mut attrs = vec![("w", emu(pw)), ("h", emu(ph))];
         if !p.closed || f.is_ink() {
             attrs.push(("fill", "none".to_string()));
         }
         let attrs: Vec<(&str, &str)> = attrs.iter().map(|(k, v)| (*k, v.as_str())).collect();
         w.open("a:path", &attrs);
-        for (i, xy) in p.pts.iter().take(wordcraft_doc::freeform::MAX_POINTS).enumerate() {
+        for (i, xy) in p.pts.iter().take(docufy_doc::freeform::MAX_POINTS).enumerate() {
             pt(w, if i == 0 { "a:moveTo" } else { "a:lnTo" }, *xy);
         }
         // A tap: a zero-length line, so it shows as a dot.
@@ -358,8 +358,8 @@ fn cust_geom(w: &mut W, f: &wordcraft_doc::freeform::Freeform, sw: f32, sh: f32)
 }
 
 /// Explicit DrawingML outline dashes, before joins and arrowheads.
-fn line_dash(w: &mut W, dash: &wordcraft_doc::line_dash::LineDash) {
-    use wordcraft_doc::line_dash::{LineDash, MAX_DASH_STOPS};
+fn line_dash(w: &mut W, dash: &docufy_doc::line_dash::LineDash) {
+    use docufy_doc::line_dash::{LineDash, MAX_DASH_STOPS};
     if dash.is_solid() {
         return;
     }
@@ -381,7 +381,7 @@ fn line_dash(w: &mut W, dash: &wordcraft_doc::line_dash::LineDash) {
 
 /// A shape's `a:effectLst` (ECMA-376 Part 1 §20.1.8.26), children in schema order.
 /// A line's arrowheads (`a:headEnd`, `a:tailEnd`, ECMA-376 §20.1.8.38 / §20.1.8.57).
-fn arrow_ends(w: &mut W, extra: &wordcraft_doc::connector::ShapeExtra) {
+fn arrow_ends(w: &mut W, extra: &docufy_doc::connector::ShapeExtra) {
     if extra.arrow_start {
         w.empty("a:headEnd", &[("type", "triangle")]);
     }
@@ -391,7 +391,7 @@ fn arrow_ends(w: &mut W, extra: &wordcraft_doc::connector::ShapeExtra) {
 }
 
 /// A preset text warp (`a:prstTxWarp`, ECMA-376 §20.1.9.19) with its adjust values.
-fn text_warp(w: &mut W, warp: &wordcraft_doc::wordart::TextWarp) {
+fn text_warp(w: &mut W, warp: &docufy_doc::wordart::TextWarp) {
     w.open("a:prstTxWarp", &[("prst", &warp.preset)]);
     if warp.adj.is_empty() {
         w.empty("a:avLst", &[]);
@@ -457,7 +457,7 @@ fn effect_list(w: &mut W, effects: &ShapeEffects) {
     w.close("a:effectLst");
 }
 
-fn xfrm(w: &mut W, (x, y): (f32, f32), cw: f32, ch: f32, spin: wordcraft_geom::Spin) {
+fn xfrm(w: &mut W, (x, y): (f32, f32), cw: f32, ch: f32, spin: docufy_geom::Spin) {
     w.open("a:xfrm", &spin_attrs(spin).iter().map(|(k, v)| (*k, v.as_str())).collect::<Vec<_>>());
     w.empty("a:off", &[("x", &emu(x)), ("y", &emu(y))]);
     w.empty("a:ext", &[("cx", &emu(cw.max(0.0))), ("cy", &emu(ch.max(0.0)))]);
@@ -465,15 +465,15 @@ fn xfrm(w: &mut W, (x, y): (f32, f32), cw: f32, ch: f32, spin: wordcraft_geom::S
 }
 
 /// An `a:xfrm` holding only a rotation and flips.
-pub(super) fn xfrm_spin_only(w: &mut W, spin: wordcraft_geom::Spin) {
+pub(super) fn xfrm_spin_only(w: &mut W, spin: docufy_geom::Spin) {
     w.empty("a:xfrm", &spin_attrs(spin).iter().map(|(k, v)| (*k, v.as_str())).collect::<Vec<_>>());
 }
 
 /// The `a:xfrm` attributes of a rotation and flips (ECMA-376 §20.1.7.6: `rot` in 60000ths of a
 /// degree, clockwise), none for an unturned object.
-pub(in super::super) fn spin_attrs(spin: wordcraft_geom::Spin) -> Vec<(&'static str, String)> {
+pub(in super::super) fn spin_attrs(spin: docufy_geom::Spin) -> Vec<(&'static str, String)> {
     let mut a = Vec::new();
-    let rot = (wordcraft_geom::normalize_degrees(spin.deg) as f64 * 60_000.0).round() as i64 % 21_600_000;
+    let rot = (docufy_geom::normalize_degrees(spin.deg) as f64 * 60_000.0).round() as i64 % 21_600_000;
     if rot != 0 {
         a.push(("rot", rot.to_string()));
     }

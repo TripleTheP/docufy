@@ -44,7 +44,7 @@ fn substitutes_by_name(family: &str) -> (&'static [&'static str], bool) {
     const ARIAL_UNICODE: &[&str] = &["Arial", "Liberation Sans", "Helvetica", "Helvetica Neue", "Arimo", "Source Sans 3"];
     const TIMES: &[&str] = &["Liberation Serif", "Times", "Tinos", "Source Serif 4"];
     // Word's symbol fonts (Symbol, Wingdings…) are proprietary: their characters are drawn as their
-    // Unicode equivalents (`wordcraft_doc::symbol_fonts`) from these faces or any face that has them.
+    // Unicode equivalents (`docufy_doc::symbol_fonts`) from these faces or any face that has them.
     const SYMBOL: &[&str] = &["Apple Symbols", "Segoe UI Symbol", "DejaVu Sans", "Noto Sans Symbols", "Noto Sans Symbols 2", "Source Sans 3"];
     // Persian / Arabic document fonts. Naskh (book) faces such as B Nazanin, B Lotus, B Zar and
     // Traditional Arabic, then the sans faces (B Yekan, B Titr, IRANSans) people use for
@@ -153,7 +153,7 @@ fn substitutes_by_name(family: &str) -> (&'static [&'static str], bool) {
 }
 
 /// Ascent and descent (em) of Word's symbol fonts, which aren't open fonts. Their characters are
-/// drawn from other faces (`wordcraft_doc::symbol_fonts`), but Word sizes a line by the font
+/// drawn from other faces (`docufy_doc::symbol_fonts`), but Word sizes a line by the font
 /// itself: a Symbol bullet makes its line taller than the text alone. The values are those Word's
 /// PDFs give the fonts (`/Ascent`, `/Descent`).
 pub fn symbol_font_metrics(family: &str) -> Option<(f64, f64)> {

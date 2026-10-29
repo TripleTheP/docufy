@@ -17,12 +17,12 @@ pub struct Grid {
 
 impl Grid {
     /// The grid of section `s` of `doc` (its default font size from the Normal style).
-    pub fn of(doc: &Document, s: &wordcraft_doc::SectionProps) -> Grid {
+    pub fn of(doc: &Document, s: &docufy_doc::SectionProps) -> Grid {
         let Some(line) = s.grid_line_pitch() else { return Grid::default() };
         let size = doc.styles.resolve_char(Some("Normal"), &CharProps::default()).size;
         let font_size = if size.is_finite() { size.clamp(1.0, 1584.0) } else { 10.5 };
         let chars = s.grid_char_pitch(font_size);
-        let snap_all = s.doc_grid.is_some_and(|g| g.kind == wordcraft_doc::section::DocGridType::SnapToChars);
+        let snap_all = s.doc_grid.is_some_and(|g| g.kind == docufy_doc::section::DocGridType::SnapToChars);
         Grid { line: Some(line), chars, font_size, snap_all }
     }
     /// A cache key for paragraph layouts.

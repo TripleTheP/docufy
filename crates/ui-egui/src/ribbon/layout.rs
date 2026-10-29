@@ -6,7 +6,7 @@ use super::{MeasureExt, Ui, WordApp, big, group, json, menu_button, small, vec2}
 // Layout › Margins, Orientation, Size and Columns: the caret section's setting has a check
 // mark, as Text Direction's does (#1206).
 pub(super) fn margins_items(ui: &mut Ui, app: &mut WordApp) {
-    let current = wordcraft_engine::cmd::page::margins_preset_at(&app.session);
+    let current = docufy_engine::cmd::page::margins_preset_at(&app.session);
     // The two uniform presets name their margin in the measurement unit (`2,54 cm`, #838).
     for (l, k, uniform) in [
         ("Normal  {size} all", "normal", Some(72.0)),
@@ -28,13 +28,13 @@ pub(super) fn margins_items(ui: &mut Ui, app: &mut WordApp) {
 }
 
 pub(super) fn orientation_items(ui: &mut Ui, app: &mut WordApp) {
-    let land = wordcraft_engine::cmd::page::sect(&app.session).landscape;
+    let land = docufy_engine::cmd::page::sect(&app.session).landscape;
     mi_check(ui, app, "Portrait", !land, "layout.orientation", json!({"value": "portrait"}));
     mi_check(ui, app, "Landscape", land, "layout.orientation", json!({"value": "landscape"}));
 }
 
 pub(super) fn columns_items(ui: &mut Ui, app: &mut WordApp) {
-    let current = wordcraft_engine::cmd::page::columns_preset_at(&app.session);
+    let current = docufy_engine::cmd::page::columns_preset_at(&app.session);
     for (l, k, params) in [
         ("One", "one", json!({"count": 1})),
         ("Two", "two", json!({"count": 2})),
@@ -51,13 +51,13 @@ pub(super) fn columns_items(ui: &mut Ui, app: &mut WordApp) {
 pub(super) fn layout(app: &mut WordApp, ui: &mut Ui) {
     group(ui, "Page Setup", Some("layout.pageSetup"), app, |ui, app| {
         // Text Direction works on what the caret is in: table cells, a text box, else the section.
-        let dir = wordcraft_engine::cmd::page::text_direction_at(&app.session);
+        let dir = docufy_engine::cmd::page::text_direction_at(&app.session);
         menu_button(
             ui,
             app,
             crate::widgets::MenuButtonOptions::new("textDirection", Some("Text\nDirection"), "Text Direction", true, "layout.textDirection"),
             |ui, app| {
-                use wordcraft_doc::props::TextDirection;
+                use docufy_doc::props::TextDirection;
                 for (label, d) in [
                     ("Horizontal", TextDirection::Horizontal),
                     ("Rotate all text 90°", TextDirection::Down),

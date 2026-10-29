@@ -1,9 +1,9 @@
 use super::{BTreeSet, Dialog, MeasureExt, Ui, Value, WordApp, json};
 
 /// The Paragraph dialog as one paragraph's formatting fills it, on page `tab`.
-pub(super) fn paragraph_dialog(rp: &wordcraft_doc::resolve::ResolvedPara, tab: u8) -> Dialog {
+pub(super) fn paragraph_dialog(rp: &docufy_doc::resolve::ResolvedPara, tab: u8) -> Dialog {
     let line = match rp.line_spacing {
-        wordcraft_doc::props::LineSpacing::Multiple(m) => m,
+        docufy_doc::props::LineSpacing::Multiple(m) => m,
         _ => 1.0,
     };
     let (vl, vr) = rp.visual_indents();

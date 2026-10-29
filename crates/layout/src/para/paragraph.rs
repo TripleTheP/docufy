@@ -30,7 +30,7 @@ struct Cx<'a> {
     env: &'a ParaEnv<'a>,
     rp: &'a ResolvedPara,
     res: Resolver<'a>,
-    math_props: wordcraft_doc::math::MathProps,
+    math_props: docufy_doc::math::MathProps,
     /// The first character, if it is to be a drop cap.
     drop_first: Option<char>,
 }
@@ -73,7 +73,7 @@ struct Shaped<'a> {
     maths: Vec<(usize, Arc<crate::math::MathLayout>)>,
     enclosures: Vec<(usize, Enclosed)>,
     rubies: Vec<RubyLayout>,
-    displays: Vec<(usize, wordcraft_doc::math::MathJc)>,
+    displays: Vec<(usize, docufy_doc::math::MathJc)>,
     ptabs: Vec<(usize, PTabAlign, PTabBase, TabLeader)>,
     eq_counter: u32,
     /// The byte ranges of runs left out of the layout, in order, adjacent runs merged.
@@ -93,7 +93,7 @@ fn paragraph_props(p: &Paragraph, env: &ParaEnv) -> ResolvedPara {
     let doc = env.doc;
     let mut rp = doc.styles.resolve_para_in(&p.props, env.table.map(|t| &t.para));
     if let Some(spacing) = env.read_line_spacing.filter(|s| s.is_finite() && (1.0..=2.0).contains(s)) {
-        rp.line_spacing = wordcraft_doc::props::LineSpacing::Multiple(spacing);
+        rp.line_spacing = docufy_doc::props::LineSpacing::Multiple(spacing);
     }
     // Indents in characters are measured in the paragraph mark's font size.
     if rp.indent_chars.iter().any(|c| *c != 0.0) {
@@ -319,7 +319,7 @@ impl<'a> Shaped<'a> {
         let env = cx.env;
         // A hidden one takes no room, and with no height its line doesn't draw it.
         if let Some((w, saved_h, float)) = o.frame()
-            && float.wrap == wordcraft_doc::para::Wrap::Inline
+            && float.wrap == docufy_doc::para::Wrap::Inline
             && !float.hidden
         {
             // A picture wider than the line keeps its size, as in Word: it runs past
@@ -343,7 +343,7 @@ impl<'a> Shaped<'a> {
         let InlineObject::Field { instr, result, code, .. } = o else { return };
         let env = cx.env;
         let form = if env.field_codes != *code { None } else { o.legacy_form() };
-        if let Some(wordcraft_doc::legacy_form::LegacyForm::CheckBox { size, .. }) = form {
+        if let Some(docufy_doc::legacy_form::LegacyForm::CheckBox { size, .. }) = form {
             self.check_box((k, slot), rc, size);
         } else if let Some(text) = form.as_ref().and_then(|f| f.shown_text()) {
             // A drop-down shows its selected entry, whatever result was saved.
@@ -372,7 +372,7 @@ impl<'a> Shaped<'a> {
 
     fn field_result(&mut self, cx: &Cx, (instr, result): (&str, &str), slot: Slot, rc: &Arc<ResolvedChar>) {
         let (start, end) = (slot.start, slot.end);
-        match wordcraft_doc::eq::parse_overstrike(instr) {
+        match docufy_doc::eq::parse_overstrike(instr) {
             Some(o) => overstrike(&mut self.b, &o, instr, start, end, rc, &mut self.enclosures),
             None => {
                 let (t, page_dep) = field_text_on(instr, result, cx.env.fields, cx.env.fields.page_at(start));
@@ -395,12 +395,12 @@ impl<'a> Shaped<'a> {
             custom.into()
         };
         let mut sup = (**rc).clone();
-        sup.vert_align = wordcraft_doc::props::VertAlign::Superscript;
+        sup.vert_align = docufy_doc::props::VertAlign::Superscript;
         self.b.shape_atomic(&num, slot.start, slot.end, &Arc::new(sup));
         self.notes.push((self.b.clusters.len().saturating_sub(1), id));
     }
 
-    fn equation(&mut self, cx: &Cx, k: usize, slot: Slot, rc: &Arc<ResolvedChar>, (linear, display, math): (&str, bool, &wordcraft_doc::math::Math)) {
+    fn equation(&mut self, cx: &Cx, k: usize, slot: Slot, rc: &Arc<ResolvedChar>, (linear, display, math): (&str, bool, &docufy_doc::math::Math)) {
         let avail = (cx.env.width - cx.rp.indent_left.max(0.0) - cx.rp.indent_right.max(0.0)).max(12.0);
         let ml = crate::math::layout_equation(math, linear, rc, display, avail, &cx.math_props, &mut self.eq_counter);
         // The line is at least as tall as the text around it.
@@ -417,7 +417,7 @@ impl<'a> Shaped<'a> {
         let mut rr = (*cx.res.char(&props.clone().overlaid(ruby_props))).clone();
         let size = if size.is_finite() { size.clamp(1.0, 1584.0) } else { rc.size * 0.5 };
         (rr.size, rr.size_cs, rr.position) = (size, size, 0.0);
-        rr.vert_align = wordcraft_doc::props::VertAlign::Baseline;
+        rr.vert_align = docufy_doc::props::VertAlign::Baseline;
         let raise = if raise.is_finite() { raise.clamp(0.0, 1584.0) } else { rc.size };
         if let Some(r) = self.b.ruby(base, ruby, *align, raise, (slot.start, slot.end), (rc, &Arc::new(rr))) {
             self.rubies.push(r);
@@ -470,11 +470,11 @@ fn list_label(cx: &Cx, b: &mut Builder, mark_style: u32) -> Option<Label> {
     // private-use code (Font Awesome's Twitter logo at U+F081, #1683): it shows the level's
     // default bullet instead.
     let fixed = undrawable_bullet(text, lvl, &rc)
-        .then(|| wordcraft_doc::numbering::default_bullet(usize::from(rp.numbering.map_or(0, |n| n.level))).to_string());
+        .then(|| docufy_doc::numbering::default_bullet(usize::from(rp.numbering.map_or(0, |n| n.level))).to_string());
     let text: &str = fixed.as_deref().unwrap_or(text);
     // A Symbol/Wingdings bullet (U+F0B7…) is drawn as its Unicode equivalent when the font
     // isn't installed (shaping maps it); the label's text reads as that character too.
-    let shown = |t: &str| -> String { wordcraft_doc::symbol_fonts::map_text(&rc.font, t) };
+    let shown = |t: &str| -> String { docufy_doc::symbol_fonts::map_text(&rc.font, t) };
     let cl = shape_label(b, text, &rc, rp.bidi);
     let mut glyphs = Vec::new();
     let mut runs: Vec<LabelRun> = Vec::new();
@@ -543,7 +543,7 @@ fn joined_cluster_starts(p: &Paragraph, clusters: &[Cluster]) -> Vec<usize> {
     if p.text.is_ascii() {
         return Vec::new();
     }
-    let boundaries = wordcraft_doc::cluster::cluster_starts(&p.text);
+    let boundaries = docufy_doc::cluster::cluster_starts(&p.text);
     let mut joined: Vec<usize> =
         clusters.iter().filter_map(|c| (c.start < p.text.len() && boundaries.binary_search(&c.start).is_err()).then_some(c.start)).collect();
     joined.sort_unstable();
@@ -703,7 +703,7 @@ fn break_text<'a>(source: &'a str, skip: &[std::ops::Range<usize>]) -> (std::bor
     }
 }
 
-fn break_positions(text: &str, rp: &wordcraft_doc::resolve::ResolvedPara) -> Vec<usize> {
+fn break_positions(text: &str, rp: &docufy_doc::resolve::ResolvedPara) -> Vec<usize> {
     let mut found = Vec::new();
     for (i, o) in unicode_linebreak::linebreaks(text) {
         // Word keeps "and/or" and web addresses whole: no break right after a slash (a word
@@ -747,7 +747,7 @@ fn break_positions(text: &str, rp: &wordcraft_doc::resolve::ResolvedPara) -> Vec
     }
     // Myanmar has no spaces between words: it wraps between syllables.
     if text.chars().any(|c| matches!(u32::from(c), 0x1000..=0x109F | 0xA9E0..=0xA9FF | 0xAA60..=0xAA7F)) {
-        found.extend(wordcraft_doc::cluster::myanmar_breaks(text));
+        found.extend(docufy_doc::cluster::myanmar_breaks(text));
         found.sort_unstable();
         found.dedup();
     }

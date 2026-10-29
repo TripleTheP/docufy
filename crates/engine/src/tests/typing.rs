@@ -2,15 +2,15 @@
 //! as the keyboard (one `text.insert` per character, Enter, Tab, Backspace), and the expected
 //! results are what Word produces for the same keys.
 
+use docufy_doc::props::{BorderStyle, VertAlign};
+use docufy_doc::{Pos, StoryRef};
 use serde_json::json;
-use wordcraft_doc::props::{BorderStyle, VertAlign};
-use wordcraft_doc::{Pos, StoryRef};
 
 use crate::Session;
 
 /// Create an empty session for command-driven typing fixtures.
 fn s() -> Session {
-    Session::new(wordcraft_doc::Document::new())
+    Session::new(docufy_doc::Document::new())
 }
 
 /// Execute a registry command and report its id on a test failure.
@@ -122,7 +122,7 @@ fn sample_text_preserves_typing_and_paragraph_formatting() {
     run(&mut s, "para.alignCenter", json!({}));
     typ(&mut s, "=rand(2,1)\n");
     for p in s.doc.body.iter().filter_map(|b| b.as_para()).take(2) {
-        assert_eq!(p.props.align, Some(wordcraft_doc::props::Align::Center));
+        assert_eq!(p.props.align, Some(docufy_doc::props::Align::Center));
         assert_eq!(p.props_at(0).bold, Some(true));
     }
 }
@@ -353,7 +353,7 @@ fn list_autoformat_triggers() {
     assert_eq!(paras(&s), vec![para("Alpha", Some(0)), para("beta", Some(0))]);
     assert_eq!(label_at(&s, 0), "%1.");
     let n = s.doc.para_at(&Pos::body(0, 0)).and_then(|p| p.props.numbering).unwrap();
-    assert_eq!(s.doc.numbering.level(n.num, 0).map(|l| l.format), Some(wordcraft_doc::section::NumFormat::LowerLetter));
+    assert_eq!(s.doc.numbering.level(n.num, 0).map(|l| l.format), Some(docufy_doc::section::NumFormat::LowerLetter));
 }
 
 /// #3352: typing the trigger at the start of an already-written paragraph (not only a fresh,
@@ -497,11 +497,11 @@ fn autocorrect_replacement_list_follows_the_texts_language() {
 fn autocorrect_options_change_what_typing_does() {
     let mut s = s();
     // A user entry, a deleted built-in entry, an added exception; names of days.
-    run(&mut s, "tools.autocorrect", json!({"add": {"from": "wc", "to": "WordCraft"}}));
+    run(&mut s, "tools.autocorrect", json!({"add": {"from": "wc", "to": "Docufy"}}));
     run(&mut s, "tools.autocorrect", json!({"delete": "teh"}));
     run(&mut s, "tools.autocorrect", json!({"addException": "approx."}));
     typ(&mut s, "wc ships on monday. teh end is approx. three weeks ");
-    assert_eq!(s.doc.plain_text(StoryRef::Body), "WordCraft ships on Monday. Teh end is approx. three weeks ");
+    assert_eq!(s.doc.plain_text(StoryRef::Body), "Docufy ships on Monday. Teh end is approx. three weeks ");
     // AutoFormat options off: straight quotes, no dashes, no list; sentences not capitalised.
     let mut s = self::s();
     run(&mut s, "tools.autocorrect", json!({"smartQuotes": false, "dashes": false, "bullets": false, "capSentences": false, "capDays": false}));
@@ -646,12 +646,12 @@ fn bold_and_italic_marks_become_formatting() {
 fn autocorrect_goes_on_after_bold_and_italic_marks() {
     // After a space or punctuation, the word without its marks is replaced and capitalized.
     let mut s = s();
-    run(&mut s, "tools.autocorrect", json!({"boldItalic": true, "add": {"from": "wc", "to": "WordCraft"}}));
+    run(&mut s, "tools.autocorrect", json!({"boldItalic": true, "add": {"from": "wc", "to": "Docufy"}}));
     typ(&mut s, "*teh* end. _wc_.");
-    assert_eq!(s.doc.plain_text(StoryRef::Body), "The end. WordCraft.");
+    assert_eq!(s.doc.plain_text(StoryRef::Body), "The end. Docufy.");
     let p = s.doc.para_at(&Pos::body(0, 0)).unwrap();
     let at = |t: &str| p.props_of_char(p.text.find(t).unwrap()).clone();
-    assert_eq!((at("The").bold, at("WordCraft").italic, at(" end").bold), (Some(true), Some(true), None));
+    assert_eq!((at("The").bold, at("Docufy").italic, at(" end").bold), (Some(true), Some(true), None));
     // One Undo brings the marks back as typed.
     run(&mut s, "edit.undo", json!({}));
     assert_eq!(s.doc.plain_text(StoryRef::Body), "The end. _wc_.");
@@ -668,11 +668,11 @@ fn autocorrect_goes_on_after_bold_and_italic_marks() {
     }
     // After Enter too; a longer replacement moves the Enter with it, and Undo keeps the Enter.
     let mut s = self::s();
-    run(&mut s, "tools.autocorrect", json!({"boldItalic": true, "add": {"from": "wc", "to": "WordCraft"}}));
+    run(&mut s, "tools.autocorrect", json!({"boldItalic": true, "add": {"from": "wc", "to": "Docufy"}}));
     typ(&mut s, "*teh*\nok. *wc*\nnext");
-    assert_eq!(s.doc.plain_text(StoryRef::Body), "The\nOk. WordCraft\nnext");
+    assert_eq!(s.doc.plain_text(StoryRef::Body), "The\nOk. Docufy\nnext");
     let p = s.doc.para_at(&Pos::body(1, 0)).unwrap();
-    assert_eq!(p.props_of_char(p.text.find("WordCraft").unwrap()).bold, Some(true));
+    assert_eq!(p.props_of_char(p.text.find("Docufy").unwrap()).bold, Some(true));
     let mut s = self::s();
     run(&mut s, "tools.autocorrect", json!({"boldItalic": true}));
     typ(&mut s, "*teh*\n");
@@ -835,7 +835,7 @@ fn a_tracked_table_line_keeps_its_characters_as_a_deletion() {
     let mut s = typed("+--+------+");
     run(&mut s, "review.trackChanges", json!({"value": true}));
     typ(&mut s, "\nA");
-    let Some(wordcraft_doc::Block::Table(t)) = s.doc.body.first().map(|b| &**b) else { panic!("no table: {:?}", paras(&s)) };
+    let Some(docufy_doc::Block::Table(t)) = s.doc.body.first().map(|b| &**b) else { panic!("no table: {:?}", paras(&s)) };
     assert_eq!(t.rows[0].cells[0].blocks[0].as_para().map(|p| p.text.as_str()), Some("A"), "the caret is in the first cell");
     assert!(all_deleted(&s, 1, "+--+------+"), "{:?}", paras(&s));
     // Enter after the deleted characters makes no second table.
@@ -946,7 +946,7 @@ fn tab_and_backspace_at_a_paragraph_start_set_its_indents() {
     assert_eq!(indents(&s), (None, None));
     // At the start of a list item numbered by its style, Tab types a tab character, as with the
     // option off.
-    let mut s = style_inherited_list(wordcraft_doc::numbering::ListKind::Numbered, false);
+    let mut s = style_inherited_list(docufy_doc::numbering::ListKind::Numbered, false);
     run(&mut s, "tools.autocorrect", json!({"tabIndent": true}));
     run(&mut s, "caret.docStart", json!({}));
     typ(&mut s, "\t");
@@ -987,7 +987,7 @@ fn tab_before_a_later_line_of_a_paragraph_indents_the_whole_paragraph() {
     assert_eq!(s.doc.plain_text(StoryRef::Body), "One\nT\two");
     // Before a later line of a list item numbered by its style, Tab takes it down a level, as
     // for a list item numbered directly.
-    let mut s = style_inherited_list(wordcraft_doc::numbering::ListKind::Numbered, false);
+    let mut s = style_inherited_list(docufy_doc::numbering::ListKind::Numbered, false);
     run(&mut s, "tools.autocorrect", json!({"tabIndent": true}));
     run(&mut s, "caret.docStart", json!({}));
     run(&mut s, "caret.end", json!({}));
@@ -1000,9 +1000,9 @@ fn tab_before_a_later_line_of_a_paragraph_indents_the_whole_paragraph() {
     assert_eq!(p.props.numbering.map(|n| n.level), Some(1));
     assert_eq!(indents(&s), (None, None));
     // A list level past the last one, from a style or set directly, goes to the last level.
-    let mut s = style_inherited_list(wordcraft_doc::numbering::ListKind::Numbered, false);
+    let mut s = style_inherited_list(docufy_doc::numbering::ListKind::Numbered, false);
     let style = s.doc.styles.styles.iter_mut().find(|x| x.id == "ListBase").unwrap();
-    style.para.numbering = style.para.numbering.map(|n| wordcraft_doc::props::NumRef { level: u8::MAX, ..n });
+    style.para.numbering = style.para.numbering.map(|n| docufy_doc::props::NumRef { level: u8::MAX, ..n });
     run(&mut s, "tools.autocorrect", json!({"tabIndent": true}));
     run(&mut s, "caret.docStart", json!({}));
     run(&mut s, "caret.end", json!({}));
@@ -1012,18 +1012,18 @@ fn tab_before_a_later_line_of_a_paragraph_indents_the_whole_paragraph() {
     typ(&mut s, "\t");
     assert_eq!(s.doc.para_at(&Pos::body(0, 0)).unwrap().props.numbering.map(|n| n.level), Some(8));
     let num = s.doc.para_at(&Pos::body(0, 0)).unwrap().props.numbering.unwrap().num;
-    s.doc.para_mut(StoryRef::Body, &Pos::body(1, 0).path).unwrap().props.numbering = Some(wordcraft_doc::props::NumRef { num, level: u8::MAX });
+    s.doc.para_mut(StoryRef::Body, &Pos::body(1, 0).path).unwrap().props.numbering = Some(docufy_doc::props::NumRef { num, level: u8::MAX });
     s.sel = crate::Selection::caret(Pos::body(1, 0));
     typ(&mut s, "\t");
     assert_eq!(s.doc.para_at(&Pos::body(1, 0)).unwrap().props.numbering.map(|n| n.level), Some(8));
-    s.doc.para_mut(StoryRef::Body, &Pos::body(0, 0).path).unwrap().props.numbering = Some(wordcraft_doc::props::NumRef { num, level: u8::MAX });
+    s.doc.para_mut(StoryRef::Body, &Pos::body(0, 0).path).unwrap().props.numbering = Some(docufy_doc::props::NumRef { num, level: u8::MAX });
     run(&mut s, "caret.docStart", json!({}));
     run(&mut s, "caret.down", json!({}));
     run(&mut s, "caret.home", json!({}));
     assert_eq!((s.sel.focus.path.clone(), s.sel.focus.off), (Pos::body(0, 0).path, 6), "the caret is before \"More\"");
     typ(&mut s, "\t");
     assert_eq!(s.doc.para_at(&Pos::body(0, 0)).unwrap().props.numbering.map(|n| n.level), Some(8));
-    s.doc.para_mut(StoryRef::Body, &Pos::body(0, 0).path).unwrap().props.numbering = Some(wordcraft_doc::props::NumRef { num, level: u8::MAX });
+    s.doc.para_mut(StoryRef::Body, &Pos::body(0, 0).path).unwrap().props.numbering = Some(docufy_doc::props::NumRef { num, level: u8::MAX });
     run(&mut s, "outline.demote", json!({}));
     assert_eq!(s.doc.para_at(&Pos::body(0, 0)).unwrap().props.numbering.map(|n| n.level), Some(8));
 }
@@ -1031,7 +1031,7 @@ fn tab_before_a_later_line_of_a_paragraph_indents_the_whole_paragraph() {
 #[test]
 fn plus_and_hyphen_line_becomes_a_table() {
     let mut s = typed("+--+------+\nA");
-    let Some(wordcraft_doc::Block::Table(t)) = s.doc.body.first().map(|b| &**b) else { panic!("no table: {:?}", paras(&s)) };
+    let Some(docufy_doc::Block::Table(t)) = s.doc.body.first().map(|b| &**b) else { panic!("no table: {:?}", paras(&s)) };
     assert_eq!(t.rows.len(), 1);
     assert_eq!(t.grid.len(), 2);
     assert!((t.grid[1] / t.grid[0] - 3.0).abs() < 0.01, "widths follow the hyphens: {:?}", t.grid);
@@ -1092,9 +1092,9 @@ fn two_enters_after_a_short_line_make_it_a_heading() {
     // A list item numbered by the Normal style is not body text either.
     let mut q = self::s();
     run(&mut q, "tools.autocorrect", json!({"headingStyles": true}));
-    let num = q.doc.numbering.try_add_list(wordcraft_doc::ListKind::Bullet).unwrap();
+    let num = q.doc.numbering.try_add_list(docufy_doc::ListKind::Bullet).unwrap();
     if let Some(normal) = q.doc.styles.get_mut("Normal") {
-        normal.para.numbering = Some(wordcraft_doc::props::NumRef { num, level: 0 });
+        normal.para.numbering = Some(docufy_doc::props::NumRef { num, level: 0 });
     }
     typ(&mut q, "Item\n\n");
     assert!(styled(&q).iter().all(|(_, st)| st.as_deref().is_none_or(|st| !st.starts_with("Heading"))), "{:?}", styled(&q));
@@ -1182,7 +1182,7 @@ fn smileys_are_replaced_inside_words_too() {
 
 #[test]
 fn a_large_mixed_document_types_like_word() {
-    // The corpus typed into Word and WordCraft side by side; the paragraph structure must match.
+    // The corpus typed into Word and Docufy side by side; the paragraph structure must match.
     let mut s = s();
     let prose = "The keeper's log runs to four hundred pages, and almost every one begins with the weather. ";
     typ(&mut s, &format!("Notes\n{}\n", prose.repeat(20)));
@@ -1365,7 +1365,7 @@ fn undoing_bold_at_the_caret_turns_bold_typing_off_again() {
     assert_eq!(p.text, "abc");
     assert_ne!(p.props_of_char(0).bold, Some(true));
     // Redo brings bold typing back.
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     run(&mut s, "format.bold", json!({"value": true}));
     run(&mut s, "edit.undo", json!({}));
     run(&mut s, "edit.redo", json!({}));
@@ -1489,7 +1489,7 @@ fn down_and_up_from_a_line_start_beside_a_table_go_into_it() {
     let cell = |r: u32, c: u32| {
         let mut p = table.0.clone();
         p.extend([r, c, 0]);
-        wordcraft_doc::Path(p)
+        docufy_doc::Path(p)
     };
     // From the start of the line above, left of the cells' text: the first cell, then the one
     // below, not the paragraph after the table.
@@ -1639,7 +1639,7 @@ fn shift_f5_goes_back_through_the_last_edits() {
     assert_eq!(back(), Pos::body(1, 3));
     assert_eq!(back(), Pos::body(0, 3));
     assert_eq!(back(), Pos::body(2, 5), "then round again");
-    assert!(Session::new(wordcraft_doc::Document::new()).run("edit.goBack", &json!({})).is_err(), "nothing edited yet");
+    assert!(Session::new(docufy_doc::Document::new()).run("edit.goBack", &json!({})).is_err(), "nothing edited yet");
 }
 
 #[test]
@@ -1660,7 +1660,7 @@ fn shift_right_at_the_end_of_a_cell_selects_the_cell_first() {
     // In an empty cell the first press takes it.
     let mut empty = table.0.clone();
     empty.extend([1, 0, 0]);
-    let pos = Pos { story: StoryRef::Body, path: wordcraft_doc::Path(empty), off: 0 };
+    let pos = Pos { story: StoryRef::Body, path: docufy_doc::Path(empty), off: 0 };
     run(&mut s, "caret.set", json!({"pos": pos}));
     assert_eq!(shift_right(&mut s), Some(((1, 1), (0, 0))));
 }
@@ -1798,7 +1798,7 @@ fn plain_text_paste_keeps_an_empty_paragraph_in_a_list() {
 }
 
 /// Each body paragraph's text and paragraph formatting.
-fn para_formats(s: &Session) -> Vec<(String, wordcraft_doc::props::ParaProps)> {
+fn para_formats(s: &Session) -> Vec<(String, docufy_doc::props::ParaProps)> {
     s.doc.body.iter().filter_map(|b| b.as_para()).map(|p| (p.text.clone(), p.props.clone())).collect()
 }
 
@@ -1869,7 +1869,7 @@ fn typing_rtl_letters_into_an_empty_paragraph_makes_it_rtl() {
     let s = typed("سلام\nHello");
     assert_eq!(bidi(&s, 1), Some(true), "Enter carries the paragraph's direction on, as in Word");
     // A style that sets left-to-right wins.
-    let mut doc = Session::new(wordcraft_doc::Document::new());
+    let mut doc = Session::new(docufy_doc::Document::new());
     if let Some(st) = doc.doc.styles.get_mut("Normal") {
         st.para.bidi = Some(false);
     }
@@ -1929,9 +1929,9 @@ fn select_all_then_delete_removes_tables() {
 /// of into its result (Zotero then reports the citation as edited by hand).
 #[test]
 fn typing_after_a_citation_goes_outside_its_field() {
-    use wordcraft_doc::props::CharProps;
-    use wordcraft_doc::{InlineObject, Path};
-    let mut doc = wordcraft_doc::Document::from_text("Cats purr ");
+    use docufy_doc::props::CharProps;
+    use docufy_doc::{InlineObject, Path};
+    let mut doc = docufy_doc::Document::from_text("Cats purr ");
     let c = CharProps::default();
     let p = doc.para_mut(StoryRef::Body, &Path::top(0)).unwrap();
     let start = p.len();
@@ -1947,7 +1947,7 @@ fn typing_after_a_citation_goes_outside_its_field() {
     assert_eq!(s.doc.plain_text(StoryRef::Body), "Cats purr (Smith 2020). Dogs bark.");
     let f = s.doc.field_ranges(StoryRef::Body);
     assert_eq!(f.len(), 1);
-    let inside = Pos { off: f[0].start.off + wordcraft_doc::para::OBJ.len_utf8(), ..f[0].start.clone() };
+    let inside = Pos { off: f[0].start.off + docufy_doc::para::OBJ.len_utf8(), ..f[0].start.clone() };
     assert_eq!(s.doc.copy_range(&inside, &f[0].end).plain_text(), "(Smith 2020)");
 }
 
@@ -1966,7 +1966,7 @@ fn tab_in_a_table_inserted_in_right_to_left_text_moves_left() {
             .iter()
             .flat_map(|p| p.items.iter())
             .find_map(|it| match it {
-                wordcraft_layout::Placed::Cell { rect, row, cell, covered: false, .. } if *row == r && *cell == c => Some(rect.x),
+                docufy_layout::Placed::Cell { rect, row, cell, covered: false, .. } if *row == r && *cell == c => Some(rect.x),
                 _ => None,
             })
             .expect("cell laid out");
@@ -2234,14 +2234,14 @@ fn an_overlong_word_is_not_added_as_an_exception() {
 /// Each body paragraph's laid-out number (`None`: none) and its style.
 fn numbers(s: &mut Session) -> Vec<(Option<String>, String)> {
     let l = s.layout();
-    let labels: Vec<Option<String>> = l
-        .pages
-        .iter()
-        .flat_map(|p| &p.items)
-        .filter_map(|i| {
-            if let wordcraft_layout::Placed::Lines { para, l0: 0, .. } = i { Some(para.label.as_ref().map(|lb| lb.text.clone())) } else { None }
-        })
-        .collect();
+    let labels: Vec<Option<String>> =
+        l.pages
+            .iter()
+            .flat_map(|p| &p.items)
+            .filter_map(|i| {
+                if let docufy_layout::Placed::Lines { para, l0: 0, .. } = i { Some(para.label.as_ref().map(|lb| lb.text.clone())) } else { None }
+            })
+            .collect();
     let styles = s.doc.body.iter().filter_map(|b| b.as_para()).map(|p| p.props.style.clone().unwrap_or_else(|| "Normal".into()));
     labels.into_iter().zip(styles).collect()
 }
@@ -2363,7 +2363,7 @@ fn backspace_with_the_whole_table_selected_removes_the_table() {
     assert_eq!(tables(&s), 0, "the table stays: {:?}", table_cells(&s));
     assert_eq!(texts(&s), ["before", "after"]);
     // The caret is in the paragraph that followed the table.
-    assert_eq!(s.sel.focus, Pos { story: StoryRef::Body, path: wordcraft_doc::Path::top(1), off: 0 });
+    assert_eq!(s.sel.focus, Pos { story: StoryRef::Body, path: docufy_doc::Path::top(1), off: 0 });
     assert!(s.sel.is_collapsed());
     // One undo brings it back.
     run(&mut s, "edit.undo", json!({}));
@@ -2406,7 +2406,7 @@ fn delete_or_backspace_with_the_paragraph_before_and_the_table_selected_removes_
         run(&mut s, key, json!({}));
         assert_eq!(tables(&s), 0, "{key}: {:?}", table_cells(&s));
         assert_eq!(texts(&s), ["after"], "{key}");
-        assert_eq!(s.sel.focus, Pos { story: StoryRef::Body, path: wordcraft_doc::Path::top(0), off: 0 }, "{key}");
+        assert_eq!(s.sel.focus, Pos { story: StoryRef::Body, path: docufy_doc::Path::top(0), off: 0 }, "{key}");
     }
 }
 
@@ -2439,7 +2439,7 @@ fn backspace_deletes_selected_columns_and_delete_clears_them() {
 /// The first top-level table's cells, row by row, one entry per block: a paragraph's text, or
 /// `<table>` for a nested table.
 fn cell_blocks(s: &Session) -> Vec<Vec<Vec<String>>> {
-    let block = |b: &std::sync::Arc<wordcraft_doc::Block>| b.as_para().map_or_else(|| "<table>".to_string(), |p| p.plain_text());
+    let block = |b: &std::sync::Arc<docufy_doc::Block>| b.as_para().map_or_else(|| "<table>".to_string(), |p| p.plain_text());
     s.doc
         .body
         .iter()
@@ -2464,7 +2464,7 @@ fn delete_on_whole_cells_leaves_one_empty_paragraph_in_each() {
         typ(&mut s, "n");
         let b2 = |s: &Session| s.doc.body.get(1).and_then(|b| b.as_table()).map(|t| t.rows[1].cells[1].blocks.clone()).unwrap_or_default();
         let nested = b2(&s).iter().find(|b| b.as_table().is_some()).map(|b| (**b).clone()).expect("setup: a table nested in b2");
-        s.doc.insert_block(StoryRef::Body, &wordcraft_doc::Path(vec![1, 0, 0, 0]), nested).unwrap();
+        s.doc.insert_block(StoryRef::Body, &docufy_doc::Path(vec![1, 0, 0, 0]), nested).unwrap();
         s
     };
     let all: Vec<(usize, usize)> = (0..3).flat_map(|r| (0..3).map(move |c| (r, c))).collect();
@@ -2493,8 +2493,8 @@ fn delete_on_whole_cells_leaves_one_empty_paragraph_in_each() {
         assert_eq!(cell_blocks(&s), want, "{select} {key}");
         // The paragraph left keeps the cell's last paragraph's formatting (its mark ends the cell).
         if cleared.contains(&(0, 0)) {
-            let p = s.doc.para(StoryRef::Body, &wordcraft_doc::Path(vec![1, 0, 0, 0])).map(|p| p.props.align);
-            assert_eq!(p, Some(Some(wordcraft_doc::props::Align::Right)), "{select} {key}");
+            let p = s.doc.para(StoryRef::Body, &docufy_doc::Path(vec![1, 0, 0, 0])).map(|p| p.props.align);
+            assert_eq!(p, Some(Some(docufy_doc::props::Align::Right)), "{select} {key}");
         }
         assert!(s.sel.is_collapsed(), "{select} {key}");
         assert_eq!(s.sel.focus.path.cell().map(|(_, r, c)| (r, c)), cleared.first().copied(), "{select} {key}");
@@ -2675,14 +2675,14 @@ fn change_case_follows_turkic_case_mapping() {
 
 /// The words body paragraph `i` has a spelling squiggle under, in order.
 fn squiggles(s: &mut Session, i: usize) -> Vec<String> {
-    let path = wordcraft_doc::Path::top(i);
+    let path = docufy_doc::Path::top(i);
     let text = s.doc.para(StoryRef::Body, &path).map(|p| p.text.clone()).unwrap_or_default();
     let l = s.layout();
     l.pages
         .iter()
         .flat_map(|pg| pg.items.iter())
         .filter_map(|it| match it {
-            wordcraft_layout::Placed::Lines { para, path: p, l0: 0, .. } if *p == path => {
+            docufy_layout::Placed::Lines { para, path: p, l0: 0, .. } if *p == path => {
                 Some(para.issues.iter().filter(|i| !i.2).filter_map(|i| text.get(i.0..i.1).map(str::to_string)).collect::<Vec<_>>())
             }
             _ => None,
@@ -2858,7 +2858,7 @@ fn right_arrow_moves_through_a_ligature_one_letter_at_a_time() {
         .pages
         .iter()
         .flat_map(|p| p.items.iter())
-        .any(|it| matches!(it, wordcraft_layout::Placed::Lines { para, .. } if para.glyphs.len() < para.clusters.len()));
+        .any(|it| matches!(it, docufy_layout::Placed::Lines { para, .. } if para.glyphs.len() < para.clusters.len()));
     assert!(drawn_as_one_glyph, "Source Serif 4 should draw ffi as a ligature");
     run(&mut s, "caret.home", json!({}));
     let mut xs = Vec::new();
@@ -2873,15 +2873,15 @@ fn right_arrow_moves_through_a_ligature_one_letter_at_a_time() {
 }
 
 /// Two original paragraphs whose list comes from a style, optionally through a basedOn chain.
-fn style_inherited_list(kind: wordcraft_doc::numbering::ListKind, chain: bool) -> Session {
-    use wordcraft_doc::props::NumRef;
-    use wordcraft_doc::styles::Style;
-    let mut doc = wordcraft_doc::Document::from_text("Alpha\nBeta");
+fn style_inherited_list(kind: docufy_doc::numbering::ListKind, chain: bool) -> Session {
+    use docufy_doc::props::NumRef;
+    use docufy_doc::styles::Style;
+    let mut doc = docufy_doc::Document::from_text("Alpha\nBeta");
     let num = doc.numbering.try_add_list(kind).unwrap();
     doc.styles.styles.push(Style {
         id: "ListBase".into(),
         name: "Original List".into(),
-        para: wordcraft_doc::ParaProps { numbering: Some(NumRef { num, level: 0 }), ..Default::default() },
+        para: docufy_doc::ParaProps { numbering: Some(NumRef { num, level: 0 }), ..Default::default() },
         ..Default::default()
     });
     if chain {
@@ -2893,14 +2893,14 @@ fn style_inherited_list(kind: wordcraft_doc::numbering::ListKind, chain: bool) -
         });
     }
     for i in 0..2 {
-        doc.para_mut(StoryRef::Body, &wordcraft_doc::Path::top(i)).unwrap().props.style = Some(if chain { "ListChild" } else { "ListBase" }.into());
+        doc.para_mut(StoryRef::Body, &docufy_doc::Path::top(i)).unwrap().props.style = Some(if chain { "ListChild" } else { "ListBase" }.into());
     }
     Session::new(doc)
 }
 
 #[test]
 fn toggle_style_inherited_list_off_preserves_other_paragraphs_and_round_trips() {
-    use wordcraft_doc::numbering::ListKind;
+    use docufy_doc::numbering::ListKind;
     for (kind, command) in [(ListKind::Bullet, "para.bullets"), (ListKind::Numbered, "para.numbering")] {
         for chain in [false, true] {
             let mut s = style_inherited_list(kind, chain);
@@ -2933,16 +2933,16 @@ fn toggle_style_inherited_list_off_preserves_other_paragraphs_and_round_trips() 
 
 #[test]
 fn explicit_list_off_override_is_not_toggled_off_again() {
-    use wordcraft_doc::numbering::ListKind;
-    use wordcraft_doc::props::NumRef;
+    use docufy_doc::numbering::ListKind;
+    use docufy_doc::props::NumRef;
     for (kind, command) in [(ListKind::Bullet, "para.bullets"), (ListKind::Numbered, "para.numbering")] {
         let mut s = style_inherited_list(kind, true);
-        s.doc.para_mut(StoryRef::Body, &wordcraft_doc::Path::top(0)).unwrap().props.numbering = Some(NumRef { num: 0, level: 0 });
+        s.doc.para_mut(StoryRef::Body, &docufy_doc::Path::top(0)).unwrap().props.numbering = Some(NumRef { num: 0, level: 0 });
         s.sel = crate::Selection::caret(Pos::body(0, 2));
         run(&mut s, command, json!({}));
         assert!(s.doc.para_at(&Pos::body(0, 0)).unwrap().props.numbering.is_some_and(|n| n.num != 0));
         // A mixed selection must turn the list on, rather than remove the inherited item.
-        s.doc.para_mut(StoryRef::Body, &wordcraft_doc::Path::top(0)).unwrap().props.numbering = Some(NumRef { num: 0, level: 0 });
+        s.doc.para_mut(StoryRef::Body, &docufy_doc::Path::top(0)).unwrap().props.numbering = Some(NumRef { num: 0, level: 0 });
         s.sel = crate::Selection { anchor: Pos::body(0, 0), focus: Pos::body(1, 4) };
         run(&mut s, command, json!({}));
         for i in 0..2 {
@@ -2954,8 +2954,8 @@ fn explicit_list_off_override_is_not_toggled_off_again() {
 
 #[test]
 fn list_toggle_uses_effective_level_and_override() {
-    use wordcraft_doc::numbering::{ListKind, levels_for};
-    use wordcraft_doc::props::NumRef;
+    use docufy_doc::numbering::{ListKind, levels_for};
+    use docufy_doc::props::NumRef;
     for (kind, command, wrong) in [(ListKind::Bullet, "para.bullets", "para.numbering"), (ListKind::Numbered, "para.numbering", "para.bullets")] {
         for override_level in [false, true] {
             for explicit_kind in [false, true] {
@@ -2991,9 +2991,9 @@ fn list_toggle_uses_effective_level_and_override() {
 
 #[test]
 fn list_paragraph_style_survives_inherited_toggle_off() {
-    use wordcraft_doc::numbering::ListKind;
-    use wordcraft_doc::props::{Align, ParaProps};
-    use wordcraft_doc::styles::Style;
+    use docufy_doc::numbering::ListKind;
+    use docufy_doc::props::{Align, ParaProps};
+    use docufy_doc::styles::Style;
     for kind in [ListKind::Bullet, ListKind::Numbered] {
         let mut s = style_inherited_list(kind, false);
         *s.doc.styles.styles.iter_mut().find(|x| x.id == "ListParagraph").unwrap() = Style {
@@ -3003,7 +3003,7 @@ fn list_paragraph_style_survives_inherited_toggle_off() {
             para: ParaProps { align: Some(Align::Right), space_after: Some(17.0), ..Default::default() },
             ..Default::default()
         };
-        s.doc.para_mut(StoryRef::Body, &wordcraft_doc::Path::top(0)).unwrap().props.style = Some("ListParagraph".into());
+        s.doc.para_mut(StoryRef::Body, &docufy_doc::Path::top(0)).unwrap().props.style = Some("ListParagraph".into());
         let before = s.doc.clone();
         run(&mut s, if kind == ListKind::Bullet { "para.bullets" } else { "para.numbering" }, json!({}));
         let p = s.doc.para_at(&Pos::body(0, 0)).unwrap();
@@ -3034,7 +3034,7 @@ fn list_paragraph_style_survives_inherited_toggle_off() {
 #[test]
 fn direct_list_toggle_still_clears_the_automatic_list_paragraph_style() {
     for command in ["para.bullets", "para.numbering"] {
-        let mut s = Session::new(wordcraft_doc::Document::from_text("Direct list"));
+        let mut s = Session::new(docufy_doc::Document::from_text("Direct list"));
         run(&mut s, command, json!({}));
         assert_eq!(s.doc.para_at(&Pos::body(0, 0)).unwrap().props.style.as_deref(), Some("ListParagraph"));
         run(&mut s, command, json!({}));
@@ -3046,22 +3046,22 @@ fn direct_list_toggle_still_clears_the_automatic_list_paragraph_style() {
 
 #[test]
 fn a_new_list_uses_the_requested_kind_after_a_mixed_format_list() {
-    use wordcraft_doc::numbering::{ListKind, levels_for};
-    use wordcraft_doc::props::{NumRef, ParaProps};
+    use docufy_doc::numbering::{ListKind, levels_for};
+    use docufy_doc::props::{NumRef, ParaProps};
     for (kind, command) in [(ListKind::Bullet, "para.bullets"), (ListKind::Numbered, "para.numbering")] {
         let mut s = style_inherited_list(kind, false);
         let opposite = if kind == ListKind::Bullet { ListKind::Numbered } else { ListKind::Bullet };
         s.doc.numbering.abstracts[0].levels[0] = levels_for(opposite)[0].clone();
         let num = s.doc.numbering.nums[0].id;
-        s.doc.para_mut(StoryRef::Body, &wordcraft_doc::Path::top(0)).unwrap().props.numbering = Some(NumRef { num, level: 1 });
-        s.doc.para_mut(StoryRef::Body, &wordcraft_doc::Path::top(1)).unwrap().props = ParaProps::default();
+        s.doc.para_mut(StoryRef::Body, &docufy_doc::Path::top(0)).unwrap().props.numbering = Some(NumRef { num, level: 1 });
+        s.doc.para_mut(StoryRef::Body, &docufy_doc::Path::top(1)).unwrap().props = ParaProps::default();
         let before = s.doc.para_at(&Pos::body(0, 0)).unwrap().clone();
         s.sel = crate::Selection::caret(Pos::body(1, 0));
         run(&mut s, command, json!({}));
         let n = s.doc.para_at(&Pos::body(1, 0)).unwrap().props.numbering.unwrap();
         assert_eq!(n.level, 0);
         let level = s.doc.numbering.level(n.num, n.level).unwrap();
-        assert_eq!(level.format == wordcraft_doc::section::NumFormat::Bullet, kind == ListKind::Bullet);
+        assert_eq!(level.format == docufy_doc::section::NumFormat::Bullet, kind == ListKind::Bullet);
         assert_eq!(s.doc.para_at(&Pos::body(0, 0)).unwrap(), &before);
     }
 }
@@ -3107,15 +3107,15 @@ fn highlight_toggle_handles_mixed_inherited_and_pending_formatting() {
     assert_eq!(s.run("format.state", &json!({})).unwrap()["highlight"], json!("0000FF"));
     run(&mut s, "format.highlight", json!({}));
     assert_eq!(s.run("format.state", &json!({})).unwrap()["highlight"], serde_json::Value::Null);
-    s.doc.styles.default_chr.highlight = Some(wordcraft_doc::props::Highlight::Blue);
+    s.doc.styles.default_chr.highlight = Some(docufy_doc::props::Highlight::Blue);
     run(&mut s, "format.highlight", json!({"color":"blue"}));
     run(&mut s, "format.highlight", json!({}));
-    assert!(s.doc.body[0].as_para().unwrap().runs.iter().all(|r| r.props.highlight == Some(wordcraft_doc::props::Highlight::None)));
+    assert!(s.doc.body[0].as_para().unwrap().runs.iter().all(|r| r.props.highlight == Some(docufy_doc::props::Highlight::None)));
     run(&mut s, "caret.docEnd", json!({}));
     run(&mut s, "format.highlight", json!({}));
-    assert_eq!(s.pending.as_ref().unwrap().highlight, Some(wordcraft_doc::props::Highlight::Blue));
+    assert_eq!(s.pending.as_ref().unwrap().highlight, Some(docufy_doc::props::Highlight::Blue));
     run(&mut s, "format.highlight", json!({}));
-    assert_eq!(s.pending.as_ref().unwrap().highlight, Some(wordcraft_doc::props::Highlight::None));
+    assert_eq!(s.pending.as_ref().unwrap().highlight, Some(docufy_doc::props::Highlight::None));
     run(&mut s, "text.insert", json!({"text":"X"}));
     run(&mut s, "select.text", json!({"text":"X"}));
     assert_eq!(s.run("format.state", &json!({})).unwrap()["highlight"], serde_json::Value::Null);
@@ -3129,11 +3129,11 @@ fn highlight_toggle_handles_mixed_inherited_and_pending_formatting() {
 #[cfg(not(target_os = "macos"))]
 #[test]
 fn highlight_toggle_checks_past_the_resolved_run_limit() {
-    use wordcraft_doc::para::Run;
-    use wordcraft_doc::props::{CharProps, Highlight};
+    use docufy_doc::para::Run;
+    use docufy_doc::props::{CharProps, Highlight};
     for count in [10_000, 10_001, 10_002] {
         for inherited in [false, true] {
-            let mut doc = wordcraft_doc::Document::from_text(&format!("{}\nZ", "x".repeat(count)));
+            let mut doc = docufy_doc::Document::from_text(&format!("{}\nZ", "x".repeat(count)));
             doc.para_mut(StoryRef::Body, &Pos::body(0, 0).path).unwrap().runs = (0..count)
                 .map(|i| Run { len: 1, props: CharProps { highlight: Some(Highlight::Blue), bold: Some(i % 2 == 0), ..Default::default() } })
                 .collect();
@@ -3168,7 +3168,7 @@ fn highlight_toggle_checks_past_the_resolved_run_limit() {
 /// document, colour choice or undo history when the preview toggles highlighting off.
 #[test]
 fn highlight_preview_preserves_the_session_colour_and_document() {
-    use wordcraft_doc::props::Highlight;
+    use docufy_doc::props::Highlight;
     let mut s = typed("Alpha");
     run(&mut s, "select.all", json!({}));
     run(&mut s, "format.highlight", json!({"color":"blue"}));
@@ -3185,8 +3185,8 @@ fn highlight_preview_preserves_the_session_colour_and_document() {
 /// inherited mark colours; adjacent unselected cells and undo/redo keep their formatting.
 #[test]
 fn highlight_toggle_checks_whole_cell_marks() {
-    use wordcraft_doc::props::Highlight;
-    use wordcraft_doc::{CharProps, Paragraph};
+    use docufy_doc::props::Highlight;
+    use docufy_doc::{CharProps, Paragraph};
     for inherited in [false, true] {
         for empty in [false, true] {
             let mut s = s();
@@ -3247,9 +3247,9 @@ fn highlight_toggle_checks_whole_cell_marks() {
 /// empty paragraph between blue runs; repeated toggles and undo preserve these targets.
 #[test]
 fn highlight_toggle_checks_ordinary_paragraph_marks() {
-    use wordcraft_doc::props::Highlight;
+    use docufy_doc::props::Highlight;
     for text in ["AB", "AB\n\nAB", "\n"] {
-        let mut doc = wordcraft_doc::Document::from_text(text);
+        let mut doc = docufy_doc::Document::from_text(text);
         doc.styles.default_chr.highlight = Some(Highlight::Blue);
         let paths = doc.para_paths(StoryRef::Body);
         for path in &paths {
@@ -3283,8 +3283,8 @@ fn highlight_toggle_checks_ordinary_paragraph_marks() {
 /// so a different mark colour must not prevent clearing the selected blue characters.
 #[test]
 fn highlight_partial_column_ignores_unselected_marks() {
-    use wordcraft_doc::props::Highlight;
-    let mut doc = wordcraft_doc::Document::from_text("AB\nAB");
+    use docufy_doc::props::Highlight;
+    let mut doc = docufy_doc::Document::from_text("AB\nAB");
     for path in doc.para_paths(StoryRef::Body) {
         let p = doc.para_mut(StoryRef::Body, &path).unwrap();
         p.mark.highlight = Some(Highlight::Yellow);

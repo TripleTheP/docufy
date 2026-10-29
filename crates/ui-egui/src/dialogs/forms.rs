@@ -11,9 +11,9 @@ use super::{MeasureExt, Sense, Serialize, Tokens, Ui, Value, WordApp, json, semi
 #[serde(rename_all = "camelCase")]
 pub struct CustomPropertiesForm {
     /// The working copy, in document order.
-    pub props: Vec<wordcraft_doc::CustomProp>,
+    pub props: Vec<docufy_doc::CustomProp>,
     /// What the document held when the dialog opened; OK sends only what differs.
-    start: Vec<wordcraft_doc::CustomProp>,
+    start: Vec<docufy_doc::CustomProp>,
     /// The row the list selection is on.
     pub selected: usize,
     /// The name/value boxes under the list.
@@ -51,13 +51,13 @@ impl CustomPropertiesForm {
     /// The typed name and value, validated against the engine's own limits
     /// (`file.properties`, which refuses them the same way).
     fn form(&self) -> Result<(String, String), String> {
-        let max_name = wordcraft_engine::cmd::file::MAX_CUSTOM_NAME;
+        let max_name = docufy_engine::cmd::file::MAX_CUSTOM_NAME;
         let name = self.name.trim();
         if name.is_empty() || name.chars().count() > max_name {
             return Err(crate::i18n::fmt(tl!("Property names are 1–{max} characters."), &[("max", &max_name.to_string())]));
         }
-        if self.value.len() > wordcraft_engine::cmd::file::MAX_CUSTOM_VALUE {
-            let max = wordcraft_engine::cmd::file::MAX_CUSTOM_VALUE;
+        if self.value.len() > docufy_engine::cmd::file::MAX_CUSTOM_VALUE {
+            let max = docufy_engine::cmd::file::MAX_CUSTOM_VALUE;
             return Err(crate::i18n::fmt(tl!("Property values are at most {max} bytes."), &[("max", &max.to_string())]));
         }
         Ok((name.to_string(), self.value.clone()))
@@ -78,7 +78,7 @@ impl CustomPropertiesForm {
                         self.selected = i;
                     }
                     None => {
-                        self.props.push(wordcraft_doc::CustomProp { name, kind: "lpwstr".into(), value });
+                        self.props.push(docufy_doc::CustomProp { name, kind: "lpwstr".into(), value });
                         self.selected = self.props.len().saturating_sub(1);
                     }
                 }
@@ -119,7 +119,7 @@ impl CustomPropertiesForm {
             }
             None => {
                 let i = self.selected.min(self.props.len());
-                self.props.insert(i, wordcraft_doc::CustomProp { name, kind: old.kind.clone(), value });
+                self.props.insert(i, docufy_doc::CustomProp { name, kind: old.kind.clone(), value });
                 self.selected = i;
             }
         }
@@ -159,7 +159,7 @@ impl CustomPropertiesForm {
 }
 
 /// The Table Properties dialog's fields. Lengths are in the interface unit
-/// ([`wordcraft_geom::Unit`], inches by default).
+/// ([`docufy_geom::Unit`], inches by default).
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TableForm {
@@ -226,14 +226,14 @@ impl CellMarginsForm {
 impl TableForm {
     /// The caret's table, row, column and cell as the dialog shows them.
     pub fn read(app: &WordApp) -> Option<TableForm> {
-        use wordcraft_doc::props::{Align, HeightRule, VAlign};
+        use docufy_doc::props::{Align, HeightRule, VAlign};
         let s = &app.session;
         let (tp, r, c) = s.sel.focus.path.cell()?;
         let t = s.doc.table(s.sel.focus.story, &tp)?;
         let k = crate::options::unit().pt_per_unit();
         let row = t.rows.get(r).map(|x| x.props.clone()).unwrap_or_default();
         let cell = t.rows.get(r).and_then(|x| x.cells.get(c)).map(|x| x.props.clone()).unwrap_or_default();
-        let tw = wordcraft_engine::cmd::page::sect(s).text_width();
+        let tw = docufy_engine::cmd::page::sect(s).text_width();
         let width = t.props.width_pct.filter(|p| *p > 0.0).map(|p| tw * p.min(100.0) / 100.0).or(t.props.width.filter(|w| *w > 0.0));
         let fin = |v: f32| if v.is_finite() { v } else { 0.0 };
         Some(TableForm {
@@ -357,7 +357,7 @@ pub fn table_grid_picker(ui: &mut Ui, app: &mut WordApp) {
 /// The Table Properties dialog's fields: Table, Row, Column and Cell sections.
 pub(super) fn table_properties(ui: &mut Ui, f: &mut TableForm) {
     let unit = crate::options::unit();
-    fn len(v: &mut f32, lo: f32, unit: wordcraft_geom::Unit) -> egui::DragValue<'_> {
+    fn len(v: &mut f32, lo: f32, unit: docufy_geom::Unit) -> egui::DragValue<'_> {
         egui::DragValue::new(v).speed(0.01).range(lo..=22.0).measure(unit).max_decimals(2)
     }
     let heading = |ui: &mut Ui, s: &str| {
@@ -484,7 +484,7 @@ pub(super) fn custom_properties(app: &mut WordApp, ui: &mut Ui, f: &mut CustomPr
     ui.separator();
     egui::Grid::new("custom_props_form").num_columns(2).spacing(vec2(10.0, 6.0)).show(ui, |ui| {
         let name = ui.label(tl!("Name:"));
-        ui.add(egui::TextEdit::singleline(&mut f.name).desired_width(300.0).char_limit(wordcraft_engine::cmd::file::MAX_CUSTOM_NAME))
+        ui.add(egui::TextEdit::singleline(&mut f.name).desired_width(300.0).char_limit(docufy_engine::cmd::file::MAX_CUSTOM_NAME))
             .labelled_by(name.id);
         ui.end_row();
         let value = ui.label(tl!("Value:"));

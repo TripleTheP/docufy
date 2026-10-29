@@ -4,7 +4,7 @@ use super::{Arc, CharProps, Document, FaceRef, FieldCtx, Level, NumFormat, Numer
 /// How a run set in one of Word's symbol fonts (Symbol, Wingdings, Wingdings 2/3, Webdings)
 /// shows its characters. Those fonts are proprietary and usually missing: a substitute has other
 /// glyphs, or none, at their codes, so each character is drawn as its Unicode equivalent
-/// ([`wordcraft_doc::symbol_fonts`]) from a face that has it. The text itself is unchanged.
+/// ([`docufy_doc::symbol_fonts`]) from a face that has it. The text itself is unchanged.
 #[derive(Clone, Copy)]
 pub(super) struct SymbolRun<'a> {
     family: &'a str,
@@ -14,8 +14,8 @@ pub(super) struct SymbolRun<'a> {
 }
 
 impl<'a> SymbolRun<'a> {
-    pub(super) fn of(family: &'a str, r: &wordcraft_fonts::word::Resolved) -> Option<Self> {
-        wordcraft_doc::symbol_fonts::is_symbol_font(family).then_some(SymbolRun { family, installed: !r.substituted, face: r.face })
+    pub(super) fn of(family: &'a str, r: &docufy_fonts::word::Resolved) -> Option<Self> {
+        docufy_doc::symbol_fonts::is_symbol_font(family).then_some(SymbolRun { family, installed: !r.substituted, face: r.face })
     }
 
     /// The character drawn for `c`.
@@ -31,7 +31,7 @@ impl<'a> SymbolRun<'a> {
                 return p;
             }
         }
-        let Some(u) = wordcraft_doc::symbol_fonts::symbol_char(self.family, c) else { return c };
+        let Some(u) = docufy_doc::symbol_fonts::symbol_char(self.family, c) else { return c };
         // A few list bullets have common look-alikes in far more fonts: use one when no face
         // has the exact character.
         let alt = match u {
@@ -40,7 +40,7 @@ impl<'a> SymbolRun<'a> {
             '\u{2B9A}' => Some('\u{27A2}'),
             _ => None,
         };
-        let has = |ch: char| self.face.covers(ch) || wordcraft_fonts::FontDb::global().fallback_for(ch, self.face.id()).is_some();
+        let has = |ch: char| self.face.covers(ch) || docufy_fonts::FontDb::global().fallback_for(ch, self.face.id()).is_some();
         match alt {
             Some(a) if !has(u) && has(a) => a,
             _ => u,
@@ -56,8 +56,8 @@ pub(super) fn undrawable_bullet(text: &str, lvl: &Level, rc: &ResolvedChar) -> b
     let private = |c: char| matches!(u32::from(c), 0xE000..=0xF8FF | 0xF0000..=0x10FFFF);
     lvl.format == NumFormat::Bullet
         && text.chars().any(|c| {
-            private(c) && wordcraft_doc::symbol_fonts::symbol_char(&rc.font, c).is_none() && {
-                let r = wordcraft_fonts::word::resolve(&rc.font, rc.bold, rc.italic);
+            private(c) && docufy_doc::symbol_fonts::symbol_char(&rc.font, c).is_none() && {
+                let r = docufy_fonts::word::resolve(&rc.font, rc.bold, rc.italic);
                 r.substituted || !r.face.covers(c)
             }
         })
@@ -335,7 +335,7 @@ pub struct LabelRun {
 /// relative to the cluster's left edge and baseline, in the cluster's text colour.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Enclosed {
-    pub kind: wordcraft_doc::para::ShapeKind,
+    pub kind: docufy_doc::para::ShapeKind,
     /// Left edge from the cluster's x; top above the baseline (up is positive), points.
     pub x: f32,
     pub top: f32,

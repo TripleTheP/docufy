@@ -24,14 +24,14 @@ pub(super) fn settings_xml(doc: &Document, footnotes: bool, endnotes: bool, temp
     let ns = xml::body_ns();
     let ns_refs: Vec<(&str, &str)> = ns.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
     w.open("w:settings", &ns_refs);
-    let zoom = s.zoom.unwrap_or(wordcraft_doc::Zoom { percent: 100, fit: None });
+    let zoom = s.zoom.unwrap_or(docufy_doc::Zoom { percent: 100, fit: None });
     let percent = zoom.percent.clamp(10, 500).to_string();
     match zoom.fit {
         Some(fit) => {
             let val = match fit {
-                wordcraft_doc::ZoomFit::OnePage => "fullPage",
-                wordcraft_doc::ZoomFit::PageWidth => "bestFit",
-                wordcraft_doc::ZoomFit::TextWidth => "textFit",
+                docufy_doc::ZoomFit::OnePage => "fullPage",
+                docufy_doc::ZoomFit::PageWidth => "bestFit",
+                docufy_doc::ZoomFit::TextWidth => "textFit",
             };
             w.empty("w:zoom", &[("w:val", val), ("w:percent", &percent)]);
         }
@@ -87,7 +87,7 @@ pub(super) fn settings_xml(doc: &Document, footnotes: bool, endnotes: bool, temp
     if s.consecutive_hyphen_limit > 0 {
         w.val("w:consecutiveHyphenLimit", &s.consecutive_hyphen_limit.min(32_767).to_string());
     }
-    if s.hyphenation_zone.is_finite() && (s.hyphenation_zone - wordcraft_doc::DEFAULT_HYPHENATION_ZONE).abs() > 0.01 {
+    if s.hyphenation_zone.is_finite() && (s.hyphenation_zone - docufy_doc::DEFAULT_HYPHENATION_ZONE).abs() > 0.01 {
         w.val("w:hyphenationZone", &crate::units::twips(s.hyphenation_zone.clamp(0.0, 1584.0)));
     }
     if !s.hyphenate_caps {
@@ -97,7 +97,7 @@ pub(super) fn settings_xml(doc: &Document, footnotes: bool, endnotes: bool, temp
         w.empty("w:evenAndOddHeaders", &[]);
     }
     for (tag, v) in [("w:drawingGridHorizontalSpacing", s.grid_h), ("w:drawingGridVerticalSpacing", s.grid_v)] {
-        if v.is_finite() && (v - wordcraft_doc::DEFAULT_GRID).abs() > 0.01 {
+        if v.is_finite() && (v - docufy_doc::DEFAULT_GRID).abs() > 0.01 {
             w.val(tag, &crate::units::twips(v.clamp(0.5, 1584.0)));
         }
     }
@@ -113,8 +113,8 @@ pub(super) fn settings_xml(doc: &Document, footnotes: bool, endnotes: bool, temp
 
 fn write_note_settings(
     w: &mut W,
-    settings: &wordcraft_doc::Settings,
-    separators: (&wordcraft_doc::NoteSeparators, &wordcraft_doc::NoteSeparators),
+    settings: &docufy_doc::Settings,
+    separators: (&docufy_doc::NoteSeparators, &docufy_doc::NoteSeparators),
     footnotes: bool,
     endnotes: bool,
 ) {
@@ -123,7 +123,7 @@ fn write_note_settings(
         ("w:endnotePr", settings.endnote_format, &settings.endnote_pr, endnotes, "w:endnote"),
     ] {
         w.open(tag, &[]);
-        story::note_pr_inner(w, &wordcraft_doc::section::NoteProps { num_fmt: Some(fmt), ..*pr });
+        story::note_pr_inner(w, &docufy_doc::section::NoteProps { num_fmt: Some(fmt), ..*pr });
         if used {
             w.empty(el, &[("w:id", "-1")]);
             w.empty(el, &[("w:id", "0")]);
@@ -232,7 +232,7 @@ pub(super) fn theme_xml(doc: &Document) -> Vec<u8> {
     w.open("a:themeElements", &[]);
     w.open("a:clrScheme", &[("name", name)]);
     for (i, n) in names.iter().enumerate() {
-        let c = s.theme_colors.get(i).or_else(|| wordcraft_doc::THEME_COLORS.get(i)).copied().unwrap_or_default();
+        let c = s.theme_colors.get(i).or_else(|| docufy_doc::THEME_COLORS.get(i)).copied().unwrap_or_default();
         w.open(&format!("a:{n}"), &[]);
         w.empty("a:srgbClr", &[("val", &c.hex())]);
         w.close(&format!("a:{n}"));
@@ -347,7 +347,7 @@ pub(super) fn app_xml(doc: &Document) -> Vec<u8> {
             ("xmlns:vt", "http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"),
         ],
     );
-    w.leaf("Application", &[], "WordCraft");
+    w.leaf("Application", &[], "Docufy");
     w.leaf("Words", &[], &doc.word_count().to_string());
     w.leaf("Paragraphs", &[], &doc.paragraph_count().to_string());
     w.leaf("DocSecurity", &[], "0");

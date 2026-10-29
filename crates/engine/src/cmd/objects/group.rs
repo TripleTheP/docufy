@@ -23,7 +23,7 @@ pub(super) fn add_object(s: &mut Session, v: &Value) -> CmdResult {
         match object_selection(s).map(|(p, _)| p) {
             None => {
                 s.also_selected.clear();
-                s.sel = Selection { anchor: pos.clone(), focus: Pos { off: pos.off + wordcraft_doc::para::OBJ.len_utf8(), ..pos } };
+                s.sel = Selection { anchor: pos.clone(), focus: Pos { off: pos.off + docufy_doc::para::OBJ.len_utf8(), ..pos } };
             }
             Some(first) if first == pos => {}
             Some(_) => {
@@ -42,7 +42,7 @@ pub(super) fn add_object(s: &mut Session, v: &Value) -> CmdResult {
 /// where the first of them was, in the box around them all; they keep their places and sizes.
 /// A group among them is merged in (its members join the new group).
 pub(super) fn group(s: &mut Session, _: &Value) -> CmdResult {
-    use wordcraft_doc::para::GroupChild;
+    use docufy_doc::para::GroupChild;
     let mut picks = picked_objects(s);
     if picks.len() < 2 {
         return Err(CmdError::Disabled("select two or more pictures or shapes first".into()));
@@ -88,7 +88,7 @@ pub(super) fn group(s: &mut Session, _: &Value) -> CmdResult {
     // The group's box takes in what they cover, turned.
     let (mut x0, mut y0, mut x1, mut y1) = (f32::MAX, f32::MAX, f32::MIN, f32::MIN);
     for ([x, y, w, h], spin, _) in &shown {
-        let b = spin.bounds(wordcraft_geom::Rect::new(*x, *y, *w, *h));
+        let b = spin.bounds(docufy_geom::Rect::new(*x, *y, *w, *h));
         (x0, y0) = (x0.min(b.x), y0.min(b.y));
         (x1, y1) = (x1.max(b.right()), y1.max(b.bottom()));
     }
@@ -97,8 +97,8 @@ pub(super) fn group(s: &mut Session, _: &Value) -> CmdResult {
     }
     // `shown` already has the members of any picked group merged in, so this counts the
     // flattened members. Readers stop at the cap and would drop the rest.
-    if shown.len() > wordcraft_doc::para::MAX_GROUP_CHILDREN {
-        return Err(CmdError::Disabled(format!("too many objects to group (at most {})", wordcraft_doc::para::MAX_GROUP_CHILDREN)));
+    if shown.len() > docufy_doc::para::MAX_GROUP_CHILDREN {
+        return Err(CmdError::Disabled(format!("too many objects to group (at most {})", docufy_doc::para::MAX_GROUP_CHILDREN)));
     }
     let (w, h) = ((x1 - x0).clamp(1.0, MAX_OFFSET), (y1 - y0).clamp(1.0, MAX_OFFSET));
     // Each member keeps its turn: the group itself starts unturned.
@@ -122,13 +122,13 @@ pub(super) fn group(s: &mut Session, _: &Value) -> CmdResult {
     let grouped = InlineObject::Group { w, h, float, ch_w: w, ch_h: h, children, canvas: None };
     // Take the members out, last first so the earlier positions hold, and put the group where
     // the first one was.
-    let len = wordcraft_doc::para::OBJ.len_utf8();
+    let len = docufy_doc::para::OBJ.len_utf8();
     for pos in picks.iter().rev() {
         s.doc.delete_range(pos, &Pos { off: pos.off + len, ..pos.clone() })?;
     }
     let first = picks.first().cloned().ok_or_else(|| CmdError::Failed("nothing to group".into()))?;
     let at = s.doc.clamp(&first);
-    s.doc.insert_object(&at, grouped, &wordcraft_doc::CharProps::default())?;
+    s.doc.insert_object(&at, grouped, &docufy_doc::CharProps::default())?;
     s.touch();
     let pos = move_object(s, at, Some(page as u64), x0, y0, (w, h))?;
     s.also_selected.clear();
@@ -182,13 +182,13 @@ pub(super) fn ungroup(s: &mut Session, _: &Value) -> CmdResult {
     if members.is_empty() {
         return Err(CmdError::Failed("the group is empty".into()));
     }
-    let len = wordcraft_doc::para::OBJ.len_utf8();
+    let len = docufy_doc::para::OBJ.len_utf8();
     s.doc.delete_range(&pos, &Pos { off: pos.off + len, ..pos.clone() })?;
     let mut at = s.doc.clamp(&pos);
     let mut placed = Vec::new();
     for m in members {
         placed.push(at.clone());
-        at = s.doc.insert_object(&at, m, &wordcraft_doc::CharProps::default())?;
+        at = s.doc.insert_object(&at, m, &docufy_doc::CharProps::default())?;
     }
     let first = placed.first().cloned().unwrap_or(pos);
     s.sel = Selection { anchor: first.clone(), focus: Pos { off: first.off + len, ..first } };

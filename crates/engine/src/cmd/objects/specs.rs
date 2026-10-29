@@ -131,8 +131,8 @@ pub fn specs() -> Vec<CommandSpec> {
             } else {
                 return Err(CmdError::Params("`path` or `data` required".into()));
             };
-            wordcraft_geom::picture::probe(&bytes).map_err(|e| match e {
-                wordcraft_geom::picture::Refusal::Unsupported(why) => CmdError::Failed(why.into()),
+            docufy_geom::picture::probe(&bytes).map_err(|e| match e {
+                docufy_geom::picture::Refusal::Unsupported(why) => CmdError::Failed(why.into()),
                 _ => CmdError::Failed("not a supported image".into()),
             })?;
             let key = s.doc.add_media(bytes.clone(), crate::cmd::insert::image_ext(&bytes));
@@ -212,8 +212,8 @@ pub fn specs() -> Vec<CommandSpec> {
                 if f.wrap == Wrap::Inline {
                     f.wrap = Wrap::Square;
                 }
-                f.h_rel = wordcraft_doc::para::Anchor::Margin;
-                f.v_rel = wordcraft_doc::para::Anchor::Margin;
+                f.h_rel = docufy_doc::para::Anchor::Margin;
+                f.v_rel = docufy_doc::para::Anchor::Margin;
                 (f.h_align, f.v_align) = (None, None);
                 let (tw, th) = (sect.text_width(), sect.text_height());
                 let col = if preset.ends_with("Left") { 0.0 } else if preset.ends_with("Right") { tw - size.0 } else { (tw - size.0) / 2.0 };
@@ -234,7 +234,7 @@ pub fn specs() -> Vec<CommandSpec> {
                 if f.wrap == Wrap::Inline {
                     f.wrap = Wrap::Square;
                 }
-                f.h_rel = wordcraft_doc::para::Anchor::Margin;
+                f.h_rel = docufy_doc::para::Anchor::Margin;
                 f.h_align = None;
                 f.x = match h.as_str() {
                     "left" => 0.0,
@@ -274,7 +274,7 @@ pub fn specs() -> Vec<CommandSpec> {
             let n = p::u64(v, "index").unwrap_or(0) as usize;
             let list = all_objects(s);
             let (pos, _) = list.into_iter().nth(n).ok_or_else(|| CmdError::Failed("no such object".into()))?;
-            let end = Pos { off: pos.off + wordcraft_doc::para::OBJ.len_utf8(), ..pos.clone() };
+            let end = Pos { off: pos.off + docufy_doc::para::OBJ.len_utf8(), ..pos.clone() };
             s.sel = Selection { anchor: pos, focus: end };
             sel_result(s)
         })
@@ -307,7 +307,7 @@ pub fn specs() -> Vec<CommandSpec> {
             )
             .when(has_shape),
         CommandSpec::new("shape.change", "Change Shape", "Shape Format › Insert Shapes", |s, v| {
-            let kind: wordcraft_doc::para::ShapeKind = serde_json::from_value(v.get("kind").cloned().unwrap_or(json!("rectangle"))).map_err(|e| CmdError::Params(e.to_string()))?;
+            let kind: docufy_doc::para::ShapeKind = serde_json::from_value(v.get("kind").cloned().unwrap_or(json!("rectangle"))).map_err(|e| CmdError::Params(e.to_string()))?;
             with_obj(s, |o| {
                 if let InlineObject::Shape { kind: k, .. } = o {
                     *k = kind;

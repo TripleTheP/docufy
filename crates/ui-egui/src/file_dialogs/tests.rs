@@ -4,7 +4,7 @@ use std::sync::mpsc::{Sender, channel};
 
 use super::*;
 use crate::Services;
-use wordcraft_engine::Session;
+use docufy_engine::Session;
 
 const UNSAVED: &str = "My unsaved novel chapter";
 
@@ -48,7 +48,7 @@ fn imported_word_save_asks_for_docx_and_preserves_the_original() {
         std::fs::write(&original, &bytes).unwrap();
         let (mut a, shown) = async_app();
         a.run("file.open", json!({"path": original.to_string_lossy()})).unwrap();
-        assert!(a.session.doc.plain_text(wordcraft_doc::StoryRef::Body).contains("Legacy contract"));
+        assert!(a.session.doc.plain_text(docufy_doc::StoryRef::Body).contains("Legacy contract"));
         a.run("text.insert", json!({"text": "Revised "})).unwrap();
         let draft = a.session.doc.clone();
         let revision = a.session.rev();
@@ -101,7 +101,7 @@ fn imported_word_close_waits_for_save_as_and_keeps_failed_or_cancelled_drafts() 
     assert!(a.has_document() && a.session.dirty && !a.quit_requested);
     assert_eq!(a.session.path.as_deref(), Some(original.as_path()));
     assert_eq!(std::fs::read(&original).unwrap(), bytes);
-    assert_eq!(a.session.doc.plain_text(wordcraft_doc::StoryRef::Body), draft.plain_text(wordcraft_doc::StoryRef::Body));
+    assert_eq!(a.session.doc.plain_text(docufy_doc::StoryRef::Body), draft.plain_text(docufy_doc::StoryRef::Body));
 
     a.run("ui.saveChanges", json!({"answer": "save"})).unwrap();
     answer(&shown, None);
@@ -238,7 +238,7 @@ fn async_app() -> (WordApp, Shown) {
         })),
         ..Default::default()
     };
-    (WordApp::new(Session::new(wordcraft_doc::Document::new()), services), shown)
+    (WordApp::new(Session::new(docufy_doc::Document::new()), services), shown)
 }
 
 /// Answer the dialog the host is showing (the last one asked for).
@@ -258,18 +258,18 @@ fn typed(a: &mut WordApp) {
 }
 
 fn body_text(a: &WordApp) -> String {
-    a.session.doc.plain_text(wordcraft_doc::StoryRef::Body)
+    a.session.doc.plain_text(docufy_doc::StoryRef::Body)
 }
 
 fn scratch(name: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!("wordcraft-ui-dialogs-{name}-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-ui-dialogs-{name}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     dir
 }
 
 fn saved_text(path: &std::path::Path) -> String {
-    wordcraft_engine::io::open_path(path).unwrap().plain_text(wordcraft_doc::StoryRef::Body)
+    docufy_engine::io::open_path(path).unwrap().plain_text(docufy_doc::StoryRef::Body)
 }
 
 /// Save as Word Template (#2852) suggests a .dotx in the user templates folder, which is made
@@ -292,7 +292,7 @@ fn save_as_template_starts_in_the_templates_folder() {
     ctx.run_ui(egui::RawInput::default(), |ui| a.logic(ui.ctx())).drop_without_applying_deltas();
     assert!(path.is_file(), "saved as a template");
     assert_eq!(saved_text(&path), UNSAVED);
-    let listed = wordcraft_engine::cmd::user_templates::list_templates(&own.to_string_lossy()).unwrap();
+    let listed = docufy_engine::cmd::user_templates::list_templates(&own.to_string_lossy()).unwrap();
     assert_eq!(listed.templates.iter().map(|t| t.label.as_str()).collect::<Vec<_>>(), ["Memo"]);
 
     // A folder chosen in Options wins.
@@ -336,9 +336,7 @@ fn save_as_with_a_new_filename_saves_under_it() {
     let opened = dir.join("one.docx");
     let picked = dir.join("sub").join("two.docx");
     std::fs::create_dir_all(dir.join("sub")).unwrap();
-    wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("original"))
-        .run("file.save", &json!({"path": opened.to_string_lossy()}))
-        .unwrap();
+    docufy_engine::Session::new(docufy_doc::Document::from_text("original")).run("file.save", &json!({"path": opened.to_string_lossy()})).unwrap();
     let (mut a, shown) = async_app();
     a.run("file.open", json!({"path": opened.to_string_lossy()})).unwrap();
     assert_eq!(a.session.path.as_deref(), Some(opened.as_path()));
@@ -604,14 +602,14 @@ fn load_system_fonts_runs_hook_when_present() {
     let called = Rc::new(Cell::new(false));
     let called2 = called.clone();
     let services = Services { load_system_fonts: Some(Box::new(move || called2.set(true))), ..Default::default() };
-    let mut a = WordApp::new(Session::new(wordcraft_doc::Document::new()), services);
+    let mut a = WordApp::new(Session::new(docufy_doc::Document::new()), services);
     a.run("font.loadSystem", json!({})).unwrap();
     assert!(called.get());
 }
 
 #[test]
 fn load_system_fonts_without_hook_reports_status() {
-    let mut a = WordApp::new(Session::new(wordcraft_doc::Document::new()), Services::default());
+    let mut a = WordApp::new(Session::new(docufy_doc::Document::new()), Services::default());
     a.run("font.loadSystem", json!({})).unwrap();
     assert_eq!(a.status_msg.as_ref().map(|(s, _)| s.as_str()), Some("All system fonts are already available."));
 }

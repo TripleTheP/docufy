@@ -3,20 +3,20 @@ use super::{Sense, Tokens, Ui, WordApp, json, vec2};
 
 /// The innermost bookmark around the caret, which the Bookmark dialog opens on (as Word does);
 /// empty when the caret is in none.
-pub(super) fn bookmark_at_caret(s: &wordcraft_engine::Session) -> String {
+pub(super) fn bookmark_at_caret(s: &docufy_engine::Session) -> String {
     let at = &s.sel.focus;
     s.doc
         .bookmarks()
         .into_iter()
         .rev()
-        .find(|(name, start)| !name.starts_with('_') && start <= at && *at <= wordcraft_engine::cmd::insert::bookmark_span(&s.doc, name, start).1)
+        .find(|(name, start)| !name.starts_with('_') && start <= at && *at <= docufy_engine::cmd::insert::bookmark_span(&s.doc, name, start).1)
         .map(|(name, _)| name)
         .unwrap_or_default()
 }
 
 /// The bookmarks the Bookmark dialog lists: by name or in document order, the hidden ones
 /// (`_Toc…`, `_Ref…`) only when asked for.
-pub(super) fn bookmark_names(doc: &wordcraft_doc::Document, by_location: bool, hidden: bool) -> Vec<String> {
+pub(super) fn bookmark_names(doc: &docufy_doc::Document, by_location: bool, hidden: bool) -> Vec<String> {
     let mut names: Vec<String> = doc.bookmarks().into_iter().map(|(n, _)| n).filter(|n| hidden || !n.starts_with('_')).collect();
     if !by_location {
         names.sort_by_key(|n| n.to_lowercase());
@@ -55,7 +55,7 @@ pub(super) fn bookmark(app: &mut WordApp, ui: &mut Ui, name: &mut String, by_loc
             ui.add_space(18.0);
             let listed = marks.iter().any(|n| n == name.trim());
             let w = vec2(90.0, 0.0);
-            add = ui.add_enabled(wordcraft_engine::cmd::insert::bookmark_name_ok(name.trim()), egui::Button::new(tl!("Add")).min_size(w)).clicked();
+            add = ui.add_enabled(docufy_engine::cmd::insert::bookmark_name_ok(name.trim()), egui::Button::new(tl!("Add")).min_size(w)).clicked();
             delete = ui.add_enabled(listed, egui::Button::new(tl!("Delete")).min_size(w)).clicked();
             go_to = ui.add_enabled(listed, egui::Button::new(tl!("Go To")).min_size(w)).clicked();
         });
@@ -70,7 +70,7 @@ pub(super) fn bookmark(app: &mut WordApp, ui: &mut Ui, name: &mut String, by_loc
     });
     ui.checkbox(hidden, tl!("Hidden bookmarks"));
     let enter = ui.input(|i| i.key_pressed(egui::Key::Enter));
-    if add || (enter && wordcraft_engine::cmd::insert::bookmark_name_ok(name.trim())) {
+    if add || (enter && docufy_engine::cmd::insert::bookmark_name_ok(name.trim())) {
         let _ = app.run("insert.bookmark", json!({"name": name.trim()}));
         return true;
     }
@@ -93,7 +93,7 @@ pub(super) fn bookmark(app: &mut WordApp, ui: &mut Ui, name: &mut String, by_loc
 
 /// path data; Insert (or a double click) runs `insert.icon`. Returns true to close.
 pub(super) fn icons_body(app: &mut WordApp, ui: &mut Ui, query: &mut String, category: &mut String, selected: &mut String) -> bool {
-    use wordcraft_render::icon_lib::{self, Category};
+    use docufy_render::icon_lib::{self, Category};
     let t = Tokens::get(ui.ctx());
     ui.set_width(560.0);
     // Typing goes to the search box (never to the document behind the dialog).

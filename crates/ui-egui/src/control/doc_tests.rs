@@ -1,13 +1,13 @@
 //! The control channel's `doc`: methods addressed to an open document that isn't the active one.
 
+use docufy_engine::Session;
 use serde_json::{Value, json};
-use wordcraft_engine::Session;
 
 use super::{ControlRequest, Outcome, handle};
 use crate::{Services, WordApp};
 
 fn app() -> WordApp {
-    WordApp::new(Session::new(wordcraft_doc::Document::new()), Services::default())
+    WordApp::new(Session::new(docufy_doc::Document::new()), Services::default())
 }
 
 /// Send one request the way the control channel does and return the reply.
@@ -25,7 +25,7 @@ fn exec(a: &mut WordApp, command: &str, params: Value) -> Value {
 }
 
 fn body(a: &WordApp) -> String {
-    a.session.doc.plain_text(wordcraft_doc::StoryRef::Body)
+    a.session.doc.plain_text(docufy_doc::StoryRef::Body)
 }
 
 /// Two documents, the first typed in and parked behind the second: (first, second).

@@ -1,9 +1,9 @@
 //! Home › Font › Phonetic Guide: ruby text (furigana, pinyin…) over base text, kept as one
 //! [`InlineObject::Ruby`] in the paragraph.
 
+use docufy_doc::para::{OBJ, RubyAlign, ruby_offset, ruby_raise};
+use docufy_doc::{InlineObject, Pos};
 use serde_json::{Value, json};
-use wordcraft_doc::para::{OBJ, RubyAlign, ruby_offset, ruby_raise};
-use wordcraft_doc::{InlineObject, Pos};
 
 use crate::{CmdError, CmdResult, CommandSpec, Selection, Session, p};
 
@@ -148,19 +148,19 @@ pub fn state(s: &Session) -> Value {
 
 #[cfg(test)]
 mod tests {
+    use docufy_doc::{Document, InlineObject, Paragraph, StoryRef};
     use serde_json::json;
-    use wordcraft_doc::{Document, InlineObject, Paragraph, StoryRef};
 
     use crate::Session;
 
     fn session(text: &str) -> Session {
         let mut d = Document::new();
-        d.body = vec![wordcraft_doc::para_block(Paragraph::with_text(text, Default::default()))];
+        d.body = vec![docufy_doc::para_block(Paragraph::with_text(text, Default::default()))];
         Session::new(d)
     }
 
     fn para(s: &Session) -> Paragraph {
-        s.doc.para(StoryRef::Body, &wordcraft_doc::Path::top(0)).cloned().unwrap()
+        s.doc.para(StoryRef::Body, &docufy_doc::Path::top(0)).cloned().unwrap()
     }
 
     /// #2036: a guide over text that starts with a symbol doesn't draw the rest (and the guide)
@@ -169,10 +169,10 @@ mod tests {
     fn a_phonetic_guide_takes_a_symbol_font_only_over_symbols() {
         for (text, kept) in [("\u{F0FC}ab", None), ("\u{F0FC}\u{F0FB}", Some("Wingdings".to_string()))] {
             let mut s = session(text);
-            let end = wordcraft_doc::Pos::body(0, text.len());
-            s.doc.format_range(&wordcraft_doc::Pos::body(0, 0), &end, &|c| c.sym_font = Some("Wingdings".into())).unwrap();
+            let end = docufy_doc::Pos::body(0, text.len());
+            s.doc.format_range(&docufy_doc::Pos::body(0, 0), &end, &|c| c.sym_font = Some("Wingdings".into())).unwrap();
             if kept.is_none() {
-                s.doc.format_range(&wordcraft_doc::Pos::body(0, 3), &end, &|c| c.sym_font = None).unwrap();
+                s.doc.format_range(&docufy_doc::Pos::body(0, 3), &end, &|c| c.sym_font = None).unwrap();
             }
             s.run("select.text", &json!({"text": text})).unwrap();
             s.run("format.phonetic", &json!({"ruby": "r"})).unwrap();

@@ -178,7 +178,7 @@ mod tests {
 
     #[test]
     fn each_variety_looks_for_its_own_dictionary_first() {
-        let dir = std::env::temp_dir().join(format!("wordcraft-es-aliases-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("docufy-es-aliases-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let (es, mx, la, uy) = (ProofLang::Es, ProofLang::EsMx, ProofLang::Es419, ProofLang::EsUy);
         // Alone in the folder, each file name is found by the varieties that list it.

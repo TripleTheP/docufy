@@ -86,12 +86,12 @@ pub(crate) fn grown(r: &Rect, g: f32, dx: f32, dy: f32) -> Rect {
 }
 
 /// A shape's shadow and glow, behind it: bands of its silhouette (the same approximation of a
-/// blur as the raster renderer, see [`wordcraft_doc::effects::bands`]).
+/// blur as the raster renderer, see [`docufy_doc::effects::bands`]).
 pub(crate) fn shape_effects(
     s: &mut Surface,
     (kind, corner): (ShapeKind, Option<u32>),
     rect: &Rect,
-    fx: &wordcraft_doc::effects::ShapeEffects,
+    fx: &docufy_doc::effects::ShapeEffects,
     (filled, stroked, sw): (bool, bool, f32),
 ) {
     let sw = if sw.is_finite() { sw.clamp(0.25, 200.0) } else { 0.75 };
@@ -113,12 +113,12 @@ pub(crate) fn shape_effects(
     };
     if let Some(sh) = fx.shadow {
         let (dx, dy) = sh.offset();
-        for (g, a) in wordcraft_doc::effects::bands(-sh.blur / 2.0, sh.blur / 2.0, sh.opacity()) {
+        for (g, a) in docufy_doc::effects::bands(-sh.blur / 2.0, sh.blur / 2.0, sh.opacity()) {
             silhouette(s, sh.color, a, g, dx, dy);
         }
     }
     if let Some(gl) = fx.glow {
-        for (g, a) in wordcraft_doc::effects::bands(0.0, gl.size, gl.opacity()) {
+        for (g, a) in docufy_doc::effects::bands(0.0, gl.size, gl.opacity()) {
             silhouette(s, gl.color, a, g, 0.0, 0.0);
         }
     }
@@ -127,7 +127,7 @@ pub(crate) fn shape_effects(
 }
 
 /// Outline of a basic shape in a rectangle (same geometry as the raster renderer); `corner` is a
-/// rounded rectangle's ([`wordcraft_doc::connector::ShapeExtra::corner`]).
+/// rounded rectangle's ([`docufy_doc::connector::ShapeExtra::corner`]).
 pub(crate) fn shape_path(kind: ShapeKind, r: &Rect, corner: Option<u32>) -> Option<Path> {
     let flat_ok = kind.is_open() && r.w.max(r.h) > 0.0 && r.w.min(r.h) >= 0.0;
     if !(ok(r.x) && ok(r.y) && ok(r.w) && ok(r.h)) || !(flat_ok || r.w > 0.0 && r.h > 0.0) {
@@ -159,7 +159,7 @@ pub(crate) fn shape_path(kind: ShapeKind, r: &Rect, corner: Option<u32>) -> Opti
         // A freeform is drawn from its own paths; without them, its frame.
         ShapeKind::Rectangle | ShapeKind::TextBox | ShapeKind::Freeform => poly(&mut pb, &[(x0, y0), (x1, y0), (x1, y1), (x0, y1)]),
         ShapeKind::RoundedRectangle => {
-            let rad = wordcraft_doc::connector::corner_radius(corner, r.w, r.h);
+            let rad = docufy_doc::connector::corner_radius(corner, r.w, r.h);
             let k = rad * (1.0 - K);
             pb.move_to(x0 + rad, y0);
             pb.line_to(x1 - rad, y0);
@@ -194,8 +194,7 @@ pub(crate) fn shape_path(kind: ShapeKind, r: &Rect, corner: Option<u32>) -> Opti
             pb.line_to(x1, y1);
         }
         ShapeKind::Arrow | ShapeKind::ArrowLeft | ShapeKind::ArrowUp | ShapeKind::ArrowDown => {
-            let pts: Vec<(f32, f32)> =
-                wordcraft_doc::wrap::arrow_outline(kind, r.w, r.h).iter().map(|&(u, v)| (x0 + u * r.w, y0 + v * r.h)).collect();
+            let pts: Vec<(f32, f32)> = docufy_doc::wrap::arrow_outline(kind, r.w, r.h).iter().map(|&(u, v)| (x0 + u * r.w, y0 + v * r.h)).collect();
             poly(&mut pb, &pts)
         }
         ShapeKind::Star => {
@@ -222,10 +221,10 @@ pub(crate) fn shape_path(kind: ShapeKind, r: &Rect, corner: Option<u32>) -> Opti
 }
 
 /// Map the document cap to the PDF backend for both shape and path outlines.
-pub(crate) fn pdf_line_cap(cap: wordcraft_doc::connector::LineCap) -> LineCap {
+pub(crate) fn pdf_line_cap(cap: docufy_doc::connector::LineCap) -> LineCap {
     match cap {
-        wordcraft_doc::connector::LineCap::Flat => LineCap::Butt,
-        wordcraft_doc::connector::LineCap::Square => LineCap::Square,
-        wordcraft_doc::connector::LineCap::Round => LineCap::Round,
+        docufy_doc::connector::LineCap::Flat => LineCap::Butt,
+        docufy_doc::connector::LineCap::Square => LineCap::Square,
+        docufy_doc::connector::LineCap::Round => LineCap::Round,
     }
 }

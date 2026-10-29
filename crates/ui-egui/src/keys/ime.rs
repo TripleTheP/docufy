@@ -2,7 +2,7 @@ use super::{ImeEditOutcome, WordApp, json};
 
 /// The most pre-edit text a UI pass will hold and paint. A composition is a word or a phrase;
 /// anything larger is a malformed or hostile event, and laying it out every frame would cost.
-pub(super) const MAX_IME_PREEDIT_BYTES: usize = wordcraft_doc::ime_text::MAX_IME_TEXT_BYTES;
+pub(super) const MAX_IME_PREEDIT_BYTES: usize = docufy_doc::ime_text::MAX_IME_TEXT_BYTES;
 
 /// The largest IME commit inserted in one event. Real commits are short; a multi-megabyte one is
 /// refused rather than turned into document text without a bound.
@@ -10,7 +10,7 @@ pub(super) const MAX_IME_COMMIT_BYTES: usize = 64 * 1024;
 
 /// The bounded visible-logical window around the body selection, cached by `(revision, cursor,
 /// anchor)` so an idle pass does not walk a long paragraph again. Every edit bumps `rev`.
-fn ime_window(app: &mut WordApp) -> Option<wordcraft_doc::ime_text::ImeWindow> {
+fn ime_window(app: &mut WordApp) -> Option<docufy_doc::ime_text::ImeWindow> {
     let rev = app.session.rev();
     let cursor = app.session.sel.focus.clone();
     let anchor = app.session.sel.anchor.clone();
@@ -21,7 +21,7 @@ fn ime_window(app: &mut WordApp) -> Option<wordcraft_doc::ime_text::ImeWindow> {
     {
         return w.clone();
     }
-    let window = app.session.doc.ime_surrounding(&cursor, &anchor, wordcraft_doc::ime_text::MAX_IME_TEXT_BYTES);
+    let window = app.session.doc.ime_surrounding(&cursor, &anchor, docufy_doc::ime_text::MAX_IME_TEXT_BYTES);
     app.canvas.ime_window_cache = Some((rev, cursor, anchor, window.clone()));
     window
 }
@@ -104,11 +104,11 @@ pub(crate) fn observe_ime(app: &mut WordApp, ctx: &egui::Context, geometry: Opti
 fn ime_target(app: &WordApp) -> egui::ImeTarget {
     let document = app.session.document_id();
     if let Some(math) = &app.session.math {
-        egui::ImeTarget::new(egui::Id::unique(("wordcraft-ime-equation", document)), math.session)
+        egui::ImeTarget::new(egui::Id::unique(("docufy-ime-equation", document)), math.session)
     } else {
         // A body replaced under the same document id (setText, version restore, compare,
         // Undo/Redo) advances the epoch, so the platform clears the old composition.
-        egui::ImeTarget::new(egui::Id::unique(("wordcraft-ime-body", document, app.session.sel.focus.story)), app.session.ime_body_epoch())
+        egui::ImeTarget::new(egui::Id::unique(("docufy-ime-body", document, app.session.sel.focus.story)), app.session.ime_body_epoch())
     }
 }
 
@@ -243,7 +243,7 @@ pub(super) fn note_automatic_change(app: &mut WordApp, outcome: ImeEditOutcome) 
 /// text that follows joins it too ([`type_text`]), so one Undo takes back the typing with its
 /// correction. Neither path runs inside an equation, whose text is not the document's.
 pub(super) fn delete_surrounding(app: &mut WordApp, before: usize, after: usize) {
-    delete_surrounding_common(app, before, after, wordcraft_doc::ime_text::DeleteUnit::Chars);
+    delete_surrounding_common(app, before, after, docufy_doc::ime_text::DeleteUnit::Chars);
 }
 
 /// An input method's byte-counted `DeleteSurroundingBytes` (macOS and Wayland): erase the UTF-8
@@ -252,7 +252,7 @@ pub(super) fn delete_surrounding(app: &mut WordApp, before: usize, after: usize)
 /// character leaves that character whole. The selection and paragraph marks stay outside the
 /// range.
 pub(super) fn delete_surrounding_bytes(app: &mut WordApp, before: usize, after: usize) {
-    delete_surrounding_common(app, before, after, wordcraft_doc::ime_text::DeleteUnit::Bytes);
+    delete_surrounding_common(app, before, after, docufy_doc::ime_text::DeleteUnit::Bytes);
 }
 
 /// Refuse a body surrounding request and discard the composition it invalidates.
@@ -287,7 +287,7 @@ fn shift_offset(off: usize, shift: i64) -> Option<usize> {
 /// `restore_placeholder` sets the caret to the control's content start before inserting. Finding
 /// that exact state proves the growth came from a placeholder insertion at a position before the
 /// erased range, so the stored suffix really moved by the measured signed delta.
-fn restored_placeholder_end(s: &wordcraft_engine::Session, deleted_start: usize) -> Option<usize> {
+fn restored_placeholder_end(s: &docufy_engine::Session, deleted_start: usize) -> Option<usize> {
     let at = &s.sel.focus;
     let r = s.doc.control_at(at)?;
     if !r.control.showing_placeholder || r.content_start() != *at || r.start.path != r.end.path {
@@ -308,9 +308,9 @@ fn restored_placeholder_end(s: &wordcraft_engine::Session, deleted_start: usize)
 
 /// The exact state a refused IME delete-surrounding transaction restores.
 struct ImeRollback {
-    snapshot: Option<wordcraft_engine::EditSnapshot>,
-    original: wordcraft_engine::Selection,
-    pending: Option<wordcraft_doc::props::CharProps>,
+    snapshot: Option<docufy_engine::EditSnapshot>,
+    original: docufy_engine::Selection,
+    pending: Option<docufy_doc::props::CharProps>,
     goal_x: Option<f32>,
 }
 
@@ -338,7 +338,7 @@ fn ime_edit_satisfied(app: &mut WordApp) -> bool {
 fn ime_delete_side(
     app: &mut WordApp,
     rollback: &mut ImeRollback,
-    cursor: &wordcraft_doc::Pos,
+    cursor: &docufy_doc::Pos,
     start: usize,
     end: usize,
     join_undo: bool,
@@ -353,12 +353,9 @@ fn ime_delete_side(
     };
     // A control already showing its placeholder cannot have received a new one from this
     // deletion; its unchanged text must not be mistaken for a restored placeholder.
-    let showing_before =
-        app.session.doc.control_at(&wordcraft_doc::Pos { off: end, ..cursor.clone() }).is_some_and(|r| r.control.showing_placeholder);
-    app.session.sel = wordcraft_engine::Selection {
-        anchor: wordcraft_doc::Pos { off: start, ..cursor.clone() },
-        focus: wordcraft_doc::Pos { off: end, ..cursor.clone() },
-    };
+    let showing_before = app.session.doc.control_at(&docufy_doc::Pos { off: end, ..cursor.clone() }).is_some_and(|r| r.control.showing_placeholder);
+    app.session.sel =
+        docufy_engine::Selection { anchor: docufy_doc::Pos { off: start, ..cursor.clone() }, focus: docufy_doc::Pos { off: end, ..cursor.clone() } };
     if join_undo {
         app.session.join_next_undo();
     }
@@ -415,7 +412,7 @@ fn ime_surrounding_offsets(
 }
 
 /// Both delete-surrounding paths: one visible-logical mapping for the query and the deletion.
-fn delete_surrounding_common(app: &mut WordApp, before: usize, after: usize, unit: wordcraft_doc::ime_text::DeleteUnit) {
+fn delete_surrounding_common(app: &mut WordApp, before: usize, after: usize, unit: docufy_doc::ime_text::DeleteUnit) {
     if before == 0 && after == 0 {
         return;
     }
@@ -507,9 +504,9 @@ fn delete_surrounding_common(app: &mut WordApp, before: usize, after: usize, uni
         rollback.apply(app);
         return;
     }
-    app.session.sel = wordcraft_engine::Selection {
-        anchor: wordcraft_doc::Pos { off: anchor_off, ..cursor.clone() },
-        focus: wordcraft_doc::Pos { off: focus_off, ..cursor },
+    app.session.sel = docufy_engine::Selection {
+        anchor: docufy_doc::Pos { off: anchor_off, ..cursor.clone() },
+        focus: docufy_doc::Pos { off: focus_off, ..cursor },
     };
     if deleted {
         // Only the next `text.insert` at this exact selection may join the deletion; any
@@ -540,7 +537,7 @@ pub(super) fn delete_in_equation(app: &mut WordApp, before: usize, after: usize)
     app.session.clear_ime_joins();
     app.canvas.ime_preedit.clear();
     app.canvas.ime_preedit_range = None;
-    if before > wordcraft_engine::MAX_EQUATION_DELETE_UNITS || after > wordcraft_engine::MAX_EQUATION_DELETE_UNITS {
+    if before > docufy_engine::MAX_EQUATION_DELETE_UNITS || after > docufy_engine::MAX_EQUATION_DELETE_UNITS {
         app.canvas.ime_interrupt_now = true;
         return;
     }

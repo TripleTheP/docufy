@@ -21,7 +21,7 @@ pub(crate) fn table_window() -> H {
 
 /// The same, each step `dt` seconds apart (short enough for a double-click: 1/60).
 pub(crate) fn table_window_stepping(dt: f32) -> H {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("insert.table", json!({"rows": 2, "cols": 3})).unwrap();
     a.run("text.insert", json!({"text": "Product"})).unwrap();
     a.run("select.text", json!({"text": "Product"})).unwrap();
@@ -40,12 +40,12 @@ pub(crate) fn table_window_stepping(dt: f32) -> H {
 }
 
 /// Cell (`row`, `cell`)'s rect in page points.
-pub(crate) fn cell(h: &mut H, row: usize, cell: usize) -> wordcraft_geom::Rect {
+pub(crate) fn cell(h: &mut H, row: usize, cell: usize) -> docufy_geom::Rect {
     h.state_mut().session.layout().pages[0]
         .items
         .iter()
         .find_map(|it| match it {
-            wordcraft_layout::Placed::Cell { rect, row: r, cell: c, .. } if *r == row && *c == cell => Some(*rect),
+            docufy_layout::Placed::Cell { rect, row: r, cell: c, .. } if *r == row && *c == cell => Some(*rect),
             _ => None,
         })
         .unwrap()

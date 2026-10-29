@@ -70,7 +70,7 @@ fn too_large_to_paste(width: u32, height: u32) -> ClipboardPicture {
 /// An encoded picture the host read from the clipboard (the Windows "PNG" format), refused from
 /// its header when a paste can't take its size, before anything decodes it (#3623).
 pub fn encoded_picture(bytes: Vec<u8>) -> ClipboardPicture {
-    match wordcraft_geom::picture::probe(&bytes).map(|p| (p.width, p.height)) {
+    match docufy_geom::picture::probe(&bytes).map(|p| (p.width, p.height)) {
         Ok((w, h)) if pastes(w, h) => ClipboardPicture::Encoded(bytes),
         Ok((w, h)) => too_large_to_paste(w, h),
         Err(e) => ClipboardPicture::Unreadable(e.to_string()),
@@ -81,14 +81,14 @@ pub fn encoded_picture(bytes: Vec<u8>) -> ClipboardPicture {
 /// its header, then it is decoded within the decode budget. arboard decoded it with no limits
 /// before anything was checked (#3623).
 pub fn dib_picture(dib: Vec<u8>) -> ClipboardPicture {
-    let p = match wordcraft_geom::picture::probe_dib(dib) {
+    let p = match docufy_geom::picture::probe_dib(dib) {
         Ok(p) => p,
         Err(e) => return ClipboardPicture::Unreadable(e.to_string()),
     };
     if !pastes(p.width, p.height) {
         return too_large_to_paste(p.width, p.height);
     }
-    match p.decode(wordcraft_geom::MAX_DECODED_BYTES) {
+    match p.decode(docufy_geom::MAX_DECODED_BYTES) {
         Ok(img) => {
             let rgba = img.into_rgba8();
             ClipboardPicture::Pixels { width: rgba.width() as usize, height: rgba.height() as usize, rgba: rgba.into_raw() }
@@ -121,7 +121,7 @@ pub(crate) fn paste(app: &mut WordApp) -> Option<Result<Value, String>> {
     let picture = app.services.clipboard_picture.as_ref()?()?;
     let r = match picture {
         ClipboardPicture::Pixels { width, height, rgba } => match png_from_rgba(width, height, rgba) {
-            Ok(png) => app.execute("insert.picture", json!({"data": wordcraft_engine::cmd::insert::base64_encode(&png)})),
+            Ok(png) => app.execute("insert.picture", json!({"data": docufy_engine::cmd::insert::base64_encode(&png)})),
             Err(e) => {
                 log::warn!("clipboard picture: {e}");
                 app.status(e.clone());
@@ -133,7 +133,7 @@ pub(crate) fn paste(app: &mut WordApp) -> Option<Result<Value, String>> {
             app.status(e.clone());
             Err(e)
         }
-        ClipboardPicture::Encoded(bytes) => app.execute("insert.picture", json!({"data": wordcraft_engine::cmd::insert::base64_encode(&bytes)})),
+        ClipboardPicture::Encoded(bytes) => app.execute("insert.picture", json!({"data": docufy_engine::cmd::insert::base64_encode(&bytes)})),
         ClipboardPicture::Unreadable(why) => {
             let e = format!("the picture on the clipboard couldn't be read: {why}");
             log::warn!("clipboard picture: {e}");
@@ -175,7 +175,7 @@ pub(crate) fn clipboard_png(app: &WordApp) -> Option<Vec<u8>> {
         ClipboardPicture::Encoded(bytes) => Some(bytes),
         ClipboardPicture::Files(files) => {
             let path = files.into_iter().take(MAX_FILES).find(|p| is_picture_file(p))?;
-            read_picture_file(&path, MAX_FILE_BYTES.min(wordcraft_engine::cmd::paste::MAX_PICTURE_BYTES as u64 / 4 * 3))
+            read_picture_file(&path, MAX_FILE_BYTES.min(docufy_engine::cmd::paste::MAX_PICTURE_BYTES as u64 / 4 * 3))
         }
         ClipboardPicture::Unreadable(_) => None,
     }
@@ -185,7 +185,7 @@ pub(crate) fn clipboard_png(app: &WordApp) -> Option<Vec<u8>> {
 /// anything else, such as a device like `/dev/zero` that never ends (#3692). A file that says it
 /// is larger is refused before any of it is read.
 fn read_picture_file(path: &Path, limit: u64) -> Option<Vec<u8>> {
-    wordcraft_engine::io::read_regular_file_within(path, limit)
+    docufy_engine::io::read_regular_file_within(path, limit)
 }
 
 /// Paste text naming copied picture files: insert the pictures when the clipboard holds those
@@ -198,11 +198,11 @@ pub(crate) fn paste_named_files(app: &mut WordApp, text: &str) -> bool {
 mod tests {
     use super::*;
     use crate::Services;
-    use wordcraft_engine::Session;
+    use docufy_engine::Session;
 
     fn app_with(picture: impl Fn() -> Option<ClipboardPicture> + 'static) -> WordApp {
         let services = Services { clipboard_picture: Some(Box::new(picture)), ..Default::default() };
-        WordApp::new(Session::new(wordcraft_doc::Document::new()), services)
+        WordApp::new(Session::new(docufy_doc::Document::new()), services)
     }
 
     fn pictures(a: &mut WordApp) -> usize {
@@ -218,7 +218,7 @@ mod tests {
         assert_eq!((r["width"].as_f64(), r["height"].as_f64()), (Some(30.0), Some(15.0)));
         assert_eq!(pictures(&mut a), 1);
         let media = a.session.doc.media.values().next().unwrap();
-        assert_eq!(wordcraft_render::image_size(media), Some((40, 20)));
+        assert_eq!(docufy_render::image_size(media), Some((40, 20)));
         a.run("edit.undo", json!({})).unwrap();
         assert_eq!(pictures(&mut a), 0);
         // Pasted text that names picture files only becomes pictures when files were copied.
@@ -291,7 +291,7 @@ mod tests {
             clipboard_picture: Some(Box::new(|| Some(ClipboardPicture::Pixels { width: 4, height: 4, rgba: vec![200; 4 * 4 * 4] }))),
             ..Default::default()
         };
-        let mut a = WordApp::new(Session::new(wordcraft_doc::Document::new()), services);
+        let mut a = WordApp::new(Session::new(docufy_doc::Document::new()), services);
         a.run("edit.paste", json!({})).unwrap();
         a.run("edit.pasteText", json!({})).unwrap();
         a.run("edit.pasteMerge", json!({})).unwrap();
@@ -315,7 +315,7 @@ mod tests {
             clipboard_picture: Some(Box::new(move || Some(ClipboardPicture::Files(vec![file.clone()])))),
             ..Default::default()
         };
-        let mut a = WordApp::new(Session::new(wordcraft_doc::Document::new()), services);
+        let mut a = WordApp::new(Session::new(docufy_doc::Document::new()), services);
         let r = a.run("edit.paste", json!({}));
         let _ = std::fs::remove_file(&path);
         r.unwrap();

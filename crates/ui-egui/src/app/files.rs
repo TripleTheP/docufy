@@ -289,7 +289,7 @@ impl WordApp {
     pub(crate) fn default_save_name(&self) -> String {
         let ext = self.session.path.as_ref().and_then(|p| p.extension()).map(|e| e.to_string_lossy().to_string());
         match ext {
-            Some(e) if wordcraft_engine::io::is_word_package(&e) => format!("{}.{e}", self.title_stem()),
+            Some(e) if docufy_engine::io::is_word_package(&e) => format!("{}.{e}", self.title_stem()),
             _ => format!("{}.docx", self.title_stem()),
         }
     }
@@ -327,7 +327,7 @@ impl WordApp {
             let path = f.path().to_string_lossy().to_string();
             let lp = path.to_ascii_lowercase();
             let img = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".wmf", ".emf"].iter().any(|e| lp.ends_with(e));
-            let sheet = wordcraft_engine::cmd::mailings::is_spreadsheet_name(&lp);
+            let sheet = docufy_engine::cmd::mailings::is_spreadsheet_name(&lp);
             let _ = if img {
                 self.caret_after_placed_picture(placed_picture);
                 let r = self.run("insert.picture", json!({"path": path}));
@@ -336,7 +336,7 @@ impl WordApp {
             } else if sheet {
                 // A spreadsheet isn't a document: it's a recipient list (#334).
                 self.load_recipients(json!({"path": path}))
-            } else if wordcraft_fonts::is_font_file_name(&lp) {
+            } else if docufy_fonts::is_font_file_name(&lp) {
                 self.run("font.add", json!({"path": path}))
             } else {
                 self.open_file(&path, None)
@@ -423,21 +423,21 @@ impl WordApp {
             // Any recipient file ends the pending picker request, so a later .txt drop opens normally.
             let asked = std::mem::take(&mut self.recipient_list_pending);
             let list = lower.ends_with(".csv") || lower.ends_with(".tsv") || (lower.ends_with(".txt") && asked);
-            let sheet = wordcraft_engine::cmd::mailings::is_spreadsheet_name(&lower);
+            let sheet = docufy_engine::cmd::mailings::is_spreadsheet_name(&lower);
             self.recipient_list_pending = asked && !list && !sheet;
             let r = if sheet {
-                self.load_recipients(json!({"path": name, "data": wordcraft_engine::cmd::insert::base64_encode(&bytes)}))
-            } else if wordcraft_fonts::is_font_file_name(&lower) {
-                self.run("font.add", json!({"name": name, "data": wordcraft_engine::cmd::insert::base64_encode(&bytes)}))
+                self.load_recipients(json!({"path": name, "data": docufy_engine::cmd::insert::base64_encode(&bytes)}))
+            } else if docufy_fonts::is_font_file_name(&lower) {
+                self.run("font.add", json!({"name": name, "data": docufy_engine::cmd::insert::base64_encode(&bytes)}))
             } else if list {
-                self.load_recipients(json!({"csv": wordcraft_engine::io::decode_text(&bytes)}))
+                self.load_recipients(json!({"csv": docufy_engine::io::decode_text(&bytes)}))
             } else if img {
                 self.caret_after_placed_picture(placed_picture);
-                let r = self.insert_or_change_picture(json!({"data": wordcraft_engine::cmd::insert::base64_encode(&bytes)}));
+                let r = self.insert_or_change_picture(json!({"data": docufy_engine::cmd::insert::base64_encode(&bytes)}));
                 placed_picture = Self::placed_in_text(&r);
                 r
             } else {
-                self.run("file.open", json!({"path": name, "data": wordcraft_engine::cmd::insert::base64_encode(&bytes)}))
+                self.run("file.open", json!({"path": name, "data": docufy_engine::cmd::insert::base64_encode(&bytes)}))
             };
             if r.is_ok() {
                 self.ui.backstage = false;

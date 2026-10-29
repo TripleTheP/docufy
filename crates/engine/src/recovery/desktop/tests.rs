@@ -1,12 +1,12 @@
 use super::*;
 use crate::Session;
+use docufy_doc::StoryRef;
 use serde_json::json;
-use wordcraft_doc::StoryRef;
 
 struct Temp(PathBuf);
 impl Temp {
     fn new() -> Self {
-        let path = std::env::temp_dir().join(format!("wordcraft-recovery-test-{}", new_id().unwrap()));
+        let path = std::env::temp_dir().join(format!("docufy-recovery-test-{}", new_id().unwrap()));
         private_dir(&path).unwrap();
         Self(path)
     }

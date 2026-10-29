@@ -1,10 +1,10 @@
 //! Sprms → model properties, and style-chain resolution.
 
-use wordcraft_doc::Rgb;
-use wordcraft_doc::props::{
+use docufy_doc::Rgb;
+use docufy_doc::props::{
     Align, Border, BorderStyle, Borders, CharProps, Highlight, LineSpacing, ParaProps, TabAlign, TabLeader, TabStop, TextColor, Underline, VertAlign,
 };
-use wordcraft_doc::styles::{Style, StyleKind, StyleSheet};
+use docufy_doc::styles::{Style, StyleKind, StyleSheet};
 
 use crate::sprm::{self, Prl, Toggle};
 

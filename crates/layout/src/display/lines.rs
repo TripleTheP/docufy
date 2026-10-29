@@ -7,7 +7,7 @@ use super::{
     Block, Border, ClKind, DeleteMark, Document, Draw, InlineObject, InsertMark, LineEnd, MItem, ParaLayout, Path, Rect, Rgb, SectionStart, Spin,
     StoryRef, TextColor, Underline,
 };
-use wordcraft_doc::Paragraph;
+use docufy_doc::Paragraph;
 
 /// Append display items for the half-open line range `l0..l1` of a laid-out paragraph.
 /// `(x, y)` positions the paragraph's left origin and the first selected line's top; later lines
@@ -104,7 +104,7 @@ fn collect_glyph_run(
     let mut glyphs = Vec::with_capacity(n_glyphs);
     let mut text = String::with_capacity(n_bytes);
     let mut ranges: Vec<std::ops::Range<usize>> = Vec::with_capacity(n_glyphs);
-    let symbol_font = wordcraft_doc::symbol_fonts::is_symbol_font(&st.rc.font);
+    let symbol_font = docufy_doc::symbol_fonts::is_symbol_font(&st.rc.font);
     while k < line.c1 {
         let Some(c) = pl.clusters.get(k) else { break };
         if c.style != si {
@@ -130,7 +130,7 @@ fn collect_glyph_run(
                 let t = p.text.get(c.start..c.end).unwrap_or("");
                 // Symbol-font characters (Wingdings…) read as the Unicode symbols drawn.
                 if symbol_font {
-                    text.push_str(&wordcraft_doc::symbol_fonts::map_text(&st.rc.font, t));
+                    text.push_str(&docufy_doc::symbol_fonts::map_text(&st.rc.font, t));
                 } else if st.rc.caps || st.rc.small_caps {
                     // All Caps and Small Caps read as the capitals drawn (#1473), mapped
                     // as drawn, so a glyph never stands for two cases and ß reads as SS (#1581).
@@ -600,7 +600,7 @@ fn inline_objects(ctx: &LineContext<'_, '_, '_>, out: &mut Vec<Draw>) {
                 }
             }
             Some(o @ InlineObject::Field { .. }) => {
-                if let Some(wordcraft_doc::legacy_form::LegacyForm::CheckBox { checked, .. }) = o.legacy_form() {
+                if let Some(docufy_doc::legacy_form::LegacyForm::CheckBox { checked, .. }) = o.legacy_form() {
                     let color = pl.styles.get(c.style as usize).map_or(Rgb::BLACK, |st| text_color(&st.rc.color, None));
                     let frame = Rect::new(cx, base - c.obj_h, c.adv, c.obj_h + c.obj_d);
                     check_box(frame, checked, color, alpha, out);
@@ -719,7 +719,7 @@ pub fn section_break_label(start: SectionStart) -> &'static str {
 
 /// Width of a [`Draw::MarkText`] label.
 pub fn mark_text_width(text: &str, size: f32) -> f32 {
-    let face = wordcraft_fonts::word::resolve("Source Sans 3", false, false).face;
+    let face = docufy_fonts::word::resolve("Source Sans 3", false, false).face;
     let k = size / face.upem.max(1.0) as f32;
     text.chars().map(|c| face.advance(face.glyph_for(c)) as f32 * k).sum()
 }

@@ -195,9 +195,9 @@ mod screenshot_tests {
 
         let other = dir.join("other");
         std::fs::create_dir_all(&other).unwrap();
-        let roots = wordcraft_engine::file_access::AutomationRoots::new(None, Some(&other)).unwrap();
+        let roots = docufy_engine::file_access::AutomationRoots::new(None, Some(&other)).unwrap();
         let outside = dir.join("outside.png");
-        let r = wordcraft_engine::file_access::confine(roots.as_ref(), || save_screenshot(&img, outside.to_str(), 104));
+        let r = docufy_engine::file_access::confine(roots.as_ref(), || save_screenshot(&img, outside.to_str(), 104));
         assert_eq!(r["ok"], false);
         assert!(!outside.exists());
     }

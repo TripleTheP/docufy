@@ -1,6 +1,6 @@
+use docufy_geom::Unit;
 use egui_kittest::kittest::{NodeT, Queryable};
 use serde_json::json;
-use wordcraft_geom::Unit;
 
 use super::{decimal, length, parse_length, unit};
 
@@ -20,7 +20,7 @@ fn unknown_settings_keys_load_in_linear_time() {
 }
 
 fn app() -> WordApp {
-    WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Services::default())
+    WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Services::default())
 }
 
 fn nav_harness(language: &str, percent: u16) -> egui_kittest::Harness<'static, WordApp> {
@@ -44,7 +44,7 @@ fn nav_harness(language: &str, percent: u16) -> egui_kittest::Harness<'static, W
 #[test]
 fn user_name_field_disables_when_protection_starts() {
     let mut h = nav_harness("en", 100);
-    let user_name = || egui_kittest::kittest::By::new().role(egui::accesskit::Role::TextInput).value("WordCraft User");
+    let user_name = || egui_kittest::kittest::By::new().role(egui::accesskit::Role::TextInput).value("Docufy User");
     assert!(!h.get(user_name()).accesskit_node().is_disabled());
     h.state_mut().run("review.restrict", json!({"mode": "readOnly"})).unwrap();
     h.run_steps(4);
@@ -67,7 +67,7 @@ fn options_nav_labels_stay_inside_their_rows() {
             for selected in ["general", "accessibility"] {
                 h.state_mut().run("file.options", json!({"pane": selected})).unwrap();
                 h.run_steps(4);
-                for id in wordcraft_engine::cmd::options::PANES {
+                for id in docufy_engine::cmd::options::PANES {
                     let label = crate::i18n::tr(crate::i18n::Lang::from_pref(language), super::pane_label(id));
                     let node =
                         h.query_all_by_label(label).find(|n| n.accesskit_node().toggled().is_some()).expect("pane has its full accessible name");
@@ -162,7 +162,7 @@ fn options_survive_a_restart_and_junk_in_ui_json() {
     assert_eq!(b.session.prefs.units, Some(Unit::Centimeters));
     assert_eq!(b.session.initials, "VK");
     assert_eq!((b.ui.recent_count, b.ui.print_backgrounds), (30, true));
-    assert!(wordcraft_engine::proof::user_dictionary().contains(&"zqxoptionsword".to_string()));
+    assert!(docufy_engine::proof::user_dictionary().contains(&"zqxoptionsword".to_string()));
 
     let junk = br#"{"theme": "dark", "recentCount": "lots", "printBackgrounds": 7, "optionsPane": ["x"], "dark": true,
             "editing": {"measurementUnits": "furlongs", "typingReplacesSelection": false, "marks": {"tabs": "yes", "spaces": true}}}"#;
@@ -185,11 +185,11 @@ fn the_dictionaries_folder_survives_a_restart() {
     let mut a = app();
     a.run("file.options", json!({"dictionariesFolder": dir.to_string_lossy()})).unwrap();
     let saved = serde_json::to_vec(&a.prefs()).unwrap();
-    wordcraft_engine::proof::hunspell::set_dictionary_dir(None);
+    docufy_engine::proof::hunspell::set_dictionary_dir(None);
     let mut b = app();
     b.apply_prefs(UiState::from_json(&saved).unwrap());
     assert_eq!(b.session.prefs.dictionaries_folder.as_deref(), Some(dir.to_string_lossy().as_ref()));
-    assert_eq!(wordcraft_engine::proof::hunspell::search_dirs(None).first(), Some(&dir), "searched first");
+    assert_eq!(docufy_engine::proof::hunspell::search_dirs(None).first(), Some(&dir), "searched first");
 }
 
 /// #1792: Check spelling as you type is saved with the other proofing choices, so after a
@@ -305,7 +305,7 @@ fn save_privacy_checkboxes_set_the_privacy_options() {
 fn animation_effects_is_an_accessibility_option() {
     use crate::theme::Animations;
     let services = Services { animations_enabled: Some(Box::new(|| Some(false))), ..Default::default() };
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), services);
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), services);
     a.run("file.options", json!({"pane": "accessibility"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
         |ui, app: &mut WordApp| {
@@ -344,10 +344,10 @@ fn general_start_up_turns_the_start_screen_off_and_on() {
     );
     h.run_steps(4);
     assert!(h.query_by_label("Start-up").is_some(), "the section is there");
-    h.get_by_label("Show the Start screen when WordCraft starts").click();
+    h.get_by_label("Show the Start screen when Docufy starts").click();
     h.run_steps(4);
     assert!(!h.state().ui.start_screen, "the checkbox turns it off");
-    h.get_by_label("Show the Start screen when WordCraft starts").click();
+    h.get_by_label("Show the Start screen when Docufy starts").click();
     h.run_steps(4);
     assert!(h.state().ui.start_screen, "and on again");
 }
@@ -414,7 +414,7 @@ fn length_fields_follow_the_region() {
     let mut a = app();
     a.run("file.options", json!({"region": "pl-PL"})).unwrap();
     a.run("file.new", json!({})).unwrap();
-    assert_eq!(wordcraft_geom::paper_name(a.session.doc.last_section.page_w, a.session.doc.last_section.page_h), Some("A4"));
+    assert_eq!(docufy_geom::paper_name(a.session.doc.last_section.page_w, a.session.doc.last_section.page_h), Some("A4"));
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
         |ui, app: &mut WordApp| {
             let ctx = ui.ctx().clone();

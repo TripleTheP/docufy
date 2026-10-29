@@ -10,7 +10,7 @@ impl Reader<'_> {
     /// Read a `w:drawing` frame and dispatch its payload to the picture, shape or graphic reader.
     /// Frame dimensions are converted from EMUs to bounded point values; placement, alternative
     /// text and drawing ids are carried into the object. Returns `None` when the frame or payload
-    /// cannot be read. Ink written by WordCraft keeps its tool's caps rather than an outline cap.
+    /// cannot be read. Ink written by Docufy keeps its tool's caps rather than an outline cap.
     pub(super) fn read_drawing(&mut self, sc: &mut StoryCtx, d: &El, rels: &Rels) -> Option<InlineObject> {
         let (c, anchored) = match d.child("wp:inline") {
             Some(c) => (c, false),
@@ -86,7 +86,7 @@ impl Reader<'_> {
         } else {
             let wsp = direct_shape.or_else(|| gd.find("wps:wsp"))?;
             let mut obj = self.read_wsp(sc, wsp, rels, w, h, float);
-            // A freeform: whether it's ink WordCraft wrote.
+            // A freeform: whether it's ink Docufy wrote.
             if let InlineObject::Shape { freeform: Some(f), extra, .. } = &mut obj
                 && let Some(name) = c.child("wp:docPr").and_then(|p| p.attr("name"))
                 && let Some(tool) = crate::read::freeform::ink_tool(name)
@@ -220,7 +220,7 @@ impl Reader<'_> {
         }
         let items = if self.graphic_budget == 0 { Vec::new() } else { self.graphic_items(kind, &key.1, w, h) };
         self.graphic_budget = self.graphic_budget.saturating_sub(graphic_work(&items));
-        // A chart or SmartArt that is exactly what WordCraft writes for its model can be edited
+        // A chart or SmartArt that is exactly what Docufy writes for its model can be edited
         // (and is written from the model); any other stays as it was read.
         let chart = match kind {
             GraphicKind::Chart if !items.is_empty() => self.graphic_part(&key.1).and_then(|space| crate::chart_spec::spec_of(&space)).map(Arc::new),
@@ -300,7 +300,7 @@ impl Reader<'_> {
             e.and_then(|f| f.child("a:solidFill")).and_then(|f| f.child("a:srgbClr")).and_then(|c| c.attr("val")).and_then(Rgb::parse)
         };
         let ln = c.child("wpc:whole").and_then(|e| e.child("a:ln"));
-        let style = wordcraft_doc::para::CanvasStyle {
+        let style = docufy_doc::para::CanvasStyle {
             fill: own_fill(c.child("wpc:bg"), &self.doc.settings.theme_colors, None).flatten(),
             stroke: solid(ln),
             stroke_width: ln.and_then(|l| l.attr("w")).and_then(|v| measure(v, 12_700.0)).unwrap_or(0.0).clamp(0.0, 100.0),
@@ -319,11 +319,11 @@ impl Reader<'_> {
         rels: &Rels,
         t: (f32, f32, f32, f32),
         depth: usize,
-        out: &mut Vec<wordcraft_doc::para::GroupChild>,
+        out: &mut Vec<docufy_doc::para::GroupChild>,
     ) {
         let (x0, y0, sx, sy) = t;
         for e in g.els() {
-            if out.len() >= wordcraft_doc::para::MAX_GROUP_CHILDREN {
+            if out.len() >= docufy_doc::para::MAX_GROUP_CHILDREN {
                 return;
             }
             // Native ink (`w14:contentPart`), alone or with a picture fallback: kept whole, in its
@@ -376,7 +376,7 @@ impl Reader<'_> {
                 continue;
             }
             let max = crate::units::MAX_LEN_PT;
-            let fit = |v: f32, lo: f32| wordcraft_geom::finite(v).clamp(lo, max);
+            let fit = |v: f32, lo: f32| docufy_geom::finite(v).clamp(lo, max);
             let (w, h) = (fit(ew * sx, 0.0), fit(eh * sy, 0.0));
             let nv = match e.name.as_str() {
                 "pic:pic" => e.find("pic:cNvPr"),
@@ -404,7 +404,7 @@ impl Reader<'_> {
                 o
             });
             if let Some(obj) = obj {
-                out.push(wordcraft_doc::para::GroupChild { x: fit(x0 + ox * sx, -max), y: fit(y0 + oy * sy, -max), obj });
+                out.push(docufy_doc::para::GroupChild { x: fit(x0 + ox * sx, -max), y: fit(y0 + oy * sy, -max), obj });
             }
         }
     }
@@ -462,19 +462,19 @@ impl Reader<'_> {
             && let Some(part) = self.doc.parts.get_mut(&id)
         {
             if let Some(v) = bp.attr("vert") {
-                part.body.vert = wordcraft_doc::props::TextVert::from_ooxml(v);
+                part.body.vert = docufy_doc::props::TextVert::from_ooxml(v);
             }
             if let Some(a) = bp.attr("anchor") {
-                part.body.anchor = wordcraft_doc::props::valign_from_anchor(a);
+                part.body.anchor = docufy_doc::props::valign_from_anchor(a);
             }
             // Internal margins, each defaulting to Word's (#743).
-            let mut inset = wordcraft_doc::TEXT_BOX_INSET;
+            let mut inset = docufy_doc::TEXT_BOX_INSET;
             for (slot, n) in inset.iter_mut().zip(["lIns", "tIns", "rIns", "bIns"]) {
                 if let Some(v) = bp.attr(n).and_then(int) {
-                    *slot = u32::try_from(v.clamp(0, i64::from(wordcraft_doc::MAX_TEXT_BOX_INSET))).unwrap_or(0);
+                    *slot = u32::try_from(v.clamp(0, i64::from(docufy_doc::MAX_TEXT_BOX_INSET))).unwrap_or(0);
                 }
             }
-            part.body.inset = (inset != wordcraft_doc::TEXT_BOX_INSET).then_some(inset);
+            part.body.inset = (inset != docufy_doc::TEXT_BOX_INSET).then_some(inset);
             part.body.auto_fit = bp.child("a:spAutoFit").is_some();
         }
         // The shape style's text colour (`a:fontRef`, often `lt1`: white on the accent fill).
@@ -487,7 +487,7 @@ impl Reader<'_> {
         }
         let mut extra = ShapeExtra {
             dash: crate::read::shape_style::line_dash(ln),
-            cap: wordcraft_doc::connector::LineCap::from_ooxml(ln.and_then(|e| e.attr("cap")).unwrap_or("flat")),
+            cap: docufy_doc::connector::LineCap::from_ooxml(ln.and_then(|e| e.attr("cap")).unwrap_or("flat")),
             outline_fill: paint.outline_fill,
             ..ShapeExtra::default()
         };
@@ -497,7 +497,7 @@ impl Reader<'_> {
             extra.corner = sppr
                 .and_then(|s| s.child("a:prstGeom"))
                 .and_then(|g| preset_adj(g, "adj"))
-                .and_then(|v| u32::try_from(v.clamp(0, i64::from(wordcraft_doc::connector::MAX_CORNER))).ok());
+                .and_then(|v| u32::try_from(v.clamp(0, i64::from(docufy_doc::connector::MAX_CORNER))).ok());
         }
         // Arrowheads: any end type but `none` (ECMA-376 §20.1.10.33) is drawn as a triangle.
         let arrow = |tag: &str| ln.and_then(|l| l.child(tag)).and_then(|e| e.attr("type")).is_some_and(|t| t != "none");
@@ -508,7 +508,7 @@ impl Reader<'_> {
             let end = |tag: &str| {
                 let e = cn.child(tag)?;
                 let id = e.attr("id").and_then(u32_of).filter(|v| *v != 0)?;
-                let site = e.attr("idx").and_then(u32_of).unwrap_or(0).min(wordcraft_doc::connector::MAX_SITE);
+                let site = e.attr("idx").and_then(u32_of).unwrap_or(0).min(docufy_doc::connector::MAX_SITE);
                 Some(ConnEnd { id, site })
             };
             extra.start = end("a:stCxn");
@@ -631,11 +631,11 @@ fn anchor_float(c: &El) -> Float {
 }
 
 /// A `wp:wrapPolygon`: `wp:start`, then the `wp:lineTo` points (ECMA-376 Part 1, §20.4.2.16).
-fn wrap_polygon(e: &El) -> Option<wordcraft_doc::wrap::WrapPolygon> {
+fn wrap_polygon(e: &El) -> Option<docufy_doc::wrap::WrapPolygon> {
     let pts = e
         .els()
         .filter(|k| k.name == "wp:start" || k.name == "wp:lineTo")
-        .take(wordcraft_doc::wrap::MAX_WRAP_POINTS + 1)
+        .take(docufy_doc::wrap::MAX_WRAP_POINTS + 1)
         .filter_map(|k| Some((int(k.attr("x")?)?, int(k.attr("y")?)?)));
     let mut pts: Vec<(i64, i64)> = pts.collect();
     // The last point usually repeats the start to close the polygon.
@@ -645,13 +645,13 @@ fn wrap_polygon(e: &El) -> Option<wordcraft_doc::wrap::WrapPolygon> {
     let edited = on_off_attr(e, "edited");
     // An unedited polygon round the whole frame says nothing the object doesn't (it's what we
     // write when there's no outline): keep deriving the outline.
-    let s = i64::from(wordcraft_doc::wrap::WRAP_SPACE);
+    let s = i64::from(docufy_doc::wrap::WRAP_SPACE);
     let mut corners = pts.clone();
     corners.sort_unstable();
     if !edited && corners == [(0, 0), (0, s), (s, 0), (s, s)] {
         return None;
     }
-    wordcraft_doc::wrap::WrapPolygon::new(edited, pts)
+    docufy_doc::wrap::WrapPolygon::new(edited, pts)
 }
 
 /// What a graphic's items cost to keep and draw: one per item, plus one per path segment.
@@ -732,12 +732,12 @@ struct Xfrm {
 
 /// The rotation and flips of the `a:xfrm` in shape properties `sppr` (ECMA-376 §20.1.7.6:
 /// `rot` in 60000ths of a degree, clockwise; `flipH`, `flipV`). None when missing or junk.
-fn xfrm_spin(sppr: Option<&El>) -> wordcraft_geom::Spin {
+fn xfrm_spin(sppr: Option<&El>) -> docufy_geom::Spin {
     let Some(x) = sppr.and_then(|s| if matches!(s.name.as_str(), "a:xfrm" | "w14:xfrm") { Some(s) } else { s.child("a:xfrm") }) else {
-        return wordcraft_geom::Spin::default();
+        return docufy_geom::Spin::default();
     };
     let rot = x.attr("rot").and_then(int).map(|v| v.rem_euclid(21_600_000) as f32 / 60_000.0).unwrap_or(0.0);
-    wordcraft_geom::Spin::new(rot, on_off_attr(x, "flipH"), on_off_attr(x, "flipV"))
+    docufy_geom::Spin::new(rot, on_off_attr(x, "flipH"), on_off_attr(x, "flipV"))
 }
 
 /// The `a:xfrm` in shape properties `sppr` (zeros when missing).

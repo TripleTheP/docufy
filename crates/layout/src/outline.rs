@@ -12,10 +12,10 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use wordcraft_doc::para::ShapeKind;
-use wordcraft_doc::props::{Align, Border, BorderStyle, CharProps, Rgb};
-use wordcraft_doc::{Block, Document, Paragraph, StoryRef};
-use wordcraft_geom::Rect;
+use docufy_doc::para::ShapeKind;
+use docufy_doc::props::{Align, Border, BorderStyle, CharProps, Rgb};
+use docufy_doc::{Block, Document, Paragraph, StoryRef};
+use docufy_geom::Rect;
 
 use crate::{DocLayout, Page, ParaLayout, Placed};
 
@@ -169,7 +169,7 @@ pub(crate) fn symbol_items(pl: &Arc<ParaLayout>, x: f32, y: f32, level: u8, chil
     let disc = |r: f32| Placed::Shape {
         rect: Rect::new(cx - r, cy - r, r * 2.0, r * 2.0),
         kind: ShapeKind::Ellipse,
-        fill: Some(wordcraft_doc::fill::Fill::solid(SYMBOL_GREY)),
+        fill: Some(docufy_doc::fill::Fill::solid(SYMBOL_GREY)),
         stroke: None,
         stroke_width: 0.0,
         freeform: None,

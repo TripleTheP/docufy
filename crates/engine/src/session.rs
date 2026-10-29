@@ -2,11 +2,11 @@
 
 use std::sync::Arc;
 
+use docufy_doc::edit::Fragment;
+use docufy_doc::props::CharProps;
+use docufy_doc::{Document, PartKind, Path, Pos, StoryRef};
+use docufy_layout::{DocLayout, LayoutCache, LayoutOptions, ViewMode};
 use serde_json::Value;
-use wordcraft_doc::edit::Fragment;
-use wordcraft_doc::props::CharProps;
-use wordcraft_doc::{Document, PartKind, Path, Pos, StoryRef};
-use wordcraft_layout::{DocLayout, LayoutCache, LayoutOptions, ViewMode};
 
 use crate::{CmdError, ImeEditOutcome, Registry};
 
@@ -52,14 +52,14 @@ pub struct Session {
     /// Formatting picked with a collapsed caret, applied to the next typed text.
     pub pending: Option<CharProps>,
     /// Last highlighter choice for the shortcut; palette state, outside document undo.
-    pub(crate) last_highlight: wordcraft_doc::props::Highlight,
+    pub(crate) last_highlight: docufy_doc::props::Highlight,
     pub path: Option<std::path::PathBuf>,
     /// Name given to a document not saved yet (File › Info › Rename): what Save suggests. A file
     /// name, not document metadata, so it is not part of the document or its undo history.
     pub file_name: Option<String>,
     pub dirty: bool,
     /// Where the custom dictionary is kept on disk, if the host wired one up. Only the desktop
-    /// app does: headless sessions (MCP, `wordcraft-cli run`), tests and the web build leave
+    /// app does: headless sessions (MCP, `docufy-cli run`), tests and the web build leave
     /// `None`, so an agent's words stay in memory and never change the person's dictionary.
     /// Add to Dictionary and File › Options › Proofing save through it (#40).
     pub user_dict_path: Option<std::path::PathBuf>,
@@ -84,7 +84,7 @@ pub struct Session {
     /// Initials for comments (File › Options › General); empty = the name's initials.
     pub initials: String,
     /// Format painter: copied formatting waiting to be applied (and whether it stays on).
-    pub painter: Option<(CharProps, wordcraft_doc::props::ParaProps, bool)>,
+    pub painter: Option<(CharProps, docufy_doc::props::ParaProps, bool)>,
     /// Last message for the status bar / agents.
     pub status: String,
     /// Headers/footers `insert.createHeader`/`insert.createFooter` made for a page that had none
@@ -188,13 +188,13 @@ pub struct Session {
     /// measurement unit and the decimal separator. The front end sets it from the platform (the
     /// browser's locale on the web); headless sessions keep `en-US`. A region the user chose
     /// ([`Prefs::region`]) wins: read it with [`Session::region`].
-    pub system_region: wordcraft_geom::Region,
+    pub system_region: docufy_geom::Region,
     /// Custom keyboard shortcuts (`tools.customizeKeyboard`); the front end saves them too.
     pub keymap: crate::KeyMap,
     /// Custom ribbon and Quick Access Toolbar (`tools.customizeRibbon`); the front end saves it too.
     pub ribbon: crate::RibbonLayout,
     /// The language new blank documents (and opened plain text) are written in, a BCP 47 tag;
-    /// `None` is WordCraft's default, US English. The front end sets it from the interface
+    /// `None` is Docufy's default, US English. The front end sets it from the interface
     /// language with [`Session::set_editing_language`] (a Polish interface writes Polish).
     pub editing_lang: Option<String>,
     /// Editing inside an equation: which one and the caret in it.

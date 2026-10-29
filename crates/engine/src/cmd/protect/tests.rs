@@ -478,7 +478,7 @@ fn forms_mode_allows_edits_only_inside_fillable_controls() {
 }
 
 /// While Filling in forms is enforced, Word offers no Remove Content Control and greys out the
-/// Developer tab's control buttons and Properties. WordCraft removed a fillable control (its
+/// Developer tab's control buttons and Properties. Docufy removed a fillable control (its
 /// content left as plain text), inserted new controls inside one, and renamed one.
 #[test]
 fn forms_mode_keeps_its_controls() {
@@ -652,7 +652,7 @@ fn lock_property_changes_are_refused_under_protection() {
 /// command changes, and an empty control has no content to flip either. Refused now.
 #[test]
 fn forms_mode_cannot_clear_a_controls_lock_by_properties() {
-    use wordcraft_doc::control::{ContentControl, ControlKind, ControlLock, ListItem};
+    use docufy_doc::control::{ContentControl, ControlKind, ControlLock, ListItem};
     let mut s = Session::new(Document::from_text("Fill now."));
     select(&mut s, "now");
     s.run("developer.richText", &json!({"tag": "free"})).unwrap();
@@ -802,7 +802,7 @@ fn form_fields_state_and_find_next_region() {
 /// whatever their depth, and markers never pair across a table-cell boundary).
 #[test]
 fn forms_mode_with_malformed_markers_stays_conservative() {
-    use wordcraft_doc::control::{ContentControl, ControlKind};
+    use docufy_doc::control::{ContentControl, ControlKind};
     let mut s = Session::new(Document::from_text("Locked.\nPick.\nEnd."));
     select(&mut s, "Pick.");
     s.run("developer.dropDown", &json!({"tag": "size", "items": ["S", "M"]})).unwrap();
@@ -889,7 +889,7 @@ fn forms_protection_survives_save_and_password_guards_stop() {
 }
 
 /// A Word file with the legacy hash (`w:cryptAlgorithmSid`): a wrong password is rejected, the
-/// right one unlocks; a hash WordCraft can't check never unlocks.
+/// right one unlocks; a hash Docufy can't check never unlocks.
 #[test]
 fn legacy_password_is_verified_and_unknown_forms_refused() {
     let protected = |sid: &str| {

@@ -2,13 +2,13 @@
 
 use std::collections::HashMap;
 
-use wordcraft_doc::graphic::{Graphic, GraphicItem, GraphicKind, PathSeg, TextAlign};
-use wordcraft_doc::para::{InlineObject, ShapeKind};
-use wordcraft_doc::props::{Border, BorderStyle, Rgb, TextColor, TextDirection, Underline};
-use wordcraft_doc::section::SectionStart;
-use wordcraft_doc::{Block, Document, Path, StoryRef};
-use wordcraft_fonts::{BezPath, FaceRef};
-use wordcraft_geom::{Rect, Spin};
+use docufy_doc::graphic::{Graphic, GraphicItem, GraphicKind, PathSeg, TextAlign};
+use docufy_doc::para::{InlineObject, ShapeKind};
+use docufy_doc::props::{Border, BorderStyle, Rgb, TextColor, TextDirection, Underline};
+use docufy_doc::section::SectionStart;
+use docufy_doc::{Block, Document, Path, StoryRef};
+use docufy_fonts::{BezPath, FaceRef};
+use docufy_geom::{Rect, Spin};
 
 use crate::math::MItem;
 use crate::para::{ClKind, LineEnd, ParaLayout};
@@ -94,17 +94,17 @@ pub enum Draw {
         stroke_width: f32,
         /// Alternating dash/space lengths in page points; empty means solid.
         dash: Vec<f32>,
-        cap: wordcraft_doc::connector::LineCap,
-        /// Shadow, glow and soft edges (drawn with [`wordcraft_doc::effects::bands`]).
-        effects: wordcraft_doc::effects::ShapeEffects,
-        /// A rounded rectangle's corner ([`wordcraft_doc::connector::ShapeExtra::corner`]).
+        cap: docufy_doc::connector::LineCap,
+        /// Shadow, glow and soft edges (drawn with [`docufy_doc::effects::bands`]).
+        effects: docufy_doc::effects::ShapeEffects,
+        /// A rounded rectangle's corner ([`docufy_doc::connector::ShapeExtra::corner`]).
         corner: Option<u32>,
     },
     /// An ink stroke: a line through `pts` (page points) with round ends and joins, `width`
     /// wide, in `color` at opacity `alpha`.
     Ink { pts: Vec<(f32, f32)>, color: Rgb, width: f32, alpha: f32 },
     /// A vector path (a chart's or diagram's polygons, slices, lines): filled, then stroked.
-    Path { segs: Vec<PathSeg>, fill: Option<Paint>, stroke: Option<Rgb>, stroke_width: f32, dash: Vec<f32>, cap: wordcraft_doc::connector::LineCap },
+    Path { segs: Vec<PathSeg>, fill: Option<Paint>, stroke: Option<Rgb>, stroke_width: f32, dash: Vec<f32>, cap: docufy_doc::connector::LineCap },
     /// An inline chart, diagram or described shape's draws, as one figure with its alt text (for
     /// tagged PDF). `kind` is the graphic's, `None` for a shape (see [`crate::shape_figure_alt`]).
     Figure { alt: String, kind: Option<GraphicKind>, draws: Vec<Draw> },
@@ -123,7 +123,7 @@ pub enum Draw {
     /// Text drawn from its outlines with WordArt effects (and bent, in a warped text box):
     /// `path` in page coordinates, painted as [`crate::wordart::art_layers`] says. `color` is the
     /// run's own colour, the fill when the effects set none. `text_bg`: as for [`Draw::Glyphs`].
-    Art { path: BezPath, fx: Box<wordcraft_doc::wordart::TextEffects>, color: Rgb, alpha: f32, text_bg: Option<Rgb> },
+    Art { path: BezPath, fx: Box<docufy_doc::wordart::TextEffects>, color: Rgb, alpha: f32, text_bg: Option<Rgb> },
     /// A formatting-mark label (a section break's name) in the UI's mark colour, left edge at
     /// `x`, drawn with the same face as [`Draw::Mark`]. Screen only, like every mark.
     MarkText { x: f32, baseline: f32, size: f32, text: String },

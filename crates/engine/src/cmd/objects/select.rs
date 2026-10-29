@@ -24,9 +24,7 @@ pub(super) fn has_floating(s: &Session) -> Option<&'static str> {
 pub(super) fn movable_story(s: &Session, story: StoryRef) -> bool {
     match story {
         StoryRef::Body => true,
-        StoryRef::Part(id) => {
-            s.doc.parts.get(&id).is_some_and(|p| matches!(p.kind, wordcraft_doc::PartKind::Header | wordcraft_doc::PartKind::Footer))
-        }
+        StoryRef::Part(id) => s.doc.parts.get(&id).is_some_and(|p| matches!(p.kind, docufy_doc::PartKind::Header | docufy_doc::PartKind::Footer)),
     }
 }
 
@@ -34,7 +32,7 @@ pub(super) fn movable_story(s: &Session, story: StoryRef) -> bool {
 /// as imported: they can be selected and deleted, not moved, resized or arranged.
 pub(super) const FROZEN: &str = "charts and diagrams can't be moved or resized yet";
 
-/// `has_movable` for Size: charts and SmartArt WordCraft can edit are laid out again at their
+/// `has_movable` for Size: charts and SmartArt Docufy can edit are laid out again at their
 /// new size.
 pub(super) fn has_sizable(s: &Session) -> Option<&'static str> {
     match selected(s) {
@@ -92,7 +90,7 @@ pub(super) fn has_shape(s: &Session) -> Option<&'static str> {
 /// text: what clicking an object selects.
 pub fn object_selection(s: &Session) -> Option<(Pos, &InlineObject)> {
     let (a, b) = s.sel.ordered();
-    if a.story != b.story || a.path != b.path || b.off != a.off + wordcraft_doc::para::OBJ.len_utf8() {
+    if a.story != b.story || a.path != b.path || b.off != a.off + docufy_doc::para::OBJ.len_utf8() {
         return None;
     }
     let o = s.doc.para_at(&a)?.object_at(a.off)?;
@@ -116,7 +114,7 @@ pub fn selected_all(s: &Session, max: usize) -> Vec<(Pos, InlineObject)> {
         let Some(p) = s.doc.para(story, &path) else { continue };
         for off in p.object_offsets() {
             let inside = if a == b {
-                off + wordcraft_doc::para::OBJ.len_utf8() == a.off || off == a.off
+                off + docufy_doc::para::OBJ.len_utf8() == a.off || off == a.off
             } else {
                 (path != a.path || off >= a.off) && (path != b.path || off < b.off)
             };
@@ -141,7 +139,7 @@ pub fn min_size(o: &InlineObject) -> f32 {
 
 /// Select the object whose character is at `pos`.
 pub(super) fn select_object(s: &mut Session, pos: &Pos) {
-    s.sel = Selection { anchor: pos.clone(), focus: Pos { off: pos.off + wordcraft_doc::para::OBJ.len_utf8(), ..pos.clone() } };
+    s.sel = Selection { anchor: pos.clone(), focus: Pos { off: pos.off + docufy_doc::para::OBJ.len_utf8(), ..pos.clone() } };
 }
 
 pub(super) fn obj_size(o: &InlineObject) -> (f32, f32) {
@@ -160,7 +158,7 @@ pub(super) fn alt_text(s: &mut Session, v: &Value) -> CmdResult {
         }
         if let Some(f) = o.float_mut() {
             if let Some(t) = title {
-                f.alt.title = wordcraft_doc::para::cap_alt(t);
+                f.alt.title = docufy_doc::para::cap_alt(t);
             }
             if let Some(d) = decorative {
                 f.alt.decorative = d;
@@ -234,7 +232,7 @@ pub(super) fn object_ref(s: &Session, v: &Value) -> Result<Pos, CmdError> {
 /// centre, moves each member's centre. Empty for anything but a group.
 pub(super) fn shown_members(group: &InlineObject, [x, y, w, h]: [f32; 4]) -> Vec<([f32; 4], Spin, &InlineObject)> {
     let outer = group.frame().map(|(_, _, f)| f.spin()).unwrap_or_default();
-    let [x, y, w, h] = [x, y, w, h].map(wordcraft_geom::finite);
+    let [x, y, w, h] = [x, y, w, h].map(docufy_geom::finite);
     let (gx, gy) = (x + w / 2.0, y + h / 2.0);
     group
         .group_rects(x, y, w, h)

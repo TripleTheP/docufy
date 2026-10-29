@@ -35,7 +35,7 @@ fn every_side_menu_item_has_a_drawn_icon() {
 /// line and showed a resize pointer on its right edge that did nothing.
 #[test]
 fn the_side_menu_edge_is_not_a_resize_handle() {
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Services::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Services::default());
     app.ui.language = "en".into();
     app.ui.backstage = true;
     let ctx = egui::Context::default();
@@ -67,9 +67,9 @@ fn the_side_menu_edge_is_not_a_resize_handle() {
 #[test]
 #[cfg(not(target_arch = "wasm32"))]
 fn opening_a_missing_recent_file_keeps_file_open_with_the_error() {
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Services::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Services::default());
     app.ui.backstage = true;
-    let missing = std::env::temp_dir().join(format!("wordcraft-missing-{}.docx", std::process::id()));
+    let missing = std::env::temp_dir().join(format!("docufy-missing-{}.docx", std::process::id()));
     let err = super::open_recent(&mut app, &missing.to_string_lossy()).unwrap_err();
     assert!(!err.is_empty());
     assert!(app.ui.backstage, "File stays open");
@@ -89,7 +89,7 @@ fn back_chevron_keeps_clear_of_traffic_lights_only_windowed() {
 #[cfg(not(target_arch = "wasm32"))]
 fn recovery_fixture() -> (WordApp, std::path::PathBuf) {
     let root = std::env::temp_dir().join(format!(
-        "wordcraft-recovery-ui-{}-{}",
+        "docufy-recovery-ui-{}-{}",
         std::process::id(),
         std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()
     ));
@@ -100,12 +100,12 @@ fn recovery_fixture() -> (WordApp, std::path::PathBuf) {
         dir.join("snapshot-00000000000000000001.json"),
         serde_json::to_vec(&json!({
             "version": 1, "generation": 1, "info": {"id": id, "name": "Synthetic draft", "savedAt": "2026-10-11T10:42:00Z"},
-            "document": wordcraft_doc::Document::from_text("Recovered synthetic work")
+            "document": docufy_doc::Document::from_text("Recovered synthetic work")
         }))
         .unwrap(),
     )
     .unwrap();
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Services::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Services::default());
     app.ui.language = "en".into();
     (app, root)
 }
@@ -232,13 +232,13 @@ fn recovery_does_not_replace_an_explicit_new_document() {
         h.run_steps(4);
         assert!(!h.state().session.recovery_ready());
         let document = h.state().session.document_id();
-        let text = h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body);
+        let text = h.state().session.doc.plain_text(docufy_doc::StoryRef::Body);
         assert_ne!(document, previous);
         poll.set(true);
         settle_recovery(&mut h);
         assert!(!h.state().ui.backstage, "the requested template must stay visible");
         assert_eq!(h.state().session.document_id(), document);
-        assert_eq!(h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body), text);
+        assert_eq!(h.state().session.doc.plain_text(docufy_doc::StoryRef::Body), text);
         assert_eq!(h.state().session.recovery_documents().len(), 1, "older copies remain available");
         h.state_mut().ui.backstage = true;
         h.run_steps(4);
@@ -272,7 +272,7 @@ fn recovery_does_not_replace_an_explicitly_opened_file() {
     settle_recovery(&mut h);
     assert!(!h.state().ui.backstage);
     assert_eq!(h.state().session.document_id(), document);
-    assert_eq!(h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body), "Requested synthetic document");
+    assert_eq!(h.state().session.doc.plain_text(docufy_doc::StoryRef::Body), "Requested synthetic document");
     assert_eq!(h.state().session.recovery_documents().len(), 1);
     h.state_mut().ui.backstage = true;
     h.run_steps(4);
@@ -328,11 +328,11 @@ fn recovery_restore_opens_beside_unsaved_work_without_autosave_permission() {
     settle_recovery(&mut h);
     assert!(h.state().dialog.is_none(), "nothing is replaced, so nothing to ask");
     assert_ne!(h.state().session.document_id(), work);
-    assert_eq!(h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body), "Recovered synthetic work");
+    assert_eq!(h.state().session.doc.plain_text(docufy_doc::StoryRef::Body), "Recovered synthetic work");
     assert!(h.state().session.dirty && h.state().session.path.is_none());
     assert!(h.state().autosave_path.is_none());
     assert!(!h.state().ui.backstage);
-    let kept = h.state_mut().session.with_document(work, |s| s.doc.plain_text(wordcraft_doc::StoryRef::Body)).unwrap();
+    let kept = h.state_mut().session.with_document(work, |s| s.doc.plain_text(docufy_doc::StoryRef::Body)).unwrap();
     assert_eq!(kept, "Current unsaved work");
     assert!(h.state().session.recovery_documents().is_empty(), "the restored document keeps the copy");
     assert!(!root.join("must-not-write.docx").exists());
@@ -358,14 +358,14 @@ fn personal_dir(tag: &str) -> std::path::PathBuf {
 }
 
 fn write_template(path: &std::path::Path, text: &str) {
-    let mut s = wordcraft_engine::Session::new(wordcraft_doc::Document::new());
+    let mut s = docufy_engine::Session::new(docufy_doc::Document::new());
     s.run("document.setText", &json!({"text": text})).unwrap();
-    wordcraft_engine::io::save_path(path, &s.doc).unwrap();
+    docufy_engine::io::save_path(path, &s.doc).unwrap();
 }
 
 fn new_page_harness(templates: Option<std::path::PathBuf>) -> egui_kittest::Harness<'static, WordApp> {
     let services = Services { templates_dir: templates, ..Default::default() };
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), services);
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), services);
     a.run("ui.backstage", json!({"value": true, "page": "new"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 1100.0)).build_ui_state(
         |ui, app: &mut WordApp| {
@@ -413,7 +413,7 @@ fn new_lists_personal_templates_and_opens_one() {
     assert!(!a.ui.backstage, "File closes");
     assert_eq!(a.session.path, None, "an untitled document");
     assert_eq!(a.session.doc.settings.attached_template.as_deref(), Some(memo.to_string_lossy().as_ref()));
-    assert!(a.session.doc.plain_text(wordcraft_doc::StoryRef::Body).contains("Memo from the template"));
+    assert!(a.session.doc.plain_text(docufy_doc::StoryRef::Body).contains("Memo from the template"));
     drop(h);
     let _ = std::fs::remove_dir_all(&dir);
 }
@@ -461,7 +461,7 @@ fn a_personal_template_opens_beside_unsaved_work() {
     let first = h.state().session.document_id();
     h.get_by_label("Memo").click();
     h.run_steps(3);
-    let body = |h: &egui_kittest::Harness<'static, WordApp>| h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body);
+    let body = |h: &egui_kittest::Harness<'static, WordApp>| h.state().session.doc.plain_text(docufy_doc::StoryRef::Body);
     assert!(h.state().dialog.is_none(), "nothing is asked");
     assert!(body(&h).contains("From the template"));
     assert_eq!(h.state().session.doc.settings.attached_template.as_deref(), Some(memo.to_string_lossy().as_ref()));
@@ -507,7 +507,7 @@ fn personal_templates_are_listed_once_per_visit_and_on_refresh() {
 fn an_unusable_saved_folder_falls_back_to_the_apps_own() {
     let own = personal_dir("fallback");
     let services = Services { templates_dir: Some(own.clone()), ..Default::default() };
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), services);
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), services);
     for bad in [r"\\host\share".to_string(), "//host/share".into(), own.join("gone").to_string_lossy().into_owned(), "relative".into()] {
         a.session.prefs.user_templates_folder = Some(bad.clone());
         assert_eq!(a.user_templates_dir(), Some(own.clone()), "{bad}");
@@ -521,7 +521,7 @@ fn an_unusable_saved_folder_falls_back_to_the_apps_own() {
 /// and Recent; New has every template and no Recent list.
 #[test]
 fn home_and_new_show_different_sections() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Services::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Services::default());
     a.run("ui.backstage", json!({"value": true, "page": "home"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
         |ui, app: &mut WordApp| {
@@ -547,8 +547,8 @@ fn home_and_new_show_different_sections() {
 #[test]
 fn templates_and_recent_documents_are_named_buttons() {
     use egui::accesskit::Role;
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Services::default());
-    let dir = std::env::temp_dir().join("wordcraft-3176-missing");
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Services::default());
+    let dir = std::env::temp_dir().join("docufy-3176-missing");
     let path = |folder: &str, file: &str| dir.join(folder).join(file).to_string_lossy().into_owned();
     let (spring, autumn) = (path("spring", "Report.docx"), path("autumn", "Report.docx"));
     a.ui.recent = vec![path("notes", "Quarterly notes.docx"), spring.clone(), autumn.clone()];
@@ -565,7 +565,7 @@ fn templates_and_recent_documents_are_named_buttons() {
     h.get_by_role_and_label(Role::Button, "Letter").click();
     h.run_steps(4);
     assert!(!h.state().ui.backstage, "the Letter button opens the template");
-    assert!(!h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body).is_empty(), "with the template's text");
+    assert!(!h.state().session.doc.plain_text(docufy_doc::StoryRef::Body).is_empty(), "with the template's text");
 }
 
 /// Clicking the back arrow closes the File page and gives the keyboard back to the page,
@@ -575,7 +575,7 @@ fn templates_and_recent_documents_are_named_buttons() {
 /// AccessKit.
 #[test]
 fn back_arrow_returns_to_the_page_with_accessibility_on() {
-    let a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Services::default());
+    let a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Services::default());
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
         |ui, app: &mut WordApp| {
             let ctx = ui.ctx().clone();
@@ -603,7 +603,7 @@ fn back_arrow_returns_to_the_page_with_accessibility_on() {
 /// the File page — only the chevron itself does, same scoping as the macOS chevron (#2972).
 #[test]
 fn clicking_beside_the_back_arrow_does_not_close_the_file_page() {
-    let a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Services::default());
+    let a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Services::default());
     let mut h = a11y_harness(a);
     h.state_mut().run("ui.backstage", json!({"value": true})).unwrap();
     h.run_steps(4);
@@ -647,7 +647,7 @@ fn mac_chevron(a: &WordApp) -> egui::Pos2 {
 /// list". The same spot clicked in the editor (the title bar) must not either.
 #[test]
 fn mac_back_chevron_returns_to_the_page_with_accessibility_on() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Services::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Services::default());
     a.integrated_titlebar = true;
     a.mac_titlebar = crate::chrome::MacTitleBar { height: 28.0, content_left: 70.0 };
     let chevron = mac_chevron(&a);
@@ -671,7 +671,7 @@ fn mac_back_chevron_returns_to_the_page_with_accessibility_on() {
 #[test]
 fn blank_document_from_the_file_page_with_accessibility_on() {
     let work = |mac: bool| {
-        let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("Work")), Services::default());
+        let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("Work")), Services::default());
         a.integrated_titlebar = mac;
         a11y_harness(a)
     };
@@ -684,7 +684,7 @@ fn blank_document_from_the_file_page_with_accessibility_on() {
             h.get_by_label("Blank document").click();
             h.run_steps(4);
             assert!(!h.state().ui.backstage, "{page}: Blank document returns to the editor");
-            assert_eq!(h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body), "", "{page}: a new blank document");
+            assert_eq!(h.state().session.doc.plain_text(docufy_doc::StoryRef::Body), "", "{page}: a new blank document");
             assert!(h.state().dialog.is_none(), "{page}: nothing asks first");
         }
         let mut h = work(mac);
@@ -693,7 +693,7 @@ fn blank_document_from_the_file_page_with_accessibility_on() {
         h.key_press(egui::Key::Escape);
         h.run_steps(4);
         assert!(!h.state().ui.backstage, "Escape closes the File page");
-        assert_eq!(h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body), "Work", "Escape keeps the document");
+        assert_eq!(h.state().session.doc.plain_text(docufy_doc::StoryRef::Body), "Work", "Escape keeps the document");
     }
 }
 
@@ -702,7 +702,7 @@ fn blank_document_from_the_file_page_with_accessibility_on() {
 #[test]
 fn options_back_arrow_with_accessibility_on() {
     for (mac, start) in [(false, false), (true, false), (false, true), (true, true)] {
-        let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Services::default());
+        let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Services::default());
         a.integrated_titlebar = mac;
         if start {
             a.ui.start_screen = true;
@@ -746,7 +746,7 @@ fn info_fields_keep_typed_properties_through_a_web_save() {
         })),
         ..Default::default()
     };
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("XYZ")), services);
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("XYZ")), services);
     a.session.author = "GAMMA".into();
     a.run("ui.backstage", json!({"value": true, "page": "info"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
@@ -777,7 +777,7 @@ fn info_fields_keep_typed_properties_through_a_web_save() {
     a.run("file.save", json!({})).unwrap();
     a.run("file.save", json!({})).unwrap();
     let (name, bytes) = got.borrow_mut().pop().unwrap();
-    let back = wordcraft_engine::io::open_bytes(&name, &bytes).unwrap();
+    let back = docufy_engine::io::open_bytes(&name, &bytes).unwrap();
     assert_eq!((back.core.title.as_str(), back.core.creator.as_str()), ("ALPHA", "BETA"));
     assert_eq!(back.core.last_modified_by, "GAMMA");
     assert_eq!(back.core.revision, core.revision + 2, "each save advances the revision");
@@ -794,7 +794,7 @@ fn info_fields_keep_typed_properties_through_a_web_save() {
 
 #[test]
 fn save_as_page_shows_browse_and_no_open_list() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Services::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Services::default());
     a.run("ui.backstage", json!({"value": true, "page": "saveAs"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
         |ui, app: &mut WordApp| {
@@ -811,7 +811,7 @@ fn save_as_page_shows_browse_and_no_open_list() {
 
 #[test]
 fn backstage_save_navigates_to_save_as_when_unnamed() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Services::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Services::default());
     a.run("ui.backstage", json!({"value": true, "page": "home"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
         |ui, app: &mut WordApp| {
@@ -840,7 +840,7 @@ fn backstage_save_when_unnamed_opens_no_file_dialog() {
         })),
         ..Default::default()
     };
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), services);
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), services);
     a.run("ui.backstage", json!({"value": true, "page": "home"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
         |ui, app: &mut WordApp| {
@@ -875,12 +875,12 @@ fn backstage_save_browse_native_dialog_lands_on_the_document() {
         })),
         ..Default::default()
     };
-    let dir = std::env::temp_dir().join(format!("wordcraft-backstage-save-repro-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-backstage-save-repro-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("Document1.docx");
 
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), services);
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), services);
     a.run("text.insert", json!({"text": "Hello from the repro"})).unwrap();
     a.run("ui.backstage", json!({"value": true, "page": "home"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
@@ -924,12 +924,12 @@ fn backstage_save_browse_write_failure_shows_on_the_save_as_page() {
         })),
         ..Default::default()
     };
-    let dir = std::env::temp_dir().join(format!("wordcraft-backstage-save-error-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-backstage-save-error-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     // `dir` is deliberately never created, so the write fails: its parent doesn't exist.
     let bogus = dir.join("missing").join("out.docx");
 
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), services);
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), services);
     a.run("text.insert", json!({"text": "unsaved text"})).unwrap();
     a.run("ui.backstage", json!({"value": true, "page": "home"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
@@ -967,7 +967,7 @@ fn backstage_save_closes_when_saved() {
         })),
         ..Default::default()
     };
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), services);
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), services);
     a.run("ui.backstage", json!({"value": true, "page": "home"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
         |ui, app: &mut WordApp| {
@@ -987,7 +987,7 @@ fn backstage_save_closes_when_saved() {
 /// first when there are unsaved changes; Cancel leaves the Backstage as it was.
 #[test]
 fn backstage_close_asks_then_closes() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Services::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Services::default());
     a.run("text.insert", json!({"text": "Draft"})).unwrap();
     a.run("ui.backstage", json!({"value": true, "page": "info"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
@@ -1020,7 +1020,7 @@ fn backstage_close_asks_then_closes() {
 /// A document without unsaved changes closes without a prompt.
 #[test]
 fn backstage_close_on_a_clean_document_closes_at_once() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Services::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Services::default());
     a.run("ui.backstage", json!({"value": true, "page": "home"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
         |ui, app: &mut WordApp| {
@@ -1039,7 +1039,7 @@ fn backstage_close_on_a_clean_document_closes_at_once() {
 
 #[test]
 fn backstage_save_as_sidebar_opens_save_as_page() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Services::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Services::default());
     a.run("ui.backstage", json!({"value": true, "page": "home"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
         |ui, app: &mut WordApp| {

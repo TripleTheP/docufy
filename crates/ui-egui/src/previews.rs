@@ -4,10 +4,10 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use docufy_doc::props::CharProps;
+use docufy_doc::{Block, Document, Paragraph, Table, para_block};
 use egui::{Rect, Response, Sense, Stroke, TextureHandle, Ui, pos2, vec2};
 use serde_json::{Value, json};
-use wordcraft_doc::props::CharProps;
-use wordcraft_doc::{Block, Document, Paragraph, Table, para_block};
 
 use crate::WordApp;
 use crate::theme::{Tokens, regular};
@@ -157,12 +157,12 @@ impl Previews {
     /// one (宋体 for SimSun in Chinese, #505), like Word's.
     pub fn families(&mut self) -> Vec<String> {
         let lang = crate::i18n::current().code();
-        let generation = wordcraft_fonts::FontDb::global().generation();
+        let generation = docufy_fonts::FontDb::global().generation();
         if self.families.as_ref().is_none_or(|(l, _)| *l != lang) || self.font_gen != generation {
             self.font_gen = generation;
-            let db = wordcraft_fonts::FontDb::global();
+            let db = docufy_fonts::FontDb::global();
             let mut f: Vec<String> = db.families_in(lang).into_iter().filter(|f| !f.starts_with('.')).collect();
-            for w in [wordcraft_doc::styles::BODY_FONT, wordcraft_doc::styles::HEADING_FONT] {
+            for w in [docufy_doc::styles::BODY_FONT, docufy_doc::styles::HEADING_FONT] {
                 if !f.iter().any(|x| x == w) {
                     f.push(w.to_string());
                 }
@@ -183,7 +183,7 @@ impl Previews {
     pub fn east_asian_families(&mut self) -> Vec<String> {
         self.families();
         if self.east_asian.is_none() {
-            let mut f: Vec<String> = wordcraft_fonts::FontDb::global()
+            let mut f: Vec<String> = docufy_fonts::FontDb::global()
                 .east_asian_families()
                 .into_iter()
                 .filter(|f| !f.starts_with('.'))
@@ -322,7 +322,7 @@ pub fn math_texture(
     app: &mut WordApp,
     ctx: &egui::Context,
     key: &str,
-    nodes: &wordcraft_doc::math::Arg,
+    nodes: &docufy_doc::math::Arg,
     display: bool,
     pt: f32,
     size: egui::Vec2,
@@ -347,15 +347,15 @@ pub fn math_texture(
     p.math.add(ctx, frame, &k, img)
 }
 
-fn math_image(nodes: &wordcraft_doc::math::Arg, display: bool, pt: f32, w: f32, h: f32, ppp: f32) -> Option<egui::ColorImage> {
-    use wordcraft_doc::math::{Math, to_linear};
+fn math_image(nodes: &docufy_doc::math::Arg, display: bool, pt: f32, w: f32, h: f32, ppp: f32) -> Option<egui::ColorImage> {
+    use docufy_doc::math::{Math, to_linear};
     let props = CharProps { size: Some(pt), ..Default::default() };
     let mut p = Paragraph::with_text("", props.clone());
-    p.props.align = Some(wordcraft_doc::props::Align::Center);
+    p.props.align = Some(docufy_doc::props::Align::Center);
     p.props.space_before = Some(0.0);
     p.props.space_after = Some(0.0);
-    p.props.line_spacing = Some(wordcraft_doc::props::LineSpacing::Multiple(1.0));
-    let eq = wordcraft_doc::InlineObject::Equation { linear: to_linear(nodes), display, math: Math { nodes: nodes.clone(), ..Default::default() } };
+    p.props.line_spacing = Some(docufy_doc::props::LineSpacing::Multiple(1.0));
+    let eq = docufy_doc::InlineObject::Equation { linear: to_linear(nodes), display, math: Math { nodes: nodes.clone(), ..Default::default() } };
     p.insert_object(0, eq, &props).ok()?;
     let mut d = Document::new();
     d.body = vec![para_block(p)];
@@ -365,20 +365,20 @@ fn math_image(nodes: &wordcraft_doc::math::Arg, display: bool, pt: f32, w: f32, 
     d.last_section.margin_right = 0.0;
     d.last_section.margin_top = 0.0;
     d.last_section.margin_bottom = 0.0;
-    let l = wordcraft_layout::layout(&d, &mut wordcraft_layout::LayoutCache::new(), &Default::default());
+    let l = docufy_layout::layout(&d, &mut docufy_layout::LayoutCache::new(), &Default::default());
     let page = l.pages.first()?;
     // Centre the equation's line in the tile.
     let mid = page
         .items
         .iter()
         .find_map(|it| match it {
-            wordcraft_layout::Placed::Lines { para, y, .. } => Some(y + para.height / 2.0),
+            docufy_layout::Placed::Lines { para, y, .. } => Some(y + para.height / 2.0),
             _ => None,
         })
         .unwrap_or(h / 2.0);
-    let mut opts = wordcraft_render::RenderOptions::default();
+    let mut opts = docufy_render::RenderOptions::default();
     opts.display.placeholders = true;
-    let img = wordcraft_render::render_area(&d, page, wordcraft_geom::Rect::new(0.0, mid - h / 2.0, w, h), ppp, &opts);
+    let img = docufy_render::render_area(&d, page, docufy_geom::Rect::new(0.0, mid - h / 2.0, w, h), ppp, &opts);
     let px = img.to_straight();
     let mut out = egui::ColorImage::from_rgba_unmultiplied([img.width as usize, img.height as usize], &px);
     // An ink mask, tinted with the theme's text colour when drawn, so the pictures read on dark tiles (#817).
@@ -404,12 +404,12 @@ pub fn ink_mask(img: &mut egui::ColorImage) {
 /// through the Font box grew memory by tens of megabytes. A name the font has no glyphs for (a
 /// symbol font's), or a font that can't be read, shows in the default face.
 pub fn font_entry_image(name: &str, ppp: f32) -> egui::ColorImage {
-    let db = wordcraft_fonts::FontDb::global();
+    let db = docufy_fonts::FontDb::global();
     let face = db
         .preview_face(name)
         .filter(|f| name.chars().filter(|c| !c.is_whitespace()).all(|c| f.covers(c)))
-        .unwrap_or_else(|| db.face(wordcraft_fonts::FALLBACK_FAMILY, "Regular"));
-    let img = wordcraft_render::render_text_line(&face, name, 13.0, 244.0, 22.0, 2.0, ppp);
+        .unwrap_or_else(|| db.face(docufy_fonts::FALLBACK_FAMILY, "Regular"));
+    let img = docufy_render::render_text_line(&face, name, 13.0, 244.0, 22.0, 2.0, ppp);
     egui::ColorImage::from_rgba_unmultiplied([img.width as usize, img.height as usize], &img.to_straight())
 }
 
@@ -434,7 +434,7 @@ struct SnippetOptions {
     height: f32,
     pixels_per_point: f32,
     margin: f32,
-    paper: Option<wordcraft_doc::Rgb>,
+    paper: Option<docufy_doc::Rgb>,
     dark: bool,
 }
 
@@ -450,14 +450,14 @@ fn snippet_blocks(base: &Document, blocks: Vec<Block>, options: SnippetOptions) 
     d.last_section.margin_right = margin;
     d.last_section.margin_top = margin;
     d.last_section.margin_bottom = 0.0;
-    let l = wordcraft_layout::layout(&d, &mut wordcraft_layout::LayoutCache::new(), &Default::default());
+    let l = docufy_layout::layout(&d, &mut docufy_layout::LayoutCache::new(), &Default::default());
     let page = l.pages.first()?;
     let mut opts = crate::canvas::screen_render_options();
     if let Some(p) = paper {
         opts.paper = p;
     }
     opts.dark = dark;
-    let img = wordcraft_render::render_area(&d, page, wordcraft_geom::Rect::new(0.0, 0.0, w + 2.0 * margin, h + margin), ppp, &opts);
+    let img = docufy_render::render_area(&d, page, docufy_geom::Rect::new(0.0, 0.0, w + 2.0 * margin, h + margin), ppp, &opts);
     let px = img.to_straight();
     Some(egui::ColorImage::from_rgba_unmultiplied([img.width as usize, img.height as usize], &px))
 }
@@ -548,7 +548,7 @@ pub fn style_gallery(app: &mut WordApp, ui: &mut Ui, state: &Value) {
             // Sample letters in the interface's script (`АаБбВвГг` in Russian).
             let mut p = Paragraph::with_text(tl!("AaBbCcDd"), CharProps::default()).styled(id);
             p.props.space_before = Some(0.0);
-            p.props.align = Some(wordcraft_doc::Align::Left);
+            p.props.align = Some(docufy_doc::Align::Left);
             // Keep hanging indents (bullets) but start the first line at the tile's left edge.
             let first = doc.styles.resolve_para(&p.props).indent_first;
             p.props.indent_left = Some(if first.is_finite() { (-first).max(0.0) } else { 0.0 });
@@ -621,7 +621,7 @@ pub fn style_set_gallery(app: &mut WordApp, ui: &mut Ui) {
         }
         let key = format!("set:{name}:{ppp}:{}", crate::i18n::current().code());
         let tex = app.previews.get_or(ui.ctx(), &key, || {
-            let mut s = wordcraft_engine::Session::new(Document::new());
+            let mut s = docufy_engine::Session::new(Document::new());
             let _ = s.run("design.styleSet", &json!({"name": name}));
             let blocks = vec![
                 Block::Para(Paragraph::with_text(crate::i18n::tc("preview", "Title"), CharProps::default()).styled("Title")),

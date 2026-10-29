@@ -5,6 +5,10 @@ use crate::WordApp;
 #[cfg(not(target_arch = "wasm32"))]
 use craft_update::updater::{Action, Status, Updater};
 
+/// Docufy as the updater knows it: releases come only from this fork, never from upstream WordCraft.
+#[cfg(not(target_arch = "wasm32"))]
+pub const DOCUFY_APP: craft_update::App = craft_update::App::new("docufy", "Docufy", "Writing, documents and PDF", "TripleTheP/docufy");
+
 pub(crate) struct Runtime {
     #[cfg(not(target_arch = "wasm32"))]
     updater: Updater,
@@ -24,7 +28,7 @@ impl Default for Runtime {
     fn default() -> Self {
         Self {
             #[cfg(not(target_arch = "wasm32"))]
-            updater: Updater::new(&craft_update::suite::WORDCRAFT, env!("CARGO_PKG_VERSION")),
+            updater: Updater::new(&DOCUFY_APP, env!("CARGO_PKG_VERSION")),
             #[cfg(not(target_arch = "wasm32"))]
             startup_check: false,
             #[cfg(not(target_arch = "wasm32"))]
@@ -92,7 +96,7 @@ pub(crate) fn show(app: &mut WordApp, ctx: &egui::Context) {
             Status::Idle => (false, None),
             Status::Checking => (true, None),
             Status::UpToDate => {
-                (true, Some(tl!("WordCraft {version} is currently the newest version available.").replace("{version}", env!("CARGO_PKG_VERSION"))))
+                (true, Some(tl!("Docufy {version} is currently the newest version available.").replace("{version}", env!("CARGO_PKG_VERSION"))))
             }
             Status::Failed(e) => (true, Some(tl!("Could not check for updates:\n{error}").replace("{error}", e))),
         };

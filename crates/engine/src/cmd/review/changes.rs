@@ -1,7 +1,7 @@
 use super::{CmdError, CmdResult, InlineObject, Paragraph, Pos, Selection, Session, StoryRef, Value, fmt_revisions, json, p, pos_json, sel_result};
 
 /// Accept or reject the tracked formatting and text of `from..to` in one paragraph (not its mark).
-fn resolve_runs(para: &mut wordcraft_doc::Paragraph, from: usize, to: usize, props: bool, accept: bool) -> Result<(), CmdError> {
+fn resolve_runs(para: &mut docufy_doc::Paragraph, from: usize, to: usize, props: bool, accept: bool) -> Result<(), CmdError> {
     if props && (para.props.fmt_change.is_some() || para.props.num_change.is_some()) {
         fmt_revisions::resolve_para(&mut para.props, accept);
         para.touch();
@@ -30,7 +30,7 @@ fn resolve_runs(para: &mut wordcraft_doc::Paragraph, from: usize, to: usize, pro
 fn resolve_para(
     s: &mut Session,
     story: StoryRef,
-    path: &wordcraft_doc::Path,
+    path: &docufy_doc::Path,
     (from, to): (usize, usize),
     (mark, props): (bool, bool),
     accept: bool,
@@ -69,7 +69,7 @@ fn resolve_para(
 
 /// Accept or reject the changes of the table cell `path` is in: the table's, its row's and the
 /// cell's own. Returns whether there were any.
-fn resolve_cell(s: &mut Session, story: StoryRef, path: &wordcraft_doc::Path, accept: bool) -> Result<bool, CmdError> {
+fn resolve_cell(s: &mut Session, story: StoryRef, path: &docufy_doc::Path, accept: bool) -> Result<bool, CmdError> {
     let Some((tp, r, c)) = path.cell() else { return Ok(false) };
     let has = s.doc.table(story, &tp).is_some_and(|t| {
         let row = t.rows.get(r);
@@ -109,7 +109,7 @@ impl Change {
 
 /// The tracked paragraph mark at the end of the paragraph at `path`, as a change range: from
 /// the paragraph's end to the start of the next paragraph (or the end itself when none follows).
-fn mark_change(s: &Session, story: StoryRef, path: &wordcraft_doc::Path) -> Option<Change> {
+fn mark_change(s: &Session, story: StoryRef, path: &docufy_doc::Path) -> Option<Change> {
     let p = s.doc.para(story, path)?;
     let kind = run_kind(&s.doc, p.mark.ins, p.mark.del);
     if kind.is_empty() {
@@ -126,7 +126,7 @@ fn mark_change(s: &Session, story: StoryRef, path: &wordcraft_doc::Path) -> Opti
 
 /// The kind of an insertion / deletion change: `insert`, `delete`, or for one end of a move
 /// `moveTo` / `moveFrom`; empty when neither.
-fn run_kind(doc: &wordcraft_doc::Document, ins: Option<u32>, del: Option<u32>) -> &'static str {
+fn run_kind(doc: &docufy_doc::Document, ins: Option<u32>, del: Option<u32>) -> &'static str {
     match (ins, del) {
         (Some(_), _) if doc.move_name(ins).is_some() => "moveTo",
         (Some(_), _) => "insert",
@@ -159,9 +159,9 @@ pub fn move_changes(s: &Session) -> Vec<(Pos, String, bool)> {
 
 /// Accept or reject the tracked text and paragraph marks of the top-level paragraphs in a block
 /// list that is not a story (a note separator).
-fn resolve_loose_blocks(blocks: &mut wordcraft_doc::Blocks, accept: bool) -> Result<(), CmdError> {
+fn resolve_loose_blocks(blocks: &mut docufy_doc::Blocks, accept: bool) -> Result<(), CmdError> {
     for b in blocks.iter_mut() {
-        let wordcraft_doc::Block::Para(p) = std::sync::Arc::make_mut(b) else { continue };
+        let docufy_doc::Block::Para(p) = std::sync::Arc::make_mut(b) else { continue };
         let len = p.len();
         resolve_runs(p, 0, len, true, accept)?;
         if p.mark.fmt_change.is_some() || p.section.as_ref().is_some_and(|x| x.fmt_change.is_some()) {
@@ -312,7 +312,7 @@ fn resolve_sel(s: &mut Session, accept: bool, next: bool) -> CmdResult {
 
 fn changes(s: &Session) -> Vec<Change> {
     let mut out: Vec<Change> = Vec::new();
-    let mk = |path: &wordcraft_doc::Path, off| Pos { story: StoryRef::Body, path: path.clone(), off };
+    let mk = |path: &docufy_doc::Path, off| Pos { story: StoryRef::Body, path: path.clone(), off };
     for path in s.doc.para_paths(StoryRef::Body) {
         let Some(p) = s.doc.para(StoryRef::Body, &path) else { continue };
         // A table's, row's and cell's changes sit at the start of the cell's first paragraph.
@@ -380,7 +380,7 @@ pub fn format_changes(s: &Session) -> Vec<(Pos, String, Vec<Value>)> {
 }
 
 /// Whether the document has any tracked formatting change (cheap: stops at the first).
-pub fn has_format_changes(doc: &wordcraft_doc::Document) -> bool {
+pub fn has_format_changes(doc: &docufy_doc::Document) -> bool {
     if doc.last_section.fmt_change.is_some() {
         return true;
     }
@@ -420,7 +420,7 @@ const MAX_DELETION_BALLOONS: usize = 500;
 pub fn deletion_balloons(s: &Session) -> Vec<DeletionBalloon> {
     let doc = &s.doc;
     let author = |rev: u32| doc.revisions.get(rev as usize).map(|r| r.author.clone()).unwrap_or_default();
-    let mk = |path: &wordcraft_doc::Path, off| Pos { story: StoryRef::Body, path: path.clone(), off };
+    let mk = |path: &docufy_doc::Path, off| Pos { story: StoryRef::Body, path: path.clone(), off };
     let mut out = Vec::new();
     for path in doc.para_paths(StoryRef::Body) {
         let Some(p) = doc.para(StoryRef::Body, &path) else { continue };
@@ -458,8 +458,8 @@ fn push_deletion(out: &mut Vec<(DeletionBalloon, Pos, usize)>, at: Pos, end: Pos
         }
         let c = match c {
             // Pictures, fields and other objects show no text of their own.
-            wordcraft_doc::para::OBJ => continue,
-            '\t' | wordcraft_doc::para::LINE_BREAK | wordcraft_doc::para::PAGE_BREAK | wordcraft_doc::para::COLUMN_BREAK => ' ',
+            docufy_doc::para::OBJ => continue,
+            '\t' | docufy_doc::para::LINE_BREAK | docufy_doc::para::PAGE_BREAK | docufy_doc::para::COLUMN_BREAK => ' ',
             c if c.is_control() => continue,
             c => c,
         };
@@ -470,13 +470,13 @@ fn push_deletion(out: &mut Vec<(DeletionBalloon, Pos, usize)>, at: Pos, end: Pos
 
 /// A deletion revision that is not the source of a move (`w:moveFrom` is a deletion revision
 /// with a move name).
-fn plain_deletion(doc: &wordcraft_doc::Document, del: Option<u32>) -> Option<u32> {
+fn plain_deletion(doc: &docufy_doc::Document, del: Option<u32>) -> Option<u32> {
     del.filter(|_| doc.move_name(del).is_none())
 }
 
 /// Whether the body has any tracked deletion other than a move's source (cheap: stops at the
 /// first).
-pub fn has_deletions(doc: &wordcraft_doc::Document) -> bool {
+pub fn has_deletions(doc: &docufy_doc::Document) -> bool {
     doc.para_paths(StoryRef::Body).iter().any(|path| {
         doc.para(StoryRef::Body, path)
             .is_some_and(|p| plain_deletion(doc, p.mark.del).is_some() || p.runs.iter().any(|r| plain_deletion(doc, r.props.del).is_some()))
@@ -537,8 +537,8 @@ pub(super) fn list_changes(s: &mut Session, _: &Value) -> CmdResult {
 
 /// Track Changes Options: change the fields given, return them all. A per-user preference.
 pub(super) fn tracking_options(s: &mut Session, v: &Value) -> CmdResult {
-    use wordcraft_doc::Rgb;
-    use wordcraft_layout::display::{BalloonMode, ChangeBar, CommentDisplay, DeleteMark, InsertMark};
+    use docufy_doc::Rgb;
+    use docufy_layout::display::{BalloonMode, ChangeBar, CommentDisplay, DeleteMark, InsertMark};
     let mut m = s.prefs.markup.clone();
     let color = |k: &str, auto: &str, cur: Option<Rgb>| -> Result<Option<Rgb>, CmdError> {
         match p::str(v, k) {
@@ -613,8 +613,8 @@ pub(super) fn tracking_options(s: &mut Session, v: &Value) -> CmdResult {
 }
 
 /// The Track Changes Options as `review.trackingOptions` takes them.
-pub fn tracking_json(m: &wordcraft_layout::display::MarkupOptions) -> Value {
-    let hex = |c: Option<wordcraft_doc::Rgb>, auto: &str| c.map(|c| c.hex()).unwrap_or_else(|| auto.to_string());
+pub fn tracking_json(m: &docufy_layout::display::MarkupOptions) -> Value {
+    let hex = |c: Option<docufy_doc::Rgb>, auto: &str| c.map(|c| c.hex()).unwrap_or_else(|| auto.to_string());
     json!({
         "comments": m.comments,
         "ink": m.ink,

@@ -4,7 +4,7 @@ use super::{Dialog, Tokens, Ui, Value, WordApp, json, vec2};
 /// Manage Styles' body. Reads the list from `styles.manage`'s data (never re-running the command,
 /// which would ask to open this dialog again) and acts through commands.
 pub(super) fn manage_styles(app: &mut WordApp, ui: &mut Ui, alphabetical: &mut bool, selected: &mut String) -> bool {
-    let list = wordcraft_engine::cmd::para::manage_list(&app.session, *alphabetical);
+    let list = docufy_engine::cmd::para::manage_list(&app.session, *alphabetical);
     let list = list.as_array().cloned().unwrap_or_default();
     let str_of = |v: &Value, k: &str| v.get(k).and_then(Value::as_str).unwrap_or("").to_string();
     if !list.iter().any(|x| str_of(x, "id") == *selected) {

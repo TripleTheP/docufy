@@ -157,7 +157,7 @@ impl Fit {
             Fit { paper_w: page.w, paper_h: page.h, page_w: page.w, k: 1.0, dx: 0.0, dy: 0.0 }
         };
         let Some((w, h)) = paper else { return own };
-        let f = wordcraft_geom::fit_to_paper(own.paper_w, own.paper_h, w, h);
+        let f = docufy_geom::fit_to_paper(own.paper_w, own.paper_h, w, h);
         Fit { paper_w: f.paper_w, paper_h: f.paper_h, page_w: own.page_w, k: own.k * f.k, dx: f.dx, dy: own.dy * f.k + f.dy }
     }
 

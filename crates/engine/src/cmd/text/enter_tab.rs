@@ -156,7 +156,7 @@ fn enter(s: &mut Session, undo_step: bool) -> Result<(), CmdError> {
             // The new paragraph is formatted as after a plain Enter (the closing mark's
             // formatting, or none when the next style starts afresh); its mark keeps its revisions.
             let (ins, del, fmt_change) = (p.mark.ins, p.mark.del, p.mark.fmt_change.take());
-            p.mark = wordcraft_doc::props::CharProps { ins, del, fmt_change, ..c };
+            p.mark = docufy_doc::props::CharProps { ins, del, fmt_change, ..c };
             p.touch();
             s.sel = Selection::caret(new);
             s.goal_x = None;
@@ -188,7 +188,7 @@ pub(super) fn tab(s: &mut Session, _: &Value) -> CmdResult {
         }
         let mut path = tpath.0.clone();
         path.extend([nr as u32, nc as u32, 0]);
-        let start = Pos { story, path: wordcraft_doc::Path(path), off: 0 };
+        let start = Pos { story, path: docufy_doc::Path(path), off: 0 };
         // Select the cell's content like Word.
         let end_path = s.doc.para_paths(story).into_iter().rfind(|q| q.0.starts_with(&start.path.0[..start.path.0.len() - 1]));
         let end = end_path.map(|q| {
@@ -281,7 +281,7 @@ pub(super) fn back_tab(s: &mut Session, _: &Value) -> CmdResult {
         };
         let mut path = tpath.0.clone();
         path.extend([nr as u32, nc as u32, 0]);
-        s.sel = Selection::caret(Pos { story, path: wordcraft_doc::Path(path), off: 0 });
+        s.sel = Selection::caret(Pos { story, path: docufy_doc::Path(path), off: 0 });
         return sel_result(s);
     }
     let f = s.sel.focus.clone();

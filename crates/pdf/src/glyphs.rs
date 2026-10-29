@@ -3,7 +3,7 @@ use super::{FaceRef, HashMap, Path, PathBuilder};
 
 /// The outlines of `glyphs` (glyph id, pen position) at `size`, as one path in page coordinates.
 pub(crate) fn glyph_outlines(face: &FaceRef, size: f32, glyphs: &[(u32, f32, f32)]) -> Option<Path> {
-    let db = wordcraft_fonts::FontDb::global();
+    let db = docufy_fonts::FontDb::global();
     let scale = f64::from(size) / face.upem.max(1.0);
     let mut pb = PathBuilder::new();
     for &(g, x, y) in glyphs {
@@ -99,13 +99,13 @@ pub(crate) fn visual_order(
     let tie = |idx: &[usize]| -> i64 {
         let Some(r) = idx.first().and_then(|&g| clusters.get(g)) else { return 0 };
         let start = i64::try_from(r.start).unwrap_or(i64::MAX);
-        if text.get(r.clone()).is_some_and(|t| t.chars().any(wordcraft_fonts::is_rtl)) { -start } else { start }
+        if text.get(r.clone()).is_some_and(|t| t.chars().any(docufy_fonts::is_rtl)) { -start } else { start }
     };
     groups.sort_by(|a, b| a.0.total_cmp(&b.0).then_with(|| tie(&a.1).cmp(&tie(&b.1))));
     groups
         .into_iter()
         .flat_map(|(_, mut idx)| {
-            let rtl = idx.first().and_then(|&g| text.get(clusters.get(g)?.clone())).is_some_and(|t| t.chars().any(wordcraft_fonts::is_rtl));
+            let rtl = idx.first().and_then(|&g| text.get(clusters.get(g)?.clone())).is_some_and(|t| t.chars().any(docufy_fonts::is_rtl));
             if rtl {
                 idx.sort_by_key(|&g| std::cmp::Reverse(parts.get(g).map_or(0, |r| r.start)));
             }

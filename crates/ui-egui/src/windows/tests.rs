@@ -1,10 +1,10 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 
+use docufy_doc::StoryRef;
+use docufy_engine::Session;
 use egui::{RawInput, ViewportCommand, ViewportEvent, ViewportId, ViewportIdMap, ViewportInfo};
 use serde_json::json;
-use wordcraft_doc::StoryRef;
-use wordcraft_engine::Session;
 
 use crate::{Services, WordApp};
 
@@ -96,7 +96,7 @@ fn sent(id: ViewportId, cmd: &ViewportCommand) -> bool {
 }
 
 fn app(text: &str) -> WordApp {
-    let mut a = WordApp::new(Session::new(wordcraft_doc::Document::new()), Services::default());
+    let mut a = WordApp::new(Session::new(docufy_doc::Document::new()), Services::default());
     a.run("text.insert", json!({"text": text})).unwrap();
     a
 }
@@ -151,10 +151,10 @@ fn new_opens_a_second_window_and_each_keeps_its_state() {
 }
 
 fn docx_on_disk(name: &str, body: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!("wordcraft-windows-{name}-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("docufy-windows-{name}-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join(format!("{name}.docx"));
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("text.insert", &json!({"text": body})).unwrap();
     s.run("file.save", &json!({"path": path.to_string_lossy()})).unwrap();
     path
@@ -166,7 +166,7 @@ fn docx_on_disk(name: &str, body: &str) -> std::path::PathBuf {
 fn open_focuses_the_files_window_or_reuses_a_blank_one() {
     let path = docx_on_disk("report", "Report");
     let ctx = backend();
-    let mut a = WordApp::new(Session::new(wordcraft_doc::Document::new()), Services::default());
+    let mut a = WordApp::new(Session::new(docufy_doc::Document::new()), Services::default());
     frames(&ctx, &mut a, 2);
     let window = a.windows.shown();
     a.run("file.open", json!({"path": path.to_string_lossy()})).unwrap();
@@ -262,13 +262,13 @@ fn a_request_for_another_windows_document_is_handled_there() {
 #[test]
 fn quitting_from_the_empty_window_asks_about_the_other_windows() {
     let ctx = backend();
-    let mut a = WordApp::new(Session::new(wordcraft_doc::Document::new()), Services::default());
+    let mut a = WordApp::new(Session::new(docufy_doc::Document::new()), Services::default());
     frames(&ctx, &mut a, 2);
     a.run("file.close", json!({})).unwrap();
     assert!(!a.has_document());
     let empty = a.windows.shown();
     let placeholder = a.session.document_id();
-    let other = a.session.with_document(placeholder, |s| s.add_document(wordcraft_doc::Document::new())).unwrap();
+    let other = a.session.with_document(placeholder, |s| s.add_document(docufy_doc::Document::new())).unwrap();
     a.session.with_document(other, |s| s.run("text.insert", &json!({"text": "Agent"}))).unwrap().unwrap();
     frames(&ctx, &mut a, 2);
     assert_eq!((a.window_count(), a.windows.shown()), (2, empty), "the agent's document has a window behind");
@@ -547,7 +547,7 @@ fn blank_beside_a_document() -> (egui::Context, WordApp, Shown, u64) {
         ..Default::default()
     };
     let ctx = backend();
-    let mut a = WordApp::new(Session::new(wordcraft_doc::Document::new()), services);
+    let mut a = WordApp::new(Session::new(docufy_doc::Document::new()), services);
     frames(&ctx, &mut a, 2);
     a.run("file.open", json!({"path": docx_on_disk("first", "First").to_string_lossy()})).unwrap();
     a.run("file.new", json!({})).unwrap();

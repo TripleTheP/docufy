@@ -1,6 +1,6 @@
+use docufy_doc::props::CharProps;
+use docufy_doc::{Document, Path, Pos, StoryRef, Table};
 use serde::{Deserialize, Serialize};
-use wordcraft_doc::props::CharProps;
-use wordcraft_doc::{Document, Path, Pos, StoryRef, Table};
 
 /// A selection: anchor (where it started) and focus (where the caret is).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -141,7 +141,7 @@ pub struct MathEdit {
     /// IME owner; [`Self::session`] is.
     pub at: Pos,
     /// The caret inside it.
-    pub pos: wordcraft_doc::math_edit::MathPos,
+    pub pos: docufy_doc::math_edit::MathPos,
     /// A stable token for this editing session, unique across documents and re-entry.
     pub session: u64,
 }
@@ -160,7 +160,7 @@ pub fn next_math_session() -> Option<u64> {
 /// The byte range of the word the caret at `off` ends or sits in, counting apostrophes and
 /// hyphens as the spelling check does; `None` unless a letter or digit comes before the caret.
 pub(super) fn typed_range(text: &str, off: usize) -> Option<(usize, usize)> {
-    let in_word = |c: char| wordcraft_doc::bidi::is_word_char(c) || matches!(c, '’' | '-');
+    let in_word = |c: char| docufy_doc::bidi::is_word_char(c) || matches!(c, '’' | '-');
     let before = text.get(..off)?;
     let start = before.char_indices().rev().take_while(|&(_, c)| in_word(c)).last().map(|(i, _)| i)?;
     let end = off.saturating_add(text.get(off..)?.chars().take_while(|&c| in_word(c)).map(char::len_utf8).sum::<usize>());

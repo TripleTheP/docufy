@@ -41,8 +41,8 @@ Exact line spacing keeps the run font baseline around tall equations; automatic 
 | List bullets stored as a private-use character (U+E000–U+F8FF) in a font that isn't installed and isn't a mapped symbol-font code: drawn as the level's default bullet (• ○ ▪), not as whatever an installed icon font has at that code | ✅ | `layout::tests::private_use_bullet_no_font_draws_shows_the_levels_default_bullet` (#1683: U+F081 showed Font Awesome's Twitter logo) | — |
 | Indents in characters (`w:firstLineChars`, `w:leftChars`…), measured in the paragraph mark's font size | ✅ | #534, `layout::tests::character_indents_use_the_paragraph_mark_size`; spacing in lines (`w:beforeLines`/`w:afterLines`) uses the stored points (needs the document grid) | — |
 | Line spacing (single, 1.5, double, at least, exactly, multiple), spacing before/after, contextual spacing | 🟡 | Contextual spacing measured in body paragraphs and headers (below), with a four-paragraph table-cell regression; list-label ascent overflow is unscaled by multiple spacing and uses descent for automatic and at-least spacing (#601); a superscript or subscript sizes its line at the full font size and its raise or drop doesn't grow the line, while a `w:position` raise or lowering does (Word for Mac); other line-spacing combinations remain (#108, #135 open) | 3–5 |
-| Kerning only where Kerning for fonts asks for it (`w:kern`, at or above its size) | ✅ | Measured in Word for Windows: no `w:kern` or `w:kern="0"` is unkerned; WordCraft kerned every run, so its lines held more text than Word's. `layout::tests::kerning_follows_kerning_for_fonts_like_word` | — |
-| OpenType ligatures as the document asks (`w14:ligatures`: standard `liga`, contextual `clig`, historical `hlig`, discretional `dlig`, any combination, in runs, styles and defaults) | 🟡 | `layout::tests::ligatures_follow_w14_ligatures`, `ligature_flags_map_to_opentype_features`. Without the property WordCraft keeps drawing standard and contextual ligatures, while Word draws none; the Font dialog's Ligatures choice is still missing | 1 |
+| Kerning only where Kerning for fonts asks for it (`w:kern`, at or above its size) | ✅ | Measured in Word for Windows: no `w:kern` or `w:kern="0"` is unkerned; Docufy kerned every run, so its lines held more text than Word's. `layout::tests::kerning_follows_kerning_for_fonts_like_word` | — |
+| OpenType ligatures as the document asks (`w14:ligatures`: standard `liga`, contextual `clig`, historical `hlig`, discretional `dlig`, any combination, in runs, styles and defaults) | 🟡 | `layout::tests::ligatures_follow_w14_ligatures`, `ligature_flags_map_to_opentype_features`. Without the property Docufy keeps drawing standard and contextual ligatures, while Word draws none; the Font dialog's Ligatures choice is still missing | 1 |
 | Automatic (HTML-style) paragraph spacing (`w:beforeAutospacing`, `w:afterAutospacing`) | ✅ | Measured in Word for Windows: 14 pt at any size, none at the top of the document or a cell or after a cell's last paragraph, the larger of two neighbouring spaces. `layout::tests::automatic_paragraph_spacing_like_word`, `…_drops_at_cell_edges` | — |
 | Paragraph boundaries inside field instructions | ✅ | Synthetic DOCX observed in Word: instruction-only paragraphs add no height; the empty result keeps a line. `docx::fixtures::field_code_spans_paragraphs`, `layout::tests::hidden_marks_take_no_space`. Other field-code display modes remain unverified | — |
 | Widow/orphan control, keep with next, keep lines together, page break before | ✅ | `lib.rs` keep_next/keep_lines; a line holding only a page break stays at the bottom of a full page instead of leaving a blank page (#534); a paragraph ending with a page break keeps its space after on the old page, so the next page starts at the top (compatibility modes 12 to 15, `layout::tests::space_before_at_the_top_of_a_page_like_word`); a three-line paragraph with room for two moves whole (neither a widow nor an orphan is allowed), as in Word | — |
@@ -119,7 +119,7 @@ its full gap to ascent too, so labels now use that shared metric. The table reco
 measurements, not a new native comparison of this rebase. These are
 observations of synthetic documents, not a claim about Word's internal implementation.
 
-| Label / spacing | Word baseline gap | Fixed WordCraft | Before fix |
+| Label / spacing | Word baseline gap | Fixed Docufy | Before fix |
 |---|---:|---:|---:|
 | Roboto 24 pt / single | 25.20 pt | 25.1953 pt | 28.125 pt |
 | Roboto 24 pt / 1.25 | 28.80 pt | 28.7109 pt | 35.1563 pt |
@@ -150,7 +150,7 @@ The model and DOCX reader/writer preserve the flag. Cell layout bypasses context
 suppression only for enabled modes 11/12/14, including cells without table-style formatting.
 Tests: `legacy_table_contextual_spacing_flag_keeps_after_space` and
 `legacy_table_contextual_spacing_flag_is_scoped_to_cells_and_legacy_mode`.
-WordCraft original-open and save/reopen measurements match all 12 controls; reopening
+Docufy original-open and save/reopen measurements match all 12 controls; reopening
 its saved DOCX files in Word retains the same gaps. Word-derived exports stay local under
 ignored `plan/word/`; no Word-generated fixture is committed.
 
@@ -187,7 +187,7 @@ No overall parity estimate changes from these probes.
 
 ## Performance
 
-| Measure | WordCraft | Word | Kind |
+| Measure | Docufy | Word | Kind |
 |---|---|---|---|
 | Cold layout, 188-page document | 61 ms | not measured | measured 2026-10-06 (not re-run this pass) |
 | Relayout after an edit | 1.4 ms | not measured | measured 2026-10-06 |
@@ -420,8 +420,8 @@ layout suite are pending; this is not a new Word/native-IME acceptance claim.
 | 2026-10-10 | trivial | Long display equations wrap across lines (#326) |
 | 2026-10-10 | trivial | AutoFit Contents measures the text (#44) |
 | 2026-10-10 | major | First version: layout and pagination checklist with evidence from `crates/layout`, PRs and issues |
-| 2026-10-16 | trivial | OpenType ligatures follow `w14:ligatures` (none, standard, contextual, historical, discretional and their combinations); without it WordCraft's default stays |
-| 2026-10-21 | trivial | Superscript and subscript lines: Word for Mac sizes them at the full font size and leaves out the raise or drop (an 11pt subscript beside 11pt Arial keeps the 12.675pt line; a line of 24pt subscript is as tall as plain 24pt text); a `w:position` raise or lowering still grows the line. WordCraft added the drop to the line and sized the run at its shrunk size. On a private corpus of 181 Word documents, 26 change: 52 more paragraphs start on Word's page (9 documents better, 4 worse by 1–2 paragraphs, all with substituted fonts or already a page off), page counts unchanged. `layout::tests::superscript_and_subscript_lines_are_as_tall_as_full_size_text` |
+| 2026-10-16 | trivial | OpenType ligatures follow `w14:ligatures` (none, standard, contextual, historical, discretional and their combinations); without it Docufy's default stays |
+| 2026-10-21 | trivial | Superscript and subscript lines: Word for Mac sizes them at the full font size and leaves out the raise or drop (an 11pt subscript beside 11pt Arial keeps the 12.675pt line; a line of 24pt subscript is as tall as plain 24pt text); a `w:position` raise or lowering still grows the line. Docufy added the drop to the line and sized the run at its shrunk size. On a private corpus of 181 Word documents, 26 change: 52 more paragraphs start on Word's page (9 documents better, 4 worse by 1–2 paragraphs, all with substituted fonts or already a page off), page counts unchanged. `layout::tests::superscript_and_subscript_lines_are_as_tall_as_full_size_text` |
 
 Maintenance on 2026-10-12 retains current tracked-deletion, endnote, footer-total, text-box
 and balloon layout while supplying explicit cell identity at every box call. The native Word

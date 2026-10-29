@@ -3,8 +3,8 @@ use super::language::mi_check;
 use super::{Ui, WordApp, json, menu_button};
 
 /// Word's text wrapping styles in menu order: label, model value, `arrange.wrap` parameter.
-pub(crate) const WRAP_STYLES: [(&str, wordcraft_doc::para::Wrap, &str); 7] = {
-    use wordcraft_doc::para::Wrap;
+pub(crate) const WRAP_STYLES: [(&str, docufy_doc::para::Wrap, &str); 7] = {
+    use docufy_doc::para::Wrap;
     [
         ("In Line with Text", Wrap::Inline, "inline"),
         ("Square", Wrap::Square, "square"),
@@ -20,7 +20,7 @@ pub(crate) const WRAP_STYLES: [(&str, wordcraft_doc::para::Wrap, &str); 7] = {
 /// current one checked), then Move with Text / Fix Position on Page for a floating one. The
 /// canvas context menu shows it; the ribbon's Wrap Text button can share it.
 pub(crate) fn wrap_text_items(ui: &mut Ui, app: &mut WordApp) {
-    use wordcraft_engine::cmd::objects::{moves_with_text, selected};
+    use docufy_engine::cmd::objects::{moves_with_text, selected};
     let state = selected(&app.session).and_then(|(_, o)| o.frame().map(|(_, _, f)| (f.wrap, moves_with_text(f))));
     let wrap = state.map(|(w, _)| w);
     for (label, w, v) in WRAP_STYLES {
@@ -28,7 +28,7 @@ pub(crate) fn wrap_text_items(ui: &mut Ui, app: &mut WordApp) {
     }
     ui.separator();
     // An inline object is neither: it's part of the text.
-    let with_text = state.filter(|(w, _)| *w != wordcraft_doc::para::Wrap::Inline).map(|(_, m)| m);
+    let with_text = state.filter(|(w, _)| *w != docufy_doc::para::Wrap::Inline).map(|(_, m)| m);
     mi_check(ui, app, "Move with Text", with_text == Some(true), "arrange.moveWithText", json!({"value": true}));
     mi_check(ui, app, "Fix Position on Page", with_text == Some(false), "arrange.moveWithText", json!({"value": false}));
 }
@@ -37,11 +37,10 @@ pub(crate) fn wrap_text_items(ui: &mut Ui, app: &mut WordApp) {
 /// Arrange › Wrap Text: how the selected object sits in the text, and (Square, Tight, Through)
 /// which of its sides text flows on.
 pub(super) fn wrap_menu(ui: &mut Ui, app: &mut WordApp) {
-    let (wrap, side) = wordcraft_engine::cmd::objects::selected(&app.session)
-        .and_then(|(_, o)| o.frame().map(|(_, _, f)| (f.wrap, f.wrap_text)))
-        .unwrap_or_default();
+    let (wrap, side) =
+        docufy_engine::cmd::objects::selected(&app.session).and_then(|(_, o)| o.frame().map(|(_, _, f)| (f.wrap, f.wrap_text))).unwrap_or_default();
     menu_button(ui, app, crate::widgets::MenuButtonOptions::new("wrapText", Some("Wrap\nText"), "Wrap Text", true, "arrange.wrapText"), |ui, app| {
-        use wordcraft_doc::para::{Wrap, WrapText};
+        use docufy_doc::para::{Wrap, WrapText};
         for (l, w, v) in [
             ("In Line with Text", Wrap::Inline, "inline"),
             ("Square", Wrap::Square, "square"),
@@ -78,7 +77,7 @@ pub(super) fn rotate_menu(ui: &mut Ui, app: &mut WordApp, label: Option<&str>) {
 
 /// Size › Rotation: the selected object's exact angle (a drag of the field is one undo step).
 pub(super) fn rotation_field(ui: &mut Ui, app: &mut WordApp) {
-    let deg0 = wordcraft_engine::cmd::objects::selected(&app.session).and_then(|(_, o)| o.frame().map(|(_, _, f)| f.spin().deg)).unwrap_or(0.0);
+    let deg0 = docufy_engine::cmd::objects::selected(&app.session).and_then(|(_, o)| o.frame().map(|(_, _, f)| f.spin().deg)).unwrap_or(0.0);
     ui.label(egui::RichText::new(tl!("Rotation:")).small());
     let mut deg = deg0;
     let r = ui.add(egui::DragValue::new(&mut deg).speed(1.0).range(-360.0..=360.0).max_decimals(1).suffix("°"));

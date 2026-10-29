@@ -49,6 +49,7 @@ database
 dataset
 daycare
 desktop
+docufy
 download
 downloadable
 downsize
@@ -231,7 +232,6 @@ wifi
 wiki
 wikipedia
 wireframe
-wordcraft
 workaround
 workflow
 workforce

@@ -100,8 +100,8 @@ pub(super) fn context_menu(app: &mut WordApp, ui: &mut Ui) {
                     let _ = app.run("select.word", json!({}));
                     let (a, b) = app.session.sel.ordered();
                     let trimmed = app.session.doc.para_at(&a).and_then(|p| p.text.get(a.off..b.off)).map(|t| t.trim_end().len()).unwrap_or(0);
-                    let end = wordcraft_doc::Pos { off: a.off + trimmed, ..b };
-                    app.session.sel = wordcraft_engine::Selection { anchor: a, focus: end };
+                    let end = docufy_doc::Pos { off: a.off + trimmed, ..b };
+                    app.session.sel = docufy_engine::Selection { anchor: a, focus: end };
                     let _ = app.run("text.insert", json!({"text": w, "raw": true}));
                     ui.close();
                 }
@@ -112,24 +112,24 @@ pub(super) fn context_menu(app: &mut WordApp, ui: &mut Ui) {
     item(ui, app, "Paragraph…", "ui.dialog", json!({"name": "paragraph"}));
     item(ui, app, "Link…", "ui.dialog", json!({"name": "link"}));
     item(ui, app, "New Comment", "review.newComment", json!({}));
-    if !wordcraft_engine::cmd::fields::selected(&app.session).is_empty() {
+    if !docufy_engine::cmd::fields::selected(&app.session).is_empty() {
         ui.separator();
         item(ui, app, tl!("Update Field"), "references.updateFields", json!({}));
         item(ui, app, tl!("Edit Field…"), "fields.setCode", json!({}));
         item(ui, app, tl!("Toggle Field Codes"), "fields.toggleCode", json!({}));
-    } else if wordcraft_engine::cmd::references::caret_in_toc(&app.session) {
+    } else if docufy_engine::cmd::references::caret_in_toc(&app.session) {
         // The TOC field sits in the table's heading; its entries are plain paragraphs.
         ui.separator();
         item(ui, app, tl!("Update Field"), "references.updateToc", json!({}));
         item(ui, app, tl!("Remove Table of Contents"), "references.removeToc", json!({}));
     }
-    let selected_object = wordcraft_engine::cmd::objects::selected(&app.session).is_some();
+    let selected_object = docufy_engine::cmd::objects::selected(&app.session).is_some();
     if selected_object || app.session.sel.focus.path.cell().is_some() {
         item(ui, app, "View Alt Text…", "view.altTextPane", json!({"value": true}));
     }
     // A selected picture, shape, text box or chart: its own items, then Wrap Text (#513).
     let picture = crate::ribbon::has_picture_selected(&app.session);
-    let object = wordcraft_engine::cmd::objects::object_selection(&app.session).is_some();
+    let object = docufy_engine::cmd::objects::object_selection(&app.session).is_some();
     if picture || object {
         ui.separator();
     }
@@ -204,7 +204,7 @@ enum TablePick {
     Table,
 }
 
-fn table_pick(s: &wordcraft_engine::Session) -> TablePick {
+fn table_pick(s: &docufy_engine::Session) -> TablePick {
     if let Some(r) = s.cell_range()
         && let Some(t) = s.doc.table(r.story, &r.table)
     {

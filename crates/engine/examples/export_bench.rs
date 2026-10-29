@@ -1,7 +1,7 @@
 //! Export timing: saves a long generated document (the built-in sample document repeated) through
 //! the real save path, the way `file.save` / `file.export` write it, and prints wall times.
 //!
-//! `cargo run --release -p wordcraft-engine --example export_bench -- [ext] [copies] [runs] [out]`
+//! `cargo run --release -p docufy-engine --example export_bench -- [ext] [copies] [runs] [out]`
 //!
 //! Defaults: `pdf`, 40 copies (about 100 pages), 7 runs. With `out` the last run's bytes are
 //! written there, to compare the output of two builds.
@@ -9,9 +9,9 @@
 use std::sync::Arc;
 use std::time::Instant;
 
-use wordcraft_engine::doc::props::CharProps;
-use wordcraft_engine::doc::{Block, Document};
-use wordcraft_engine::{io, sample};
+use docufy_engine::doc::props::CharProps;
+use docufy_engine::doc::{Block, Document};
+use docufy_engine::{io, sample};
 
 /// The sample document's body `copies` times, each paragraph ending in its copy number so no two
 /// copies share text (as the chapters of a real long document don't).

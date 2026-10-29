@@ -16,7 +16,7 @@ pub(crate) struct Vector {
 
 /// Parses a metafile and embeds its bitmaps. None when the picture has no usable size.
 pub(crate) fn build_vector(bytes: &[u8]) -> Option<Vector> {
-    let mut pic = wordcraft_metafile::parse(bytes).ok()?;
+    let mut pic = docufy_metafile::parse(bytes).ok()?;
     if !pic.has_size() {
         return None;
     }
@@ -77,7 +77,7 @@ pub(crate) fn vector_picture(ex: &mut Exporter, s: &mut Surface, v: &Vector, r: 
                 s.pop();
             }
             PlacedItem::Text { index, tf } => {
-                if let Some(wordcraft_metafile::Item::Text(t)) = v.pic.items.get(index) {
+                if let Some(docufy_metafile::Item::Text(t)) = v.pic.items.get(index) {
                     ex.vector_text(s, t, tf);
                 }
             }
@@ -102,10 +102,10 @@ fn path_from(b: &kurbo::BezPath) -> Option<Path> {
 /// can't fail the whole export).
 pub(crate) fn load_image(data: &Arc<Vec<u8>>) -> Option<Image> {
     // The shared probe also charges what the decoder holds beside its output (#3644).
-    if !wordcraft_geom::picture::probe(data).is_ok_and(|p| p.fits(wordcraft_geom::MAX_DECODED_BYTES)) {
+    if !docufy_geom::picture::probe(data).is_ok_and(|p| p.fits(docufy_geom::MAX_DECODED_BYTES)) {
         return None;
     }
-    load_image_within(data, wordcraft_geom::MAX_DECODED_BYTES)
+    load_image_within(data, docufy_geom::MAX_DECODED_BYTES)
 }
 
 /// [`load_image`] with an explicit RGBA byte budget (a small one in tests).
@@ -128,7 +128,7 @@ pub(crate) fn load_image_within(data: &Arc<Vec<u8>>, budget: u64) -> Option<Imag
         let (w, h) = d.dimensions();
         (w, h, u64::from(d.color_type().bytes_per_pixel()))
     };
-    if !wordcraft_geom::decode_peak_fits(hw, hh, native, budget) {
+    if !docufy_geom::decode_peak_fits(hw, hh, native, budget) {
         return None;
     }
     let dec = reader()?.decode().ok()?;

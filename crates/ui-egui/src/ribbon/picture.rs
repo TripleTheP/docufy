@@ -64,8 +64,8 @@ pub(super) fn picture_format(app: &mut WordApp, ui: &mut Ui) {
                 // pixels, one undo step for the whole drag (same pattern as Size › W/H).
                 // The current value isn't stored anywhere, so the slider reopens where it
                 // was last left for this picture.
-                let (media, off) = match wordcraft_engine::cmd::objects::selected(&app.session) {
-                    Some((pos, wordcraft_doc::para::InlineObject::Image { media, .. })) => (media, pos.off),
+                let (media, off) = match docufy_engine::cmd::objects::selected(&app.session) {
+                    Some((pos, docufy_doc::para::InlineObject::Image { media, .. })) => (media, pos.off),
                     _ => (String::new(), 0),
                 };
                 let key = egui::Id::unique(("picture_transparency", media, off));
@@ -125,8 +125,8 @@ pub(super) fn picture_format(app: &mut WordApp, ui: &mut Ui) {
     });
     // The launcher opens the Size dialog: scale, Lock aspect ratio, the original size (#2573).
     group(ui, "Size", Some("picture.size"), app, |ui, app| {
-        let (media, off, w0, h0, crop0, alt0) = match wordcraft_engine::cmd::objects::selected(&app.session) {
-            Some((pos, wordcraft_doc::para::InlineObject::Image { media, w, h, alt, crop, .. })) => (media, pos.off, w, h, crop, alt),
+        let (media, off, w0, h0, crop0, alt0) = match docufy_engine::cmd::objects::selected(&app.session) {
+            Some((pos, docufy_doc::para::InlineObject::Image { media, w, h, alt, crop, .. })) => (media, pos.off, w, h, crop, alt),
             _ => (String::new(), 0, 0.0, 0.0, [0.0; 4], String::new()),
         };
         // `picture.size` locks the aspect ratio unless told otherwise, so one dimension suffices.

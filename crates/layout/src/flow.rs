@@ -420,7 +420,7 @@ impl<'a> Flow<'a> {
         let only_break = matches!(l.end, LineEnd::PageBreak | LineEnd::ColumnBreak)
             && p.text
                 .get(l.start..l.stop)
-                .is_some_and(|t| t.chars().all(|c| matches!(c, wordcraft_doc::para::PAGE_BREAK | wordcraft_doc::para::COLUMN_BREAK)));
+                .is_some_and(|t| t.chars().all(|c| matches!(c, docufy_doc::para::PAGE_BREAK | docufy_doc::para::COLUMN_BREAK)));
         only_break || (pb.next_starts_page && p.section.is_some() && p.text.is_empty())
     }
 
@@ -540,7 +540,7 @@ impl<'a> Flow<'a> {
         // there (Word).
         let starts_with_break = self.l0 == 1
             && self.pl.lines.first().is_some_and(|l| {
-                self.p.text.get(l.start..l.stop).is_some_and(|t| !t.is_empty() && t.chars().all(|c| c == wordcraft_doc::para::PAGE_BREAK))
+                self.p.text.get(l.start..l.stop).is_some_and(|t| !t.is_empty() && t.chars().all(|c| c == docufy_doc::para::PAGE_BREAK))
             });
         match forced {
             Some(LineEnd::PageBreak) if mark_with_break => {
@@ -605,7 +605,7 @@ fn notes_on_line(ctx: &mut Ctx, pb: &PageBuilder, l: &para::Line, notes: &[(usiz
         if *ci >= l.c0
             && *ci < l.c1
             && !pb.notes.iter().chain(new_notes).any(|x| x.id == *id)
-            && let Some(part) = ctx.doc.parts.get(id).filter(|p| p.kind == wordcraft_doc::PartKind::Footnote)
+            && let Some(part) = ctx.doc.parts.get(id).filter(|p| p.kind == docufy_doc::PartKind::Footnote)
         {
             let blocks = part.blocks.clone();
             let BoxLayout { items, height: h, .. } = layout_box(ctx, BoxInput::other(StoryRef::Part(*id), &blocks, pb.sect.text_width(), 0, None));
@@ -629,11 +629,11 @@ fn notes_limit(pb: &PageBuilder, new_notes: &[NoteBox], line_notes: &[NoteBox]) 
 /// while its text ends above the margin, about half a line lower than when the whole line must
 /// fit). Only the bottom margin takes that leading: a footer taller than the margin, or
 /// footnotes (`free` is false), keep the whole line clear of them.
-fn fit_height(pb: &PageBuilder, l: &para::Line, rp: &wordcraft_doc::resolve::ResolvedPara, free: bool) -> f32 {
+fn fit_height(pb: &PageBuilder, l: &para::Line, rp: &docufy_doc::resolve::ResolvedPara, free: bool) -> f32 {
     let at_margin = pb.bottom >= pb.sect.page_h - pb.sect.margin_bottom - 0.01;
     match rp.line_spacing {
         // `baseline` is from the paragraph's top; the text ends a descent below it.
-        wordcraft_doc::props::LineSpacing::Multiple(m) if m > 1.0 && at_margin && free => (l.baseline - l.top + l.text_desc).clamp(0.0, l.height),
+        docufy_doc::props::LineSpacing::Multiple(m) if m > 1.0 && at_margin && free => (l.baseline - l.top + l.text_desc).clamp(0.0, l.height),
         _ => l.height,
     }
 }
@@ -756,7 +756,7 @@ fn place_para_in_flow(ctx: &mut Ctx, pb: &mut PageBuilder, p: &Paragraph, block:
 /// control boundaries…), or nothing at all: a line of them takes no room after a page break.
 fn only_markers(p: &Paragraph, range: std::ops::Range<usize>) -> bool {
     let Some(text) = p.text.get(range.clone()) else { return false };
-    text.char_indices().all(|(i, c)| c == wordcraft_doc::para::OBJ && p.object_at(range.start + i).is_some_and(InlineObject::is_marker))
+    text.char_indices().all(|(i, c)| c == docufy_doc::para::OBJ && p.object_at(range.start + i).is_some_and(InlineObject::is_marker))
 }
 
 /// The outline of the body for an Outline view pass.
@@ -839,7 +839,7 @@ pub(crate) fn place_outline_para(ctx: &mut Ctx, pb: &mut PageBuilder, p: &Paragr
 
 /// How far a paragraph with mirrored indents (`w:mirrorIndents`) moves right on page `number`:
 /// its left and right indents are the inside and outside ones, which swap sides on even pages.
-fn mirror_shift(rp: &wordcraft_doc::resolve::ResolvedPara, number: u32, web: bool) -> f32 {
+fn mirror_shift(rp: &docufy_doc::resolve::ResolvedPara, number: u32, web: bool) -> f32 {
     if !rp.mirror_indents || web || !number.is_multiple_of(2) {
         return 0.0;
     }
@@ -852,7 +852,7 @@ fn mirror_shift(rp: &wordcraft_doc::resolve::ResolvedPara, number: u32, web: boo
 /// paragraph. Same tests as the spacing between paragraphs in `place_para_in_flow`: contextual
 /// spacing removes this paragraph's space after only when this one asks for it, and the next
 /// counts as a list item when it gets a label.
-fn space_after_kept(ctx: &Ctx, block: usize, rp: &wordcraft_doc::resolve::ResolvedPara, listed: bool) -> f32 {
+fn space_after_kept(ctx: &Ctx, block: usize, rp: &docufy_doc::resolve::ResolvedPara, listed: bool) -> f32 {
     let after = rp.space_after.max(0.0);
     if after <= 0.0 {
         return 0.0;

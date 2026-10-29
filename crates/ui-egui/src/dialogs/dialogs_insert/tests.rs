@@ -1,7 +1,7 @@
 use super::*;
 
 fn app() -> WordApp {
-    WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("one\ntwo")), Default::default())
+    WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("one\ntwo")), Default::default())
 }
 
 fn drop_cap_form(a: &mut WordApp) -> Option<DropCapForm> {
@@ -34,7 +34,7 @@ fn drop_cap_dialog_prefills_and_applies() {
     let props = |a: &WordApp| a.session.doc.body.first().and_then(|b| b.as_para()).map(|p| p.props.clone()).unwrap_or_default();
     let p = props(&a);
     assert_eq!((p.drop_cap, p.drop_cap_margin, p.drop_cap_font.as_deref()), (Some(4), Some(true), None));
-    assert!((p.drop_cap_distance.unwrap_or_default() - wordcraft_geom::PT_PER_CM).abs() < 0.01, "1 cm: {:?}", p.drop_cap_distance);
+    assert!((p.drop_cap_distance.unwrap_or_default() - docufy_geom::PT_PER_CM).abs() < 0.01, "1 cm: {:?}", p.drop_cap_distance);
     let mut f = drop_cap_form(&mut a).expect("the dialog");
     assert_eq!((f.position.as_str(), f.lines), ("margin", 4));
     assert!((f.distance - 1.0).abs() < 0.01, "{} cm", f.distance);
@@ -44,7 +44,7 @@ fn drop_cap_dialog_prefills_and_applies() {
     let p = props(&a);
     assert_eq!((p.drop_cap, p.drop_cap_margin, p.drop_cap_font.as_deref()), (Some(4), None, Some("Liberation Mono")));
     assert_eq!(drop_cap_form(&mut a).map(|f| f.font), Some("Liberation Mono".to_string()));
-    assert_eq!(wordcraft_engine::cmd::insert::drop_cap_state(&a.session).position, "dropped", "the menu checks Dropped");
+    assert_eq!(docufy_engine::cmd::insert::drop_cap_state(&a.session).position, "dropped", "the menu checks Dropped");
 
     // Where Word greys Drop Cap out, there is no dialog.
     a.run("caret.docEnd", json!({})).unwrap();
@@ -72,14 +72,14 @@ fn columns_dialog_applies_unequal_columns_in_one_step() {
     f.separator = true;
     let undo_before = a.session.undo_depth();
     a.run("layout.columns", f.params()).unwrap();
-    let c = wordcraft_engine::cmd::page::sect(&a.session).columns;
+    let c = docufy_engine::cmd::page::sect(&a.session).columns;
     assert_eq!((c.count, c.separator, c.widths.len()), (2, true, 2));
     assert_eq!(a.session.undo_depth(), undo_before + 1, "one undo step");
     // The dialog reopens with what was applied.
     let again = ColumnsForm::read(&a);
     assert!(!again.equal && again.separator && again.cols.len() == 2);
     a.run("edit.undo", json!({})).unwrap();
-    assert_eq!(wordcraft_engine::cmd::page::sect(&a.session).columns.count, 1);
+    assert_eq!(docufy_engine::cmd::page::sect(&a.session).columns.count, 1);
 }
 
 /// With text selected, More Columns applies to the selected text by default, as in Word
@@ -108,7 +108,7 @@ fn symbol_dialog_inserts_with_its_font() {
     assert_eq!(p, json!({"char": "\u{2665}", "font": "DejaVu Sans"}));
     a.run("insert.symbol", p).unwrap();
     remember_symbol(&mut a, "\u{2665}", "DejaVu Sans");
-    assert!(a.session.doc.plain_text(wordcraft_doc::StoryRef::Body).starts_with('\u{2665}'));
+    assert!(a.session.doc.plain_text(docufy_doc::StoryRef::Body).starts_with('\u{2665}'));
     assert_eq!(a.ui.recent_symbols.first().map(|r| r.font.as_str()), Some("DejaVu Sans"));
     assert_eq!(subset_of('\u{2665}'), Some("Miscellaneous Symbols"));
     // (normal text) inserts without a font.

@@ -3,14 +3,14 @@
 //! {"button": n}` to answer a question Zotero is asking (agents; people click the dialog).
 //!
 //! A command runs on a background thread that holds the socket to Zotero. Each call Zotero makes
-//! is handed to the UI thread, answered against the session by [`wordcraft_zotero::Bridge`] in
+//! is handed to the UI thread, answered against the session by [`docufy_zotero::Bridge`] in
 //! [`poll`], and the answer goes back to the thread. Zotero's questions (`Document_displayAlert`)
 //! become a dialog; the thread waits until the user answers.
 
 use std::sync::mpsc::{Receiver, Sender};
 
+use docufy_zotero::{Bridge, Call, Command, Host};
 use serde_json::{Value, json};
-use wordcraft_zotero::{Bridge, Call, Command, Host};
 
 use crate::WordApp;
 
@@ -31,10 +31,10 @@ struct Alert {
 #[derive(Default)]
 pub struct ZoteroLink {
     /// Where Zotero listens (default `127.0.0.1:23116`).
-    pub options: wordcraft_zotero::client::Options,
+    pub options: docufy_zotero::client::Options,
     bridge: Bridge,
     calls: Option<Receiver<Pending>>,
-    done: Option<Receiver<Result<wordcraft_zotero::Outcome, String>>>,
+    done: Option<Receiver<Result<docufy_zotero::Outcome, String>>>,
     alert: Option<Alert>,
     /// The command in flight.
     pub busy: Option<Command>,
@@ -96,7 +96,7 @@ fn status(app: &WordApp) -> Value {
 
 #[cfg(target_arch = "wasm32")]
 fn start(_app: &mut WordApp, _cmd: Command, _ctx: Option<egui::Context>) -> Result<Value, String> {
-    Err("Zotero works with the WordCraft desktop app".into())
+    Err("Zotero works with the Docufy desktop app".into())
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -111,15 +111,15 @@ fn start(app: &mut WordApp, cmd: Command, ctx: Option<egui::Context>) -> Result<
     let wake = ctx.clone();
     let opts = app.zotero.options.clone();
     let spawned = std::thread::Builder::new().name("zotero".into()).spawn(move || {
-        let r = wordcraft_zotero::client::run_command(&opts, cmd, &mut |call| {
+        let r = docufy_zotero::client::run_command(&opts, cmd, &mut |call| {
             let (tx, rx) = channel();
             if call_tx.send(Pending { call: call.clone(), reply: tx }).is_err() {
-                return Err("WordCraft closed the document".into());
+                return Err("Docufy closed the document".into());
             }
             if let Some(c) = &wake {
                 c.request_repaint();
             }
-            rx.recv().unwrap_or_else(|_| Err("WordCraft closed the document".into()))
+            rx.recv().unwrap_or_else(|_| Err("Docufy closed the document".into()))
         });
         let _ = done_tx.send(r.map_err(|e| e.to_string()));
         if let Some(c) = &wake {
@@ -182,7 +182,7 @@ pub fn poll(app: &mut WordApp, ctx: &egui::Context) {
         app.zotero.methods.push(p.call.method.clone());
         if app.session.document_id() != app.zotero.document {
             // New or Open replaced the document this command started in: its edits must not land in the new one.
-            let _ = p.reply.send(Err("WordCraft replaced the document this command started in".into()));
+            let _ = p.reply.send(Err("Docufy replaced the document this command started in".into()));
             continue;
         }
         let rev = app.session.rev();
@@ -272,10 +272,10 @@ pub fn show_alert(app: &mut WordApp, ctx: &egui::Context) {
 mod tests {
     use std::net::TcpListener;
 
+    use docufy_doc::{Document, StoryRef};
+    use docufy_engine::Session;
+    use docufy_zotero::wire;
     use serde_json::{Value, json};
-    use wordcraft_doc::{Document, StoryRef};
-    use wordcraft_engine::Session;
-    use wordcraft_zotero::wire;
 
     use crate::{Services, WordApp};
 
@@ -319,7 +319,7 @@ mod tests {
             json!(["Document_complete", [1]]),
         ]);
         let mut app = WordApp::new(Session::new(Document::from_text("Cite: ")), Services::default());
-        app.session.sel = wordcraft_engine::Selection::caret(wordcraft_doc::Pos::body(0, 6));
+        app.session.sel = docufy_engine::Selection::caret(docufy_doc::Pos::body(0, 6));
         app.zotero.options.addr = addr;
         let ctx = egui::Context::default();
         app.ctx = Some(ctx.clone());

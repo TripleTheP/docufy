@@ -4,8 +4,8 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use wordcraft_doc::para::{InlineObject, OBJ};
-use wordcraft_doc::{Document, StoryRef};
+use docufy_doc::para::{InlineObject, OBJ};
+use docufy_doc::{Document, StoryRef};
 
 /// Longest quoted anchor text (characters).
 const MAX_QUOTE: usize = 200;

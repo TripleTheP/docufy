@@ -4,14 +4,14 @@
 use std::collections::VecDeque;
 use std::sync::Arc;
 
-use wordcraft_doc::math::MathJc;
-use wordcraft_doc::numbering::{Level, LevelSuffix};
-use wordcraft_doc::para::{COLUMN_BREAK, InlineObject, LINE_BREAK, NoteKind, OBJ, PAGE_BREAK, PTabAlign, PTabBase, RubyAlign, SOFT_HYPHEN, WrapText};
-use wordcraft_doc::props::{Align, CharProps, LineSpacing, ParaProps, TabAlign, TabLeader, TabStop};
-use wordcraft_doc::resolve::{ResolvedChar, ResolvedPara};
-use wordcraft_doc::section::NumFormat;
-use wordcraft_doc::{Document, Paragraph};
-use wordcraft_fonts::FaceRef;
+use docufy_doc::math::MathJc;
+use docufy_doc::numbering::{Level, LevelSuffix};
+use docufy_doc::para::{COLUMN_BREAK, InlineObject, LINE_BREAK, NoteKind, OBJ, PAGE_BREAK, PTabAlign, PTabBase, RubyAlign, SOFT_HYPHEN, WrapText};
+use docufy_doc::props::{Align, CharProps, LineSpacing, ParaProps, TabAlign, TabLeader, TabStop};
+use docufy_doc::resolve::{ResolvedChar, ResolvedPara};
+use docufy_doc::section::NumFormat;
+use docufy_doc::{Document, Paragraph};
+use docufy_fonts::FaceRef;
 
 use crate::NumeralMode;
 use crate::fields::{FIELD_SHADING, FieldCtx, field_code_text, field_text_on, reference_link};
@@ -79,7 +79,7 @@ pub struct ParaLayout {
     /// Ruby (Phonetic Guide) text over base-text clusters, in cluster order.
     pub rubies: Vec<RubyLayout>,
     /// Display equations (on lines of their own): cluster index and justification.
-    pub displays: Vec<(usize, wordcraft_doc::math::MathJc)>,
+    pub displays: Vec<(usize, docufy_doc::math::MathJc)>,
     /// Positional tabs (laid out as tab clusters): cluster index, alignment, base and leader.
     pub ptabs: Vec<(usize, PTabAlign, PTabBase, TabLeader)>,
     /// Byte ranges of the text laid out as nothing ([`left_out`]): hidden text that is not shown,

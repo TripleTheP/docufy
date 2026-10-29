@@ -1,9 +1,9 @@
 [package]
-name = "wordcraft-engine"
+name = "docufy-engine"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "WordCraft engine: session, selection, undo, the command registry (every action is a command), Word's command catalog, file I/O dispatch"
+description = "Docufy engine: session, selection, undo, the command registry (every action is a command), Word's command catalog, file I/O dispatch"
 
 [lints]
 workspace = true
@@ -15,16 +15,16 @@ workspace = true
 test-support = []
 
 [dependencies]
-wordcraft-geom = { workspace = true, features = ["image"] }
-wordcraft-doc = { workspace = true }
-wordcraft-fonts = { workspace = true }
-wordcraft-layout = { workspace = true }
-wordcraft-render = { workspace = true }
-wordcraft-proof = { workspace = true }
-wordcraft-docx = { workspace = true }
-wordcraft-docbin = { workspace = true }
-wordcraft-pdf = { workspace = true }
-wordcraft-formats = { workspace = true }
+docufy-geom = { workspace = true, features = ["image"] }
+docufy-doc = { workspace = true }
+docufy-fonts = { workspace = true }
+docufy-layout = { workspace = true }
+docufy-render = { workspace = true }
+docufy-proof = { workspace = true }
+docufy-docx = { workspace = true }
+docufy-docbin = { workspace = true }
+docufy-pdf = { workspace = true }
+docufy-formats = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

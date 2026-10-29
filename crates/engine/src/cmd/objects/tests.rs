@@ -9,15 +9,15 @@ fn png(w: u32, h: u32) -> Vec<u8> {
     b
 }
 /// The laid-out area of the only picture or shape (not a text box).
-fn object_area(s: &mut Session) -> wordcraft_layout::hit::ObjectHit {
+fn object_area(s: &mut Session) -> docufy_layout::hit::ObjectHit {
     s.layout().find_object(0, |o| o.text_box.is_none()).unwrap()
 }
 
 /// What a click and a handle or body drag do in the editor (#142, #82): hit-test the object,
 /// select it, then resize and move it with `arrange.bounds`.
 fn click_resize_and_drag(insert: &str, params: Value) {
-    use wordcraft_doc::para::Wrap;
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    use docufy_doc::para::Wrap;
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("text.insert", &json!({"text": "Some text "})).unwrap();
     s.run(insert, &params).unwrap();
     assert!(selected(&s).is_some(), "{insert}: a new object is selected");
@@ -29,7 +29,7 @@ fn click_resize_and_drag(insert: &str, params: Value) {
     let (cx, cy) = (o.rect.x + o.rect.w / 2.0, o.rect.y + o.rect.h / 2.0);
     let hit = s.layout().object_at(o.page, cx, cy, 4.0).unwrap_or_else(|| panic!("{insert}: click misses it"));
     assert_eq!(hit.pos(), o.pos());
-    let end = Pos { off: o.off + wordcraft_doc::para::OBJ.len_utf8(), ..o.pos() };
+    let end = Pos { off: o.off + docufy_doc::para::OBJ.len_utf8(), ..o.pos() };
     s.run("select.range", &json!({"anchor": o.pos(), "focus": end})).unwrap();
     assert!(selected(&s).is_some(), "{insert}: not selected");
     // Resize by a handle: stays inline.
@@ -47,7 +47,7 @@ fn click_resize_and_drag(insert: &str, params: Value) {
     let n = object_area(&mut s).rect;
     assert!((n.x - 256.0).abs() < 0.01 && (n.y - 298.0).abs() < 0.01, "{insert}: {n:?}");
     // The text around it is untouched, and each change is one undo step.
-    assert_eq!(s.doc.plain_text(StoryRef::Body).replace(wordcraft_doc::para::OBJ, ""), "Some text  more text");
+    assert_eq!(s.doc.plain_text(StoryRef::Body).replace(docufy_doc::para::OBJ, ""), "Some text  more text");
     s.run("edit.undo", &json!({})).unwrap();
     assert_eq!((object_area(&mut s).rect.x, object_area(&mut s).rect.y), (250.0, 300.0), "{insert}");
 }
@@ -56,12 +56,12 @@ fn click_resize_and_drag(insert: &str, params: Value) {
 /// is untouched, and it is one undo step.
 #[test]
 fn copy_to_drops_a_copy_and_leaves_the_original() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("text.insert", &json!({"text": "Some text "})).unwrap();
     s.run("insert.shape", &json!({"kind": "rectangle"})).unwrap();
     s.run("arrange.bounds", &json!({"width": 100, "height": 60, "page": 0, "x": 100, "y": 200})).unwrap();
     s.clipboard_text = "keep".into();
-    let count = |s: &Session| s.doc.para(StoryRef::Body, &wordcraft_doc::Path::top(0)).unwrap().objects.len();
+    let count = |s: &Session| s.doc.para(StoryRef::Body, &docufy_doc::Path::top(0)).unwrap().objects.len();
     assert_eq!(count(&s), 1);
     s.run("arrange.copyTo", &json!({"page": 0, "x": 300, "y": 200})).unwrap();
     assert_eq!(count(&s), 2);
@@ -79,8 +79,8 @@ fn copy_to_drops_a_copy_and_leaves_the_original() {
 /// The body's top-level paragraphs, an object's character shown as ▣.
 fn body_text(s: &Session) -> String {
     (0..2)
-        .filter_map(|i| s.doc.para(StoryRef::Body, &wordcraft_doc::Path::top(i)))
-        .map(|p| p.text.replace(wordcraft_doc::para::OBJ, "▣"))
+        .filter_map(|i| s.doc.para(StoryRef::Body, &docufy_doc::Path::top(i)))
+        .map(|p| p.text.replace(docufy_doc::para::OBJ, "▣"))
         .collect::<Vec<_>>()
         .join("\n")
 }
@@ -88,7 +88,7 @@ fn body_text(s: &Session) -> String {
 /// Two paragraphs, the second starting with an inline picture (bold, so its formatting can be
 /// followed), selected.
 fn inline_picture_session() -> Session {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("text.insert", &json!({"text": "First paragraph."})).unwrap();
     s.run("text.newParagraph", &json!({})).unwrap();
     s.run("format.bold", &json!({})).unwrap();
@@ -97,7 +97,7 @@ fn inline_picture_session() -> Session {
     s.run("format.bold", &json!({})).unwrap();
     s.run("text.insert", &json!({"text": " second paragraph."})).unwrap();
     let pic = Pos::body(1, 0);
-    s.run("select.range", &json!({"anchor": pic, "focus": Pos { off: pic.off + wordcraft_doc::para::OBJ.len_utf8(), ..pic.clone() }})).unwrap();
+    s.run("select.range", &json!({"anchor": pic, "focus": Pos { off: pic.off + docufy_doc::para::OBJ.len_utf8(), ..pic.clone() }})).unwrap();
     assert!(selected(&s).is_some_and(|(_, o)| !o.is_floating()));
     s
 }
@@ -129,7 +129,7 @@ fn an_inline_picture_dragged_into_the_text_stays_inline() {
     // Dropped on itself (either side): nothing changes.
     let here = selected(&s).unwrap().0;
     s.run("arrange.bounds", &json!({"to": here})).unwrap();
-    s.run("arrange.bounds", &json!({"to": Pos { off: here.off + wordcraft_doc::para::OBJ.len_utf8(), ..here.clone() }})).unwrap();
+    s.run("arrange.bounds", &json!({"to": Pos { off: here.off + docufy_doc::para::OBJ.len_utf8(), ..here.clone() }})).unwrap();
     assert_eq!(text(&s), "First paragraph.\n▣ second paragraph.");
     assert_eq!(selected(&s).unwrap().0, here);
 }
@@ -192,7 +192,7 @@ fn pictures_can_be_clicked_resized_and_dragged() {
 fn typing_after_an_inserted_picture_keeps_it() {
     let data = super::super::insert::base64_encode(&png(20, 10));
     for (id, params) in [("insert.picture", json!({"data": data, "width": 100})), ("insert.icon", json!({"id": "sun"}))] {
-        let mut s = Session::new(wordcraft_doc::Document::new());
+        let mut s = Session::new(docufy_doc::Document::new());
         s.run("text.insert", &json!({"text": "x"})).unwrap();
         s.run("text.newParagraph", &json!({})).unwrap();
         s.run(id, &params).unwrap();
@@ -206,7 +206,7 @@ fn typing_after_an_inserted_picture_keeps_it() {
             .body
             .iter()
             .filter_map(|b| match &**b {
-                wordcraft_doc::Block::Para(p) => Some(p.text.replace(wordcraft_doc::para::OBJ, "#")),
+                docufy_doc::Block::Para(p) => Some(p.text.replace(docufy_doc::para::OBJ, "#")),
                 _ => None,
             })
             .collect();
@@ -221,7 +221,7 @@ fn typing_after_an_inserted_picture_keeps_it() {
 #[test]
 fn two_inserted_pictures_in_a_row_are_both_kept() {
     let data = super::super::insert::base64_encode(&png(20, 10));
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("insert.picture", &json!({"data": data})).unwrap();
     s.run("insert.picture", &json!({"data": data})).unwrap();
     assert_eq!(s.run("arrange.selectionPane", &json!({})).unwrap().as_array().map(Vec::len), Some(2));
@@ -233,20 +233,20 @@ fn two_inserted_pictures_in_a_row_are_both_kept() {
 #[test]
 fn shapes_inserted_in_a_row_are_all_kept_and_keep_selected_text() {
     let objects = |s: &mut Session| s.run("arrange.selectionPane", &json!({})).unwrap().as_array().map(Vec::len);
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     for kind in ["rectangle", "ellipse", "star"] {
         s.run("insert.shape", &json!({"kind": kind})).unwrap();
     }
     assert_eq!(objects(&mut s), Some(3));
 
-    let mut s = Session::new(wordcraft_doc::Document::from_text("Kiln room"));
+    let mut s = Session::new(docufy_doc::Document::from_text("Kiln room"));
     s.run("select.text", &json!({"text": "Kiln"})).unwrap();
     s.run("insert.shape", &json!({"kind": "rectangle"})).unwrap();
     let text = s.doc.plain_text(StoryRef::Body);
     assert!(text.starts_with("Kiln") && text.ends_with(" room"), "{text:?}");
     assert_eq!(objects(&mut s), Some(1));
     let (a, b) = s.sel.ordered();
-    let obj = wordcraft_doc::para::OBJ.len_utf8();
+    let obj = docufy_doc::para::OBJ.len_utf8();
     assert_eq!((a.off, b.off), (4, 4 + obj), "the new shape, after the text, is selected");
 }
 
@@ -255,9 +255,9 @@ fn shapes_inserted_in_a_row_are_all_kept_and_keep_selected_text() {
 #[test]
 fn an_inserted_picture_replaces_a_selected_picture() {
     let data = super::super::insert::base64_encode(&png(20, 10));
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("insert.picture", &json!({"data": data})).unwrap();
-    s.sel = crate::Selection { anchor: Pos::body(0, 0), focus: Pos::body(0, wordcraft_doc::para::OBJ.len_utf8()) };
+    s.sel = crate::Selection { anchor: Pos::body(0, 0), focus: Pos::body(0, docufy_doc::para::OBJ.len_utf8()) };
     s.run("insert.picture", &json!({"data": data})).unwrap();
     assert_eq!(s.run("arrange.selectionPane", &json!({})).unwrap().as_array().map(Vec::len), Some(1));
 }
@@ -281,7 +281,7 @@ fn header_only_png(w: u32, h: u32) -> Vec<u8> {
 #[test]
 fn picture_edits_refuse_an_over_budget_header_before_decoding() {
     // Inserting reads the size only; every edit then refuses it from the header (#3644, #3647).
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("insert.picture", &json!({"data": super::super::insert::base64_encode(&header_only_png(20_000, 20_000))})).unwrap();
     let media = s.doc.media.len();
     for (id, v) in [
@@ -352,7 +352,7 @@ fn remove_background_keeps_a_small_stack() {
 fn picture_styles_and_borders_check_the_size_they_draw() {
     let mut thin = Vec::new();
     image::GrayImage::new(1, 2_000_000).write_to(&mut std::io::Cursor::new(&mut thin), image::ImageFormat::Png).unwrap();
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("insert.picture", &json!({"data": super::super::insert::base64_encode(&thin)})).unwrap();
     let media = s.doc.media.len();
     for (id, v) in [
@@ -370,7 +370,7 @@ fn picture_styles_and_borders_check_the_size_they_draw() {
 
 #[test]
 fn picture_pipeline() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     let data = super::super::insert::base64_encode(&png(20, 10));
     s.run("insert.picture", &json!({"data": data})).unwrap();
     assert!(selected(&s).is_some());
@@ -405,7 +405,7 @@ fn picture_pipeline() {
 /// A `sharpen` too small to be a normal blur width must not reach the blur, which asserts on it.
 #[test]
 fn a_tiny_sharpen_value_does_not_panic() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     let data = super::super::insert::base64_encode(&png(20, 10));
     s.run("insert.picture", &json!({"data": data})).unwrap();
     for sharpen in [-1e-40_f64, -1e-45, -1e-38, 1e-40, -1e-30, 0.0, -0.5] {
@@ -418,7 +418,7 @@ fn a_tiny_sharpen_value_does_not_panic() {
 /// re-set the same way: brightness 0 and saturation 100 restore the original.
 #[test]
 fn transparency_is_absolute_from_the_original() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     let data = super::super::insert::base64_encode(&png(20, 10));
     s.run("insert.picture", &json!({"data": data})).unwrap();
     let rgba = |s: &Session| {
@@ -460,7 +460,7 @@ fn transparency_is_absolute_from_the_original() {
 #[test]
 fn picture_styles_borders_and_effects_replace_the_last_one() {
     let picture = || {
-        let mut s = Session::new(wordcraft_doc::Document::new());
+        let mut s = Session::new(docufy_doc::Document::new());
         s.run("insert.picture", &json!({"data": super::super::insert::base64_encode(&png(80, 40))})).unwrap();
         s
     };
@@ -511,8 +511,8 @@ fn picture_styles_borders_and_effects_replace_the_last_one() {
 /// vertically without moving it; one undo step each; an inline picture can't.
 #[test]
 fn move_with_text_and_fix_position_keep_the_picture_in_place() {
-    use wordcraft_doc::para::Anchor;
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    use docufy_doc::para::Anchor;
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("text.insert", &json!({"text": "First paragraph\nSecond"})).unwrap();
     let data = super::super::insert::base64_encode(&png(20, 10));
     s.run("insert.picture", &json!({"data": data, "width": 100})).unwrap();
@@ -540,7 +540,7 @@ fn move_with_text_and_fix_position_keep_the_picture_in_place() {
 /// angle is normalised; each is one undo step; the rotated frame takes its rotated room.
 #[test]
 fn rotate_and_flip_turn_the_frame_not_the_pixels() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     let data = super::super::insert::base64_encode(&png(20, 10));
     s.run("insert.picture", &json!({"data": data, "width": 200})).unwrap();
     let (pos, before) = selected(&s).unwrap();
@@ -561,13 +561,13 @@ fn rotate_and_flip_turn_the_frame_not_the_pixels() {
     assert_eq!(spin(&s).deg, 270.0);
     // A flip mirrors the page view: the angle reverses.
     s.run("arrange.rotate", &json!({"direction": "flipHorizontal"})).unwrap();
-    assert_eq!(spin(&s), wordcraft_geom::Spin::new(90.0, true, false));
+    assert_eq!(spin(&s), docufy_geom::Spin::new(90.0, true, false));
     s.run("arrange.rotation", &json!({"degrees": -30.0})).unwrap();
-    assert_eq!(spin(&s), wordcraft_geom::Spin::new(330.0, true, false));
+    assert_eq!(spin(&s), docufy_geom::Spin::new(330.0, true, false));
     assert!(s.run("arrange.rotation", &json!({"degrees": "NaN"})).is_err());
     assert!(s.run("arrange.rotate", &json!({"direction": "sideways"})).is_err());
     s.run("edit.undo", &json!({})).unwrap();
-    assert_eq!(spin(&s), wordcraft_geom::Spin::new(90.0, true, false));
+    assert_eq!(spin(&s), docufy_geom::Spin::new(90.0, true, false));
     // Shapes and text boxes turn too.
     s.run("select.collapse", &json!({"end": true})).unwrap();
     s.run("insert.shape", &json!({"kind": "textBox"})).unwrap();
@@ -590,7 +590,7 @@ fn near(a: [f32; 4], b: [f32; 4]) -> bool {
 /// selected, so Group regroups them.
 #[test]
 fn group_moves_as_one_and_ungroups() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("document.setText", &json!({"text": "one\ntwo\nthree\nfour"})).unwrap();
     s.sel = Selection::caret(s.doc.start_of(StoryRef::Body));
     s.run("insert.shape", &json!({"kind": "rectangle", "width": 100, "height": 50})).unwrap();
@@ -617,7 +617,7 @@ fn group_moves_as_one_and_ungroups() {
     let members: Vec<[f32; 4]> = obj.group_rects(x, y, w, h).into_iter().map(|(r, _)| r).collect();
     assert!(near(members[0], [120.0, 160.0, 100.0, 50.0]) && near(members[1], [320.0, 210.0, 60.0, 40.0]), "{members:?}");
     // Drawn there too: the page shows both shapes inside the group's frame.
-    let shapes = s.layout().pages[0].items.iter().filter(|i| matches!(i, wordcraft_layout::Placed::Shape { .. })).count();
+    let shapes = s.layout().pages[0].items.iter().filter(|i| matches!(i, docufy_layout::Placed::Shape { .. })).count();
     assert_eq!(shapes, 2);
 
     // Ungroup: two shapes again, where the group showed them, both still selected.
@@ -639,14 +639,14 @@ fn group_moves_as_one_and_ungroups() {
 fn pick_objects(s: &mut Session, at: &[usize]) {
     let list = all_objects(s);
     let first = &list[at[0]].0;
-    s.sel = Selection { anchor: first.clone(), focus: Pos { off: first.off + wordcraft_doc::para::OBJ.len_utf8(), ..first.clone() } };
+    s.sel = Selection { anchor: first.clone(), focus: Pos { off: first.off + docufy_doc::para::OBJ.len_utf8(), ..first.clone() } };
     s.also_selected = at[1..].iter().map(|i| list[*i].0.clone()).collect();
 }
 
 #[test]
 fn group_refuses_more_than_the_child_cap() {
-    let cap = wordcraft_doc::para::MAX_GROUP_CHILDREN;
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let cap = docufy_doc::para::MAX_GROUP_CHILDREN;
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("document.setText", &json!({"text": "one"})).unwrap();
     s.sel = Selection::caret(s.doc.start_of(StoryRef::Body));
     for _ in 0..=cap {
@@ -682,7 +682,7 @@ fn group_refuses_more_than_the_child_cap() {
 /// Page 1 as exported (`file.exportPng` at scale 1), its pixels.
 fn page_pixels(s: &Session) -> Vec<u8> {
     let l = s.export_layout();
-    wordcraft_render::render_page(&s.doc, &l.pages[0], 1.0, &Default::default()).pixels
+    docufy_render::render_page(&s.doc, &l.pages[0], 1.0, &Default::default()).pixels
 }
 
 /// How many pixels of two renders clearly differ (not just in antialiasing).
@@ -694,7 +694,7 @@ fn pixels_differing(a: &[u8], b: &[u8]) -> usize {
 /// A rectangle at (100, 100) and an arrow at (250, 100), both 80 × 40, on a blank page; the
 /// arrow turned `arrow_deg`.
 fn rectangle_and_arrow(arrow_deg: f32) -> Session {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("insert.shape", &json!({"kind": "rectangle", "width": 80, "height": 40})).unwrap();
     s.run("arrange.bounds", &json!({"x": 100, "y": 100})).unwrap();
     s.run("select.collapse", &json!({"end": true})).unwrap();
@@ -726,7 +726,7 @@ fn group_keeps_a_rotated_members_orientation() {
         assert_eq!(float.rot, 0.0, "the group itself is unturned");
         assert!(pixels_differing(&before, &page_pixels(&s)) < 20, "{deg}°: grouping changes nothing on the page");
         // Saved and reopened, it looks the same.
-        let back = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+        let back = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
         let reopened = Session::new(back);
         assert!(pixels_differing(&before, &page_pixels(&reopened)) < 20, "{deg}°: reopened");
         // Undo gives back the two objects.
@@ -740,7 +740,7 @@ fn group_keeps_a_rotated_members_orientation() {
 #[test]
 fn size_resizes_a_group() {
     let grouped = || {
-        let mut s = Session::new(wordcraft_doc::Document::new());
+        let mut s = Session::new(docufy_doc::Document::new());
         s.run("insert.shape", &json!({"kind": "rectangle", "width": 80, "height": 40})).unwrap();
         s.run("arrange.bounds", &json!({"x": 100, "y": 100})).unwrap();
         s.run("select.collapse", &json!({"end": true})).unwrap();
@@ -796,7 +796,7 @@ fn ungroup_keeps_a_rotated_groups_arrangement() {
 
 #[test]
 fn picture_alt_and_crop_round_trip() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     let data = super::super::insert::base64_encode(&png(20, 10));
     s.run("insert.picture", &json!({"data": data})).unwrap();
     s.run("picture.altText", &json!({"text": "A red box"})).unwrap();
@@ -812,7 +812,7 @@ fn picture_alt_and_crop_round_trip() {
 /// Pictures doesn't change what the original is. Only a picture has one.
 #[test]
 fn picture_size_counts_from_the_original() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     let data = super::super::insert::base64_encode(&png(40, 20));
     s.run("insert.picture", &json!({"data": data})).unwrap();
     let size = |s: &Session| obj_size(&selected(s).unwrap().1);
@@ -820,7 +820,7 @@ fn picture_size_counts_from_the_original() {
     s.run("picture.size", &json!({"width": 300.0, "height": 100.0, "lockAspect": false})).unwrap();
     s.run("picture.compress", &json!({"maxPixels": 32})).unwrap();
     let Some((_, InlineObject::Image { media, .. })) = selected(&s) else { panic!("a picture") };
-    assert_eq!(wordcraft_render::image_size(&s.doc.media[&media]), Some((32, 16)), "compressed");
+    assert_eq!(docufy_render::image_size(&s.doc.media[&media]), Some((32, 16)), "compressed");
     assert_eq!(original_size(&s, &media), Some(OriginalSize { w: 30.0, h: 15.0, pixels: Some((40, 20)) }));
     s.run("picture.size", &json!({"original": true})).unwrap();
     assert_eq!(size(&s), (30.0, 15.0));
@@ -840,7 +840,7 @@ fn picture_size_counts_from_the_original() {
 /// instead of flattening against the limit; both sides given are clamped each on its own.
 #[test]
 fn picture_size_past_the_limit_keeps_the_proportions() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     let data = super::super::insert::base64_encode(&png(40, 20));
     s.run("insert.picture", &json!({"data": data})).unwrap();
     let size = |s: &Session| obj_size(&selected(s).unwrap().1);
@@ -871,7 +871,7 @@ fn picture_size_past_the_limit_keeps_the_proportions() {
 /// A crop handle drop: `picture.crop` with the new size is one edit, one undo step.
 #[test]
 fn picture_crop_with_size_is_one_undo_step() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     let data = super::super::insert::base64_encode(&png(20, 10));
     s.run("insert.picture", &json!({"data": data})).unwrap();
     s.run("picture.size", &json!({"width": 200.0, "height": 100.0, "lockAspect": false})).unwrap();
@@ -895,7 +895,7 @@ fn picture_crop_with_size_is_one_undo_step() {
 /// 0.95 (5% stays, as the renderer draws), and the two sides of an axis keep their 5%.
 #[test]
 fn a_picture_can_be_cropped_to_any_part_of_itself() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     let data = super::super::insert::base64_encode(&png(20, 10));
     s.run("insert.picture", &json!({"data": data})).unwrap();
     s.run("picture.size", &json!({"width": 200.0, "height": 100.0, "lockAspect": false})).unwrap();
@@ -926,7 +926,7 @@ fn a_picture_can_be_cropped_to_any_part_of_itself() {
 /// it is on the page: the frame moves by the trimmed amount, in the same undo step.
 #[test]
 fn cropping_a_floating_picture_keeps_the_visible_part_in_place() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     let data = super::super::insert::base64_encode(&png(20, 10));
     s.run("insert.picture", &json!({"data": data})).unwrap();
     s.run("picture.size", &json!({"width": 200.0, "height": 100.0, "lockAspect": false})).unwrap();
@@ -947,7 +947,7 @@ fn cropping_a_floating_picture_keeps_the_visible_part_in_place() {
 /// the frame; cropping the source's left (now on the right) doesn't.
 #[test]
 fn cropping_a_flipped_floating_picture_moves_it_by_the_side_on_its_left() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     let data = super::super::insert::base64_encode(&png(20, 10));
     s.run("insert.picture", &json!({"data": data})).unwrap();
     s.run("picture.size", &json!({"width": 200.0, "height": 100.0, "lockAspect": false})).unwrap();
@@ -969,7 +969,7 @@ fn cropping_a_flipped_floating_picture_moves_it_by_the_side_on_its_left() {
 /// and lands where dropped; the header hit test finds it.
 #[test]
 fn header_pictures_can_be_resized_and_dragged() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("insert.editHeader", &json!({})).unwrap();
     let story = s.sel.focus.story;
     assert!(matches!(story, StoryRef::Part(_)), "editing the header, got {story:?}");
@@ -997,7 +997,7 @@ fn header_pictures_can_be_resized_and_dragged() {
 /// Create Link to an empty box and Break Link, each one undo step.
 #[test]
 fn text_direction_alignment_and_links() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("insert.textBox", &json!({"text": "Some text that flows on"})).unwrap();
     let a = text_box_target(&s).unwrap().1;
     s.run("shape.textDirection", &json!({"dir": "vert270"})).unwrap();
@@ -1018,7 +1018,7 @@ fn text_direction_alignment_and_links() {
     assert!(can_link(&s).is_some(), "linked once: Break Link first");
     // The second box shows the first one's story.
     let l = s.layout();
-    assert_eq!(l.pages[0].items.iter().filter(|it| matches!(it, wordcraft_layout::Placed::Object { text_box: Some(t), .. } if *t == a)).count(), 2);
+    assert_eq!(l.pages[0].items.iter().filter(|it| matches!(it, docufy_layout::Placed::Object { text_box: Some(t), .. } if *t == a)).count(), 2);
     // Linking back to the start, or to a box with text, is refused.
     s.run("select.objects", &json!({"index": 1})).unwrap();
     assert!(s.run("shape.link", &json!({"target": 0})).is_err());
@@ -1033,7 +1033,7 @@ fn text_direction_alignment_and_links() {
 
 #[test]
 fn shape_alt_text_and_decorative_are_one_undo_step_each() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("insert.shape", &json!({"kind": "ellipse"})).unwrap();
     s.run("object.altText", &json!({"text": "A green circle", "title": "Logo"})).unwrap();
     let (_, o) = selected(&s).unwrap();
@@ -1047,7 +1047,7 @@ fn shape_alt_text_and_decorative_are_one_undo_step_each() {
     assert_eq!(selected(&s).unwrap().1.alt_text(), "");
     // Hostile input is capped, and nothing to set is an error.
     s.run("object.altText", &json!({"text": "x".repeat(50_000)})).unwrap();
-    assert_eq!(selected(&s).unwrap().1.alt_text().len(), wordcraft_doc::para::MAX_ALT_TEXT);
+    assert_eq!(selected(&s).unwrap().1.alt_text().len(), docufy_doc::para::MAX_ALT_TEXT);
     assert!(s.run("object.altText", &json!({})).is_err());
     // A picture-only alias stays a picture-only alias.
     assert!(s.run("picture.altText", &json!({"text": "no"})).is_err());
@@ -1055,20 +1055,20 @@ fn shape_alt_text_and_decorative_are_one_undo_step_each() {
 
 #[test]
 fn table_alt_text_sets_title_and_description() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("insert.table", &json!({"rows": 2, "cols": 2})).unwrap();
     s.run("table.altText", &json!({"title": "Prices", "text": "Prices by year"})).unwrap();
-    let t = s.doc.body.iter().find_map(|b| if let wordcraft_doc::Block::Table(t) = &**b { Some(t.clone()) } else { None }).unwrap();
+    let t = s.doc.body.iter().find_map(|b| if let docufy_doc::Block::Table(t) = &**b { Some(t.clone()) } else { None }).unwrap();
     assert_eq!((t.props.caption.as_deref(), t.props.description.as_deref()), (Some("Prices"), Some("Prices by year")));
     s.run("table.altText", &json!({"text": ""})).unwrap();
-    let t = s.doc.body.iter().find_map(|b| if let wordcraft_doc::Block::Table(t) = &**b { Some(t.clone()) } else { None }).unwrap();
+    let t = s.doc.body.iter().find_map(|b| if let docufy_doc::Block::Table(t) = &**b { Some(t.clone()) } else { None }).unwrap();
     assert_eq!((t.props.caption.as_deref(), t.props.description.as_deref()), (Some("Prices"), None));
 }
 
 /// The lines of `page` beside `r` vertically (top above its bottom, bottom below its top).
-fn lines_beside(s: &mut Session, page: usize, r: wordcraft_geom::Rect) -> Vec<(f32, f32, f32)> {
+fn lines_beside(s: &mut Session, page: usize, r: docufy_geom::Rect) -> Vec<(f32, f32, f32)> {
     let layout = s.layout();
-    wordcraft_layout::hit::page_lines(&layout.pages[page], StoryRef::Body)
+    docufy_layout::hit::page_lines(&layout.pages[page], StoryRef::Body)
         .iter()
         .filter(|l| l.top < r.bottom() - 0.5 && l.bottom > r.y + 0.5)
         .map(|l| (l.top, l.left, l.right))
@@ -1079,7 +1079,7 @@ fn lines_beside(s: &mut Session, page: usize, r: wordcraft_geom::Rect) -> Vec<(f
 /// column it lands in wraps around it there, and its old place closes up.
 #[test]
 fn dragged_square_shape_wraps_text_in_its_new_column() {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("layout.columns", &json!({"count": 2})).unwrap();
     for i in 0..40 {
         if i > 0 {
@@ -1092,21 +1092,21 @@ fn dragged_square_shape_wraps_text_in_its_new_column() {
     s.run("arrange.bounds", &json!({"width": 80, "height": 60})).unwrap();
     let cols: Vec<(f32, f32)> = {
         let layout = s.layout();
-        let mut v: Vec<(f32, f32)> = wordcraft_layout::hit::page_lines(&layout.pages[0], StoryRef::Body).iter().map(|l| (l.left, l.right)).collect();
+        let mut v: Vec<(f32, f32)> = docufy_layout::hit::page_lines(&layout.pages[0], StoryRef::Body).iter().map(|l| (l.left, l.right)).collect();
         v.sort_by(|a, b| a.0.total_cmp(&b.0));
         v.dedup_by(|a, b| (a.0 - b.0).abs() < 1.0);
         v
     };
     assert_eq!(cols.len(), 2, "two columns: {cols:?}");
     let mid = |c: (f32, f32)| (c.0 + c.1) / 2.0 - 40.0;
-    let wrapped = |s: &mut Session, r: wordcraft_geom::Rect| {
+    let wrapped = |s: &mut Session, r: docufy_geom::Rect| {
         let beside = lines_beside(s, 0, r);
         assert!(!beside.is_empty(), "text beside {r:?}");
         for (top, left, right) in beside {
             assert!(right <= r.x + 0.5 || left >= r.right() - 0.5, "line at {top} ({left}..{right}) runs into {r:?}");
         }
     };
-    let full = |s: &mut Session, r: wordcraft_geom::Rect, c: (f32, f32)| {
+    let full = |s: &mut Session, r: docufy_geom::Rect, c: (f32, f32)| {
         for (top, left, right) in lines_beside(s, 0, r) {
             if left < c.1 && right > c.0 {
                 assert!((left - c.0).abs() < 0.5 && (right - c.1).abs() < 0.5, "line at {top} ({left}..{right}) still kept clear in {c:?}");
@@ -1128,7 +1128,7 @@ fn dragged_square_shape_wraps_text_in_its_new_column() {
 
 /// Two columns of `n` paragraphs.
 fn two_column_doc(n: usize) -> Session {
-    let mut s = Session::new(wordcraft_doc::Document::new());
+    let mut s = Session::new(docufy_doc::Document::new());
     s.run("layout.columns", &json!({"count": 2})).unwrap();
     for i in 0..n {
         if i > 0 {
@@ -1154,7 +1154,7 @@ fn page_columns(s: &mut Session, page: usize) -> Vec<(f32, f32)> {
 fn mirrored_indents_make_no_extra_column() {
     let mut s = two_column_doc(40);
     for i in (1..40).step_by(2) {
-        let p = s.doc.para_mut(StoryRef::Body, &wordcraft_doc::Path::top(i)).unwrap();
+        let p = s.doc.para_mut(StoryRef::Body, &docufy_doc::Path::top(i)).unwrap();
         p.props.mirror_indents = Some(true);
         p.props.indent_right = Some(36.0);
         p.touch();
@@ -1168,7 +1168,7 @@ fn mirrored_indents_make_no_extra_column() {
         .items
         .iter()
         .filter_map(|it| match it {
-            wordcraft_layout::Placed::Lines { path, l0: 0, x, y, .. } if path.depth() == 0 && *x < cols[1].0 - 0.5 => Some((path.last(), *x, *y)),
+            docufy_layout::Placed::Lines { path, l0: 0, x, y, .. } if path.depth() == 0 && *x < cols[1].0 - 0.5 => Some((path.last(), *x, *y)),
             _ => None,
         })
         .collect();
@@ -1176,7 +1176,7 @@ fn mirrored_indents_make_no_extra_column() {
     let &(plain, _, top) = starts.iter().skip(1).find(|p| p.0 % 2 == 0).unwrap();
     let mid = (cols[0].0 + cols[0].1) / 2.0;
     let got = anchor_paragraph(&s.doc, &layout, 1, (mid, top + 1.0), StoryRef::Body);
-    assert_eq!(got, Some(wordcraft_doc::Path::top(plain)));
+    assert_eq!(got, Some(docufy_doc::Path::top(plain)));
 }
 
 /// A Word file whose only paragraph holds a group of a rectangle and Word's own ink (with its
@@ -1212,7 +1212,7 @@ fn group_with_word_ink() -> Vec<u8> {
     zw.finish().unwrap().into_inner()
 }
 
-fn ink_members(doc: &wordcraft_doc::Document) -> usize {
+fn ink_members(doc: &docufy_doc::Document) -> usize {
     let groups: Vec<_> = doc.body.iter().filter_map(|b| b.as_para()).flat_map(|p| p.objects.iter()).collect();
     let nested = groups
         .iter()
@@ -1230,18 +1230,18 @@ fn ink_members(doc: &wordcraft_doc::Document) -> usize {
 #[test]
 fn ungroup_refuses_a_group_holding_word_ink_and_the_ink_survives_saving() {
     use std::io::Read;
-    let mut s = Session::new(wordcraft_docx::read(&group_with_word_ink()).unwrap());
+    let mut s = Session::new(docufy_docx::read(&group_with_word_ink()).unwrap());
     assert_eq!(ink_members(&s.doc), 1, "the fixture's ink is read into the group");
     let pos = Pos::body(0, 0);
-    s.sel = Selection { anchor: pos.clone(), focus: Pos { off: pos.off + wordcraft_doc::para::OBJ.len_utf8(), ..pos } };
+    s.sel = Selection { anchor: pos.clone(), focus: Pos { off: pos.off + docufy_doc::para::OBJ.len_utf8(), ..pos } };
     assert!(matches!(selected(&s), Some((_, InlineObject::Group { .. }))));
-    let before = wordcraft_docx::write(&s.doc).unwrap();
+    let before = docufy_docx::write(&s.doc).unwrap();
     assert!(has_group(&s).is_some(), "Ungroup is greyed out");
     let err = s.run("arrange.ungroup", &json!({})).unwrap_err();
     assert!(matches!(err, CmdError::Disabled(_)), "{err:?}");
     let err = ungroup(&mut s, &json!({})).unwrap_err();
     assert!(matches!(err, CmdError::Disabled(_)), "{err:?}");
-    let bytes = wordcraft_docx::write(&s.doc).unwrap();
+    let bytes = docufy_docx::write(&s.doc).unwrap();
     let mut z = zip::ZipArchive::new(std::io::Cursor::new(bytes.clone())).unwrap();
     let mut xml = String::new();
     z.by_name("word/document.xml").unwrap().read_to_string(&mut xml).unwrap();
@@ -1253,17 +1253,17 @@ fn ungroup_refuses_a_group_holding_word_ink_and_the_ink_survives_saving() {
     let mut rels = String::new();
     z.by_name("word/_rels/document.xml.rels").unwrap().read_to_string(&mut rels).unwrap();
     assert_eq!(rels.matches("/customXml\"").count(), 1, "one ink relationship: {rels}");
-    let back = wordcraft_docx::read(&bytes).unwrap();
+    let back = docufy_docx::read(&bytes).unwrap();
     assert_eq!(ink_members(&back), 1);
 }
 
 /// Review: only Word's ink pins a group; a group of charts or diagrams ungroups as before.
 #[test]
 fn only_ink_members_pin_a_group() {
-    let s = Session::new(wordcraft_docx::read(&group_with_word_ink()).unwrap());
+    let s = Session::new(docufy_docx::read(&group_with_word_ink()).unwrap());
     let pos = Pos::body(0, 0);
     let mut s = s;
-    s.sel = Selection { anchor: pos.clone(), focus: Pos { off: pos.off + wordcraft_doc::para::OBJ.len_utf8(), ..pos } };
+    s.sel = Selection { anchor: pos.clone(), focus: Pos { off: pos.off + docufy_doc::para::OBJ.len_utf8(), ..pos } };
     let Some((_, mut group)) = selected(&s) else { panic!("no group") };
     assert!(holds_ink(&group));
     let InlineObject::Group { children, .. } = &mut group else { panic!("not a group") };

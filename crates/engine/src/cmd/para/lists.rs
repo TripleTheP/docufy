@@ -13,9 +13,9 @@ pub(super) fn list(s: &mut Session, v: &Value, default: ListKind) -> CmdResult {
         .collect();
     let same_kind = |n: &NumRef| {
         s.doc.numbering.level(n.num, n.level).is_some_and(|l| {
-            let want = wordcraft_doc::numbering::levels_for(kind);
+            let want = docufy_doc::numbering::levels_for(kind);
             want.get(usize::from(n.level)).is_some_and(|w| {
-                (w.format == wordcraft_doc::section::NumFormat::Bullet) == (l.format == wordcraft_doc::section::NumFormat::Bullet)
+                (w.format == docufy_doc::section::NumFormat::Bullet) == (l.format == docufy_doc::section::NumFormat::Bullet)
                     && (p::str(v, "kind").is_none() || w.text == l.text)
             })
         })
@@ -155,7 +155,7 @@ fn own_format(st: &Style) -> Value {
             f.insert(k.into(), json!(b));
         }
     }
-    if let Some(wordcraft_doc::TextColor::Rgb(rgb)) = c.color {
+    if let Some(docufy_doc::TextColor::Rgb(rgb)) = c.color {
         f.insert("color".into(), json!(rgb.hex()));
     }
     let pp = &st.para;
@@ -195,10 +195,10 @@ pub struct ListButtons {
 /// props it already resolved). The paragraph's own level decides Bullets (a bulleted level) or
 /// Numbering (a numbered one); Multilevel is on too when the list numbers its levels together:
 /// some level's label shows another level's number (`1.1.`) or uses legal numbering.
-pub fn list_buttons(doc: &wordcraft_doc::Document, numbering: Option<NumRef>) -> ListButtons {
+pub fn list_buttons(doc: &docufy_doc::Document, numbering: Option<NumRef>) -> ListButtons {
     let Some(n) = numbering.filter(|n| n.num != 0) else { return ListButtons::default() };
     let Some(level) = doc.numbering.level(n.num, n.level) else { return ListButtons::default() };
-    let bullets = level.format == wordcraft_doc::section::NumFormat::Bullet;
+    let bullets = level.format == docufy_doc::section::NumFormat::Bullet;
     let joined = |i: u8| {
         doc.numbering.level(n.num, i).is_some_and(|l| {
             let own = u32::from(i) + 1;

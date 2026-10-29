@@ -48,7 +48,7 @@ pub struct DisplayOptions {
     pub revisions: MarkupOptions,
     /// Leave this object out of the page: while it is dragged, the preview under the pointer
     /// stands in for it, so the page must not also show it where it was.
-    pub hide_object: Option<wordcraft_doc::Pos>,
+    pub hide_object: Option<docufy_doc::Pos>,
 }
 
 impl Default for DisplayOptions {
@@ -69,7 +69,7 @@ impl Default for DisplayOptions {
 
 /// An object left out of a page's drawing ([`DisplayOptions::hide_object`]).
 pub(super) struct Hidden {
-    object: wordcraft_doc::Pos,
+    object: docufy_doc::Pos,
     /// The text box stories it shows (its own and its group members', resolved to the story each
     /// one shows): a box's text is drawn as lines of its story, so it goes with the box.
     boxes: Vec<u32>,
@@ -77,7 +77,7 @@ pub(super) struct Hidden {
 
 impl Hidden {
     /// The object at `object` and the text box stories whose lines belong to it.
-    pub(super) fn new(doc: &Document, object: &wordcraft_doc::Pos) -> Hidden {
+    pub(super) fn new(doc: &Document, object: &docufy_doc::Pos) -> Hidden {
         let boxes = doc
             .para(object.story, &object.path)
             .and_then(|p| p.object_at(object.off))

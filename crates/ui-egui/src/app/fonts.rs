@@ -4,7 +4,7 @@ impl WordApp {
     /// Fonts were added or removed (a command, the web shell loading stored fonts): lay out
     /// again and refresh the font lists and their previews.
     pub(crate) fn watch_fonts(&mut self, ctx: &egui::Context) {
-        let db = wordcraft_fonts::FontDb::global();
+        let db = docufy_fonts::FontDb::global();
         let generation = db.generation();
         if generation == self.font_generation {
             return;
@@ -21,11 +21,11 @@ impl WordApp {
     /// those collections are too large to add here.
     pub(super) fn ensure_caption_fonts(&mut self) {
         let stem = self.title_stem();
-        if stem.chars().any(wordcraft_fonts::is_cjk) {
+        if stem.chars().any(docufy_fonts::is_cjk) {
             self.want_system_cjk = true;
         }
         let new = theme::faces_for_preedit(&stem, &self.canvas.ime_faces, theme::caption_char_covered, |c| {
-            wordcraft_fonts::FontDb::global().fallback_for(c, u32::MAX)
+            docufy_fonts::FontDb::global().fallback_for(c, u32::MAX)
         });
         if !new.is_empty() {
             self.canvas.ime_faces.extend(new);
@@ -48,14 +48,14 @@ impl WordApp {
         let mut chars = std::collections::BTreeSet::new();
         for c in doc.comments.values() {
             chars.extend(c.author.chars());
-            chars.extend(doc.plain_text(wordcraft_doc::StoryRef::Part(c.part)).chars());
+            chars.extend(doc.plain_text(docufy_doc::StoryRef::Part(c.part)).chars());
         }
-        if chars.iter().any(|c| wordcraft_fonts::is_cjk(*c)) {
+        if chars.iter().any(|c| docufy_fonts::is_cjk(*c)) {
             self.want_system_cjk = true;
         }
         let text: String = chars.into_iter().collect();
         let new = theme::faces_for_preedit(&text, &self.canvas.ime_faces, theme::caption_char_covered, |c| {
-            wordcraft_fonts::FontDb::global().fallback_for(c, u32::MAX)
+            docufy_fonts::FontDb::global().fallback_for(c, u32::MAX)
         });
         if !new.is_empty() {
             self.canvas.ime_faces.extend(new);
@@ -78,12 +78,12 @@ impl WordApp {
         }
         self.recover_fonts_for = Some(key);
         let chars: std::collections::BTreeSet<char> = docs.iter().flat_map(|d| d.name.chars()).collect();
-        if chars.iter().any(|c| wordcraft_fonts::is_cjk(*c)) {
+        if chars.iter().any(|c| docufy_fonts::is_cjk(*c)) {
             self.want_system_cjk = true;
         }
         let text: String = chars.into_iter().collect();
         let new = theme::faces_for_preedit(&text, &self.canvas.ime_faces, theme::caption_char_covered, |c| {
-            wordcraft_fonts::FontDb::global().fallback_for(c, u32::MAX)
+            docufy_fonts::FontDb::global().fallback_for(c, u32::MAX)
         });
         if !new.is_empty() {
             self.canvas.ime_faces.extend(new);
@@ -100,11 +100,11 @@ impl WordApp {
         }
         self.recent_fonts_for = self.ui.recent.clone();
         for p in &self.ui.recent {
-            if p.chars().any(wordcraft_fonts::is_cjk) {
+            if p.chars().any(docufy_fonts::is_cjk) {
                 self.want_system_cjk = true;
             }
             let new = theme::faces_for_preedit(p, &self.canvas.ime_faces, theme::caption_char_covered, |c| {
-                wordcraft_fonts::FontDb::global().fallback_for(c, u32::MAX)
+                docufy_fonts::FontDb::global().fallback_for(c, u32::MAX)
             });
             if !new.is_empty() {
                 for face in new {
@@ -139,11 +139,11 @@ impl WordApp {
                 text.push_str(s);
             }
         }
-        if text.chars().any(wordcraft_fonts::is_cjk) {
+        if text.chars().any(docufy_fonts::is_cjk) {
             self.want_system_cjk = true;
         }
         let new = theme::faces_for_preedit(&text, &self.canvas.ime_faces, theme::caption_char_covered, |c| {
-            wordcraft_fonts::FontDb::global().fallback_for(c, u32::MAX)
+            docufy_fonts::FontDb::global().fallback_for(c, u32::MAX)
         });
         if !new.is_empty() {
             self.canvas.ime_faces.extend(new);

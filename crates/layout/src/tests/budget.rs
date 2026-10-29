@@ -2,9 +2,9 @@
 //! is bounded by a cap, and real documents stay well under it.
 
 use crate::*;
-use wordcraft_doc::props::HeightRule;
-use wordcraft_doc::table::{MAX_COLS, Table};
-use wordcraft_doc::{Block, PartKind, Pos, TextBody, para_block};
+use docufy_doc::props::HeightRule;
+use docufy_doc::table::{MAX_COLS, Table};
+use docufy_doc::{Block, PartKind, Pos, TextBody, para_block};
 
 fn lay(doc: &Document) -> DocLayout {
     let mut c = LayoutCache::new();
@@ -18,7 +18,7 @@ fn text_box(d: &mut Document, para: usize, text: &str, w: f32, h: f32) -> u32 {
         p.body = TextBody::default();
     }
     let shape = InlineObject::Shape {
-        kind: wordcraft_doc::para::ShapeKind::TextBox,
+        kind: docufy_doc::para::ShapeKind::TextBox,
         w,
         h,
         fill: None,
@@ -79,7 +79,7 @@ fn stacked_boxes_of_any_width_share_a_layout() {
     let story = "Stacked letters run on through every box. ".repeat(20);
     let ids: Vec<u32> = (0..n).map(|i| text_box(&mut d, i, if i == 0 { &story } else { "" }, 100.0 + 3.0 * i as f32, 28.0)).collect();
     for id in &ids {
-        d.parts.get_mut(id).unwrap().body.vert = wordcraft_doc::props::TextVert::Stacked;
+        d.parts.get_mut(id).unwrap().body.vert = docufy_doc::props::TextVert::Stacked;
     }
     for w in ids.windows(2) {
         d.parts.get_mut(&w[0]).unwrap().body.next = Some(w[1]);
@@ -100,7 +100,7 @@ fn past_the_cap_a_box_takes_a_layout_in_its_own_direction() {
     let story = "Words that run on and on through every box of the chain. ".repeat(200);
     let ids: Vec<u32> = (0..n).map(|i| text_box(&mut d, i, if i == 0 { &story } else { "" }, 100.0 + 3.0 * i as f32, 28.0)).collect();
     if let Some(last) = ids.last() {
-        d.parts.get_mut(last).unwrap().body.vert = wordcraft_doc::props::TextVert::Vert;
+        d.parts.get_mut(last).unwrap().body.vert = docufy_doc::props::TextVert::Vert;
     }
     for w in ids.windows(2) {
         d.parts.get_mut(&w[0]).unwrap().body.next = Some(w[1]);

@@ -3,10 +3,10 @@
 
 use std::sync::Arc;
 
-use wordcraft_doc::fill::{Fill, Gradient, GradientFlip, GradientKind, PathShape};
-use wordcraft_doc::para::ShapeKind;
-use wordcraft_doc::props::Rgb;
-use wordcraft_doc::wordart::{GradStop, MAX_STOPS};
+use docufy_doc::fill::{Fill, Gradient, GradientFlip, GradientKind, PathShape};
+use docufy_doc::para::ShapeKind;
+use docufy_doc::props::Rgb;
+use docufy_doc::wordart::{GradStop, MAX_STOPS};
 
 use super::drawing_color::{color, color_alpha, fill as read_fill, fill_colour};
 use crate::units::{int, measure};
@@ -17,7 +17,7 @@ use crate::xml::El;
 const THEME_LINE_WIDTHS: [f32; 3] = [0.5, 1.0, 1.5];
 
 /// The shape kind drawn for DrawingML preset geometry `prst` (ECMA-376 Part 1 §20.1.10.56).
-/// Presets WordCraft has no shape for are drawn as the nearest one it has: callouts as the box,
+/// Presets Docufy has no shape for are drawn as the nearest one it has: callouts as the box,
 /// round or cloud they point from, flowchart boxes as rectangles.
 pub(crate) fn preset_kind(prst: &str) -> ShapeKind {
     match prst {
@@ -53,7 +53,7 @@ pub(crate) fn preset_kind(prst: &str) -> ShapeKind {
 
 /// The shape kind drawn for a legacy VML preset shape type `spt` (`o:spt`, the MSOSPT numbers of
 /// [MS-ODRAW] §2.4.24): that of the DrawingML preset of the same shape, through [`preset_kind`],
-/// so a preset WordCraft has no shape for is drawn as the nearest one; None for shapes with no
+/// so a preset Docufy has no shape for is drawn as the nearest one; None for shapes with no
 /// preset geometry (freeforms, WordArt text, picture frames) and numbers MSOSPT doesn't define.
 pub(crate) fn vml_preset_kind(spt: u32) -> Option<ShapeKind> {
     let prst = match spt {
@@ -277,8 +277,8 @@ pub(crate) fn vml_fraction(v: &str) -> Option<f32> {
 }
 
 /// Explicit DrawingML dash stops override the solid default.
-pub(crate) fn line_dash(ln: Option<&El>) -> wordcraft_doc::line_dash::LineDash {
-    use wordcraft_doc::line_dash::{LineDash, MAX_DASH_STOPS};
+pub(crate) fn line_dash(ln: Option<&El>) -> docufy_doc::line_dash::LineDash {
+    use docufy_doc::line_dash::{LineDash, MAX_DASH_STOPS};
     let Some(ln) = ln else { return LineDash::Solid };
     if let Some(custom) = ln.child("a:custDash") {
         let stops: Vec<_> =
@@ -338,7 +338,7 @@ pub(crate) fn vml_color(v: &str) -> Option<Rgb> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wordcraft_doc::THEME_COLORS;
+    use docufy_doc::THEME_COLORS;
 
     fn el(xml: &str) -> El {
         let ns = r#"xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main""#;

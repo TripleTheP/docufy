@@ -30,15 +30,15 @@
 use std::collections::HashMap;
 
 use craft_window::{Document, Frame, Viewports, WindowEvent, WindowId, WindowList, WindowMenu};
+use docufy_engine::WindowView;
 use egui::{ViewportCommand, ViewportId};
 use serde_json::{Value, json};
-use wordcraft_engine::WindowView;
 
 use crate::{WordApp, documents, window_ui::WindowUi};
 
 /// The window title for a document called `name`.
 pub(crate) fn title(name: &str, dirty: bool) -> String {
-    format!("{name}{} - WordCraft", if dirty { " •" } else { "" })
+    format!("{name}{} - Docufy", if dirty { " •" } else { "" })
 }
 
 /// An open window.
@@ -241,7 +241,7 @@ pub(crate) struct ViewportInput {
 
 impl egui::Plugin for ViewportInput {
     fn debug_name(&self) -> &'static str {
-        "wordcraft_viewport_input"
+        "docufy_viewport_input"
     }
 
     fn input_hook(&mut self, _ctx: &egui::Context, input: &mut egui::RawInput) {
@@ -562,7 +562,7 @@ impl WordApp {
     /// The drawn window's title: its document's name as View › Window › Switch Windows gives it.
     pub(crate) fn window_title(&self) -> String {
         if !self.has_document() {
-            return "WordCraft".to_string();
+            return "Docufy".to_string();
         }
         let name = self.windows.menu_title(self.windows.shown).map(str::to_string).unwrap_or_else(|| self.title_stem());
         title(&name, self.session.dirty)
@@ -595,7 +595,7 @@ impl WordApp {
             &mut list,
             |_, key| match titles.get(key).filter(|t| !t.is_empty()) {
                 Some(t) => base.clone().with_title(t.clone()),
-                None => base.clone().with_title("WordCraft"),
+                None => base.clone().with_title("Docufy"),
             },
             |ui, _, key| self.draw_window(ui, *key),
         );

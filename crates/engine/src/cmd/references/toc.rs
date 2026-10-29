@@ -133,11 +133,7 @@ fn toc_entries(s: &Session, f: &FieldCode) -> Vec<TocEntry> {
         let hidden = f.has('u') && p.props.outline_level == Some(9);
         let by_heading = o.and_then(|(a, b)| {
             let l = heading_style_level(p).or_else(|| {
-                s.doc
-                    .styles
-                    .resolve_para(&wordcraft_doc::ParaProps { style: p.props.style.clone(), ..Default::default() })
-                    .outline_level
-                    .map(|l| l + 1)
+                s.doc.styles.resolve_para(&docufy_doc::ParaProps { style: p.props.style.clone(), ..Default::default() }).outline_level.map(|l| l + 1)
             })?;
             (a..=b).contains(&l).then_some(l)
         });
@@ -234,7 +230,7 @@ pub fn caret_in_toc(s: &Session) -> bool {
 
 /// The range field `range_toc_to_field` converts: an unlocked, top-level TOC (not a table of
 /// figures) when the body has no engine TOC yet.
-fn convertible_toc_range(s: &Session, r: &wordcraft_doc::FieldRange) -> bool {
+fn convertible_toc_range(s: &Session, r: &docufy_doc::FieldRange) -> bool {
     let field = FieldCode::parse(&r.instr);
     toc_range(s).is_none()
         && field.name == "TOC"
@@ -397,7 +393,7 @@ pub(crate) fn toc_bookmark(s: &mut Session, i: usize, lead: usize) -> Result<Str
 }
 
 fn bookmark_heading(s: &mut Session, path: &Path, lead: usize) -> Result<String, CmdError> {
-    const MARK: usize = wordcraft_doc::para::OBJ.len_utf8();
+    const MARK: usize = docufy_doc::para::OBJ.len_utf8();
     let para = s.doc.para(StoryRef::Body, path).ok_or_else(|| CmdError::Failed("heading is gone".into()))?;
     if let Some(InlineObject::BookmarkStart { name }) = para.object_at(lead)
         && name.starts_with("_Toc")
@@ -470,7 +466,7 @@ fn regenerate_toc(s: &mut Session, leader: Option<TabLeader>, tabs: &[(String, V
     // column's, as Word does (#3889); after a field paragraph ending a section, the next section's.
     let after_break = s.doc.body.get(start).and_then(|b| b.as_para()).is_some_and(|p| p.section.is_some());
     let section = s.doc.section_index_of(start + usize::from(after_break));
-    let column = |x: &wordcraft_doc::SectionProps| x.column_boxes().first().map_or(x.text_width(), |(_, w)| *w);
+    let column = |x: &docufy_doc::SectionProps| x.column_boxes().first().map_or(x.text_width(), |(_, w)| *w);
     let width = s.doc.sections().get(section).map_or_else(|| column(&crate::cmd::page::sect(s)), |(_, x)| column(x));
     let entries = toc_entries(s, &f);
     let links: Vec<Option<String>> = if f.has('h') {
@@ -531,11 +527,11 @@ fn regenerate_toc(s: &mut Session, leader: Option<TabLeader>, tabs: &[(String, V
 /// sets before that. Those stops are for a number set off by a tab (`1.1<tab>Title`); with the
 /// number set off by a space, or no number, a short entry's page tab would stop at one of them
 /// (without the leader), and so would the tab on the last line of an entry that wraps.
-fn entry_tabs(s: &Session, props: &wordcraft_doc::ParaProps, text: &str, right: TabStop) -> Vec<TabStop> {
+fn entry_tabs(s: &Session, props: &docufy_doc::ParaProps, text: &str, right: TabStop) -> Vec<TabStop> {
     let mut tabs = props.tabs.clone().unwrap_or_default();
     tabs.retain(|t| t.pos < right.pos - 0.5 && !matches!(t.align, TabAlign::Right | TabAlign::Bar));
     if !text.contains('\t') {
-        let style = s.doc.styles.resolve_para(&wordcraft_doc::ParaProps { style: props.style.clone(), ..Default::default() });
+        let style = s.doc.styles.resolve_para(&docufy_doc::ParaProps { style: props.style.clone(), ..Default::default() });
         for t in style.tabs {
             if t.pos < right.pos - 0.5 && !matches!(t.align, TabAlign::Right | TabAlign::Bar) {
                 tabs.push(TabStop { pos: t.pos, align: TabAlign::Clear, leader: TabLeader::None });

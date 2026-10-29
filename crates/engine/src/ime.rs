@@ -2,13 +2,13 @@ use crate::doc_state::Selection;
 #[cfg(test)]
 use crate::session::*;
 #[cfg(test)]
-use wordcraft_doc::{Document, Pos};
+use docufy_doc::{Document, Pos};
 
 /// The caret identity used for the process-monotonic IME state revision.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) enum ImeCaretState {
     Body(Selection),
-    Equation { session: u64, pos: wordcraft_doc::math_edit::MathPos },
+    Equation { session: u64, pos: docufy_doc::math_edit::MathPos },
 }
 
 /// One checked allocation from a process-monotonic IME revision counter.

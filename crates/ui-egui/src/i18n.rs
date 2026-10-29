@@ -5,7 +5,7 @@
 //! one entry at a time, and a missing translation never fails a build, a test or a release.
 //!
 //! The catalogs live in [storytold/craft-i18n](https://github.com/storytold/craft-i18n)
-//! (`locales/<locale>/common.tsv` and `wordcraft.tsv`), not in this repository. `build.rs` embeds
+//! (`locales/<locale>/common.tsv` and `docufy.tsv`), not in this repository. `build.rs` embeds
 //! them from `CRAFT_I18N_DIR` (CI and releases check out the SHA in `craft-i18n.rev`); without it
 //! the build is English only. Lookup, fallback (`pt-br` → `pt` → English, app rows over shared
 //! ones), plurals, language names and locale matching are the `craft-i18n` crate's (craft-libs).
@@ -15,13 +15,13 @@
 //! catalog for it, and English otherwise. File ▸ Options ▸ Interface language picks one by hand.
 //!
 //! # Adding or changing a translation
-//! In craft-i18n: add rows to `locales/<locale>/wordcraft.tsv` (its `docs/integration.md`); they
+//! In craft-i18n: add rows to `locales/<locale>/docufy.tsv` (its `docs/integration.md`); they
 //! show here once `craft-i18n.rev` moves to a commit that has them. A feature PR here adds the
 //! English only.
 //!
 //! # Adding a language
-//! 1. craft-i18n gets `locales/<code>/wordcraft.tsv` and the language's `@id language.name` row.
-//! 2. Add one row to [`LANGUAGES`]. Set its `editing_lang` only when `wordcraft-proof` can proof
+//! 1. craft-i18n gets `locales/<code>/docufy.tsv` and the language's `@id language.name` row.
+//! 2. Add one row to [`LANGUAGES`]. Set its `editing_lang` only when `docufy-proof` can proof
 //!    the language (Polish: `pl-PL`): new documents are then written in it.
 //!
 //! The Options dropdown and the system-language match pick it up from there.
@@ -55,7 +55,7 @@ static I18N: LazyLock<I18n> = LazyLock::new(|| {
 /// The `language` setting that follows the system.
 pub const AUTO: &str = "auto";
 
-/// One interface language WordCraft offers: what the app needs beyond the catalogs. Its name and
+/// One interface language Docufy offers: what the app needs beyond the catalogs. Its name and
 /// translations come from craft-i18n.
 pub struct LangInfo {
     /// BCP 47 code, lowercase (`ja`, `zh-hans`). Also the `language` setting's value and the
@@ -64,11 +64,11 @@ pub struct LangInfo {
     /// Which CJK interface face comes first (Chinese text wants the Chinese face).
     pub prefer_hans: bool,
     /// The language (BCP 47) new blank documents are written in with this interface, for
-    /// languages WordCraft can proof; `None` keeps WordCraft's default, US English.
+    /// languages Docufy can proof; `None` keeps Docufy's default, US English.
     pub editing_lang: Option<&'static str>,
 }
 
-/// The languages WordCraft offers, when their catalogs are embedded. English first: it is the
+/// The languages Docufy offers, when their catalogs are embedded. English first: it is the
 /// fallback and the source language.
 pub static LANGUAGES: [LangInfo; 27] = [
     LangInfo { code: "en", prefer_hans: false, editing_lang: None },
@@ -92,7 +92,7 @@ pub static LANGUAGES: [LangInfo; 27] = [
     // Serbian, Latin script; `sr-Latn-*` resolves here; a script is never
     // crossed, so Latin Serbian never shows Cyrillic.
     LangInfo { code: "sr-latn", prefer_hans: false, editing_lang: None },
-    // Polish; `pl`, `pl-PL` and `pl_PL.UTF-8` resolve here. WordCraft proofs Polish (spelling,
+    // Polish; `pl`, `pl-PL` and `pl_PL.UTF-8` resolve here. Docufy proofs Polish (spelling,
     // grammar, hyphenation), so new documents are written in Polish with this interface.
     LangInfo { code: "pl", prefer_hans: false, editing_lang: Some("pl-PL") },
     LangInfo { code: "cs", prefer_hans: false, editing_lang: Some("cs-CZ") },
@@ -104,7 +104,7 @@ pub static LANGUAGES: [LangInfo; 27] = [
     LangInfo { code: "ru", prefer_hans: false, editing_lang: None },
     LangInfo { code: "tr", prefer_hans: false, editing_lang: Some("tr-TR") },
     // Italian; `it-IT`, `it-CH` and `it-*` resolve here. New documents are written in
-    // Italian: `wordcraft-proof` checks it (`ProofLang::It`).
+    // Italian: `docufy-proof` checks it (`ProofLang::It`).
     LangInfo { code: "it", prefer_hans: false, editing_lang: Some("it-IT") },
     // Hungarian; `hu`, `hu-HU` and `hu_HU.UTF-8` resolve here.
     LangInfo { code: "hu", prefer_hans: false, editing_lang: None },
@@ -189,7 +189,7 @@ impl Lang {
         self.name().chars().any(|c| ('\u{2E80}'..='\u{9FFF}').contains(&c) || ('\u{AC00}'..='\u{D7AF}').contains(&c))
     }
 
-    /// The embedded catalogs (shared, then WordCraft's) this language reads; none for English.
+    /// The embedded catalogs (shared, then Docufy's) this language reads; none for English.
     fn catalog_texts(self) -> impl Iterator<Item = &'static str> {
         let code = self.code();
         CRAFT_I18N.iter().filter(move |(c, ..)| c.eq_ignore_ascii_case(code)).flat_map(|(_, shared, app)| [*shared, *app])
@@ -248,7 +248,7 @@ pub fn normalize_pref(pref: &str) -> Option<&'static str> {
     Lang::from_code(pref).map(Lang::code)
 }
 
-/// Portuguese other than Brazil's (`pt`, `pt-PT`, `pt_AO.UTF-8`): WordCraft has no catalog for
+/// Portuguese other than Brazil's (`pt`, `pt-PT`, `pt_AO.UTF-8`): Docufy has no catalog for
 /// it (the European vocabulary differs), so it stays English rather than falling to `pt-br` as the
 /// crate's matching would.
 fn non_brazilian_portuguese(tag: &str) -> bool {
@@ -266,7 +266,7 @@ pub fn lang_from_tag(tag: &str) -> Option<Lang> {
     I18N.match_tag(tag).and_then(|lang| Lang::from_code(I18N.code(lang)))
 }
 
-/// The first of the system's preferred languages WordCraft has, in the user's order: someone
+/// The first of the system's preferred languages Docufy has, in the user's order: someone
 /// who prefers French, then Japanese, gets Japanese rather than English.
 pub fn first_supported<'a>(tags: impl IntoIterator<Item = &'a str>) -> Option<Lang> {
     tags.into_iter().find_map(lang_from_tag)
@@ -285,7 +285,7 @@ pub fn system_lang() -> Lang {
 fn detect_system_lang() -> Lang {
     // An explicit override, then the platform's preferred UI languages (Windows display language,
     // macOS preferred languages, `LC_ALL`/`LC_MESSAGES`/`LANG` on Unix, the browser on the web).
-    if let Some(l) = std::env::var("WORDCRAFT_LANGUAGE").ok().and_then(|v| lang_from_tag(&v)) {
+    if let Some(l) = std::env::var("DOCUFY_LANGUAGE").ok().and_then(|v| lang_from_tag(&v)) {
         return l;
     }
     let tags: Vec<String> = sys_locale::get_locales().take(16).collect();
@@ -295,13 +295,13 @@ fn detect_system_lang() -> Lang {
 /// The system region (#838): it picks the paper File › New starts on, the default measurement
 /// unit and the decimal separator, independently of the interface language (an English
 /// interface in Germany still gets A4 and centimetres). `en-US` in tests.
-pub fn system_region() -> wordcraft_engine::Region {
+pub fn system_region() -> docufy_engine::Region {
     if cfg!(test) {
-        return wordcraft_engine::Region::default();
+        return docufy_engine::Region::default();
     }
     // The environment's locale variables (Unix), else the platform's first preferred locale (on
     // macOS it carries the region, as in `en-PL`; on the web it is the browser's language).
-    wordcraft_engine::Region::from_locale_vars(|name| std::env::var(name).ok(), sys_locale::get_locale)
+    docufy_engine::Region::from_locale_vars(|name| std::env::var(name).ok(), sys_locale::get_locale)
 }
 
 thread_local! {
@@ -387,7 +387,7 @@ pub fn tr(lang: Lang, s: &str) -> &str {
 /// A style's name as the interface shows it: built-in styles (`Normal`, `Heading 2`, `TOC 3`) in
 /// the current language, styles the author made exactly as named. Display only: the document,
 /// commands and saved files keep the English name.
-pub fn style_name(style: &wordcraft_doc::Style) -> String {
+pub fn style_name(style: &docufy_doc::Style) -> String {
     if style.builtin { builtin_style_name(&style.name) } else { style.name.clone() }
 }
 
@@ -423,7 +423,7 @@ pub fn prefixed(prefix: &str, rest: &str) -> String {
     fmt(t(&format!("{prefix} {{action}}")), &[("action", t(rest))])
 }
 
-/// A test language whose WordCraft catalog is `source` (catalog format), so tests of lookup code
+/// A test language whose Docufy catalog is `source` (catalog format), so tests of lookup code
 /// don't depend on the embedded catalogs' wording. `code` selects code-specific rules such as
 /// Turkish casing.
 #[cfg(test)]

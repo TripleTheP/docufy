@@ -206,7 +206,7 @@ pub fn context_menu_visible(app: &WordApp) -> bool {
         && app.session.math.is_none()
         && app.session.cell_range().is_none()
         && !crate::ribbon::has_picture_selected(&app.session)
-        && wordcraft_engine::cmd::objects::object_selection(&app.session).is_none()
+        && docufy_engine::cmd::objects::object_selection(&app.session).is_none()
 }
 
 /// The existing two-row toolbar in the context menu's popup, above its command panel. Sharing
@@ -268,7 +268,7 @@ fn content(app: &mut WordApp, ui: &mut egui::Ui, t: &Tokens) {
         let size =
             st.get("size").and_then(Value::as_f64).map(|s| if s.fract() == 0.0 { format!("{s:.0}") } else { s.to_string() }).unwrap_or_default();
         let sizes: Vec<String> =
-            wordcraft_engine::cmd::format::SIZES.iter().map(|s| if s.fract() == 0.0 { format!("{s:.0}") } else { s.to_string() }).collect();
+            docufy_engine::cmd::format::SIZES.iter().map(|s| if s.fract() == 0.0 { format!("{s:.0}") } else { s.to_string() }).collect();
         if let Some(v) = widgets::combo_hint(ui, "mini_size", COMBO_SIZE_W, &size, &sizes, None, tl!("Font Size"))
             && let Ok(x) = v.trim().parse::<f64>()
         {
@@ -307,7 +307,7 @@ fn content(app: &mut WordApp, ui: &mut egui::Ui, t: &Tokens) {
             },
         );
         let fc = app.canvas.last_font_color.clone();
-        let sw = wordcraft_doc::Rgb::parse(&fc).map(crate::theme::c32);
+        let sw = docufy_doc::Rgb::parse(&fc).map(crate::theme::c32);
         widgets::split(
             ui,
             app,
@@ -321,7 +321,7 @@ fn content(app: &mut WordApp, ui: &mut egui::Ui, t: &Tokens) {
         );
         sep(ui, t);
 
-        use wordcraft_doc::Align as A;
+        use docufy_doc::Align as A;
         widgets::small(ui, app, "alignLeft", None, "Align Left", crate::widgets::ButtonAction::new("para.alignLeft", json!({}), align == A::Left));
         widgets::small(ui, app, "alignCenter", None, "Center", crate::widgets::ButtonAction::new("para.alignCenter", json!({}), align == A::Center));
         widgets::small(
@@ -345,8 +345,8 @@ fn sep(ui: &mut egui::Ui, t: &Tokens) {
 
 /// The split-button icon and colour bar for the remembered highlight choice.
 pub(crate) fn highlight_button_appearance(name: &str) -> (&'static str, Option<egui::Color32>, &'static str) {
-    let highlight = wordcraft_doc::props::Highlight::from_ooxml(name);
-    let icon = if highlight == wordcraft_doc::props::Highlight::None { "highlightNoColor" } else { "highlight" };
+    let highlight = docufy_doc::props::Highlight::from_ooxml(name);
+    let icon = if highlight == docufy_doc::props::Highlight::None { "highlightNoColor" } else { "highlight" };
     (icon, highlight.rgb().map(crate::theme::c32), highlight.ooxml())
 }
 
@@ -355,7 +355,7 @@ pub(crate) fn highlight_button_appearance(name: &str) -> (&'static str, Option<e
 /// button removes highlighting (#2105).
 pub(crate) fn highlight_menu(ui: &mut egui::Ui, app: &mut WordApp) {
     egui::Grid::new("mini_hl").spacing(Vec2::new(3.0, 3.0)).show(ui, |ui| {
-        for (i, h) in wordcraft_doc::props::Highlight::ALL.iter().enumerate().skip(1) {
+        for (i, h) in docufy_doc::props::Highlight::ALL.iter().enumerate().skip(1) {
             let Some(c) = h.rgb() else { continue };
             let (r, resp) = ui.allocate_exact_size(Vec2::new(18.0, 18.0), Sense::click());
             ui.painter().rect_filled(r, 2.0, egui::Color32::from_rgb(c.0, c.1, c.2));

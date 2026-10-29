@@ -2,9 +2,9 @@
 //! The expected distinction is cyril265's Word for Mac 16.114.1 observation in the issue.
 
 use crate::{Arc, Block, Document, LayoutCache, LayoutOptions, Placed, StoryRef, layout};
-use wordcraft_doc::para::{Anchor, Float, InlineObject, ShapeKind, Wrap};
-use wordcraft_doc::props::{HeightRule, LineSpacing, ParaProps, TableFloat};
-use wordcraft_doc::{CharProps, Paragraph, Pos, Table};
+use docufy_doc::para::{Anchor, Float, InlineObject, ShapeKind, Wrap};
+use docufy_doc::props::{HeightRule, LineSpacing, ParaProps, TableFloat};
+use docufy_doc::{CharProps, Paragraph, Pos, Table};
 
 const LINE: f32 = 82.875;
 const CONTACT: f32 = 403.5;
@@ -24,7 +24,7 @@ fn document(mode: u32) -> Document {
                 widow_control: Some(false),
                 ..Default::default()
             };
-            wordcraft_doc::para_block(p)
+            docufy_doc::para_block(p)
         })
         .collect();
     d
@@ -135,7 +135,7 @@ fn exact_spacing_does_not_make_mark_height_a_table_contact_boundary() {
             p.mark = CharProps { font: Some("Source Sans 3".into()), size: Some(62.5), ..Default::default() };
             p.props =
                 ParaProps { line_spacing: Some(LineSpacing::Exactly(12.0)), space_before: Some(0.0), space_after: Some(0.0), ..Default::default() };
-            d.body = vec![wordcraft_doc::para_block(p)];
+            d.body = vec![docufy_doc::para_block(p)];
             // The mark's natural 82.875 pt estimate ends far below the actual 12 pt line.
             let top = 72.0 + LINE;
             if table {
@@ -164,7 +164,7 @@ fn exact_document(mode: u32, mark_size: f32) -> Document {
     let mut p = Paragraph::with_text("WWWWWWWWWWWW", CharProps { font: Some("Source Sans 3".into()), size: Some(11.0), ..Default::default() });
     p.mark = CharProps { font: Some("Source Sans 3".into()), size: Some(mark_size), ..Default::default() };
     p.props = ParaProps { line_spacing: Some(LineSpacing::Exactly(12.0)), space_before: Some(0.0), space_after: Some(0.0), ..Default::default() };
-    d.body = vec![wordcraft_doc::para_block(p)];
+    d.body = vec![docufy_doc::para_block(p)];
     d
 }
 
@@ -210,7 +210,7 @@ fn exact_table_contact_uses_the_spacing_when_a_word_skips_a_strip() {
         let mut anchor = Paragraph::with_text("P0", p.mark.clone());
         anchor.mark = p.mark.clone();
         anchor.props = p.props.clone();
-        d.body.insert(0, wordcraft_doc::para_block(anchor));
+        d.body.insert(0, docufy_doc::para_block(anchor));
         add_table(&mut d, 96.0, 168.0);
         add_shape(&mut d, 72.0, 272.0, 268.0, 500.0);
         // The 32 pt strip cannot hold the word. The table ends before the shape,

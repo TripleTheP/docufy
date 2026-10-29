@@ -147,7 +147,7 @@ impl SymbolForm {
             .doc
             .para_at(&app.session.sel.focus)
             .map(|p| app.session.doc.styles.resolve_char(p.props.style.as_deref(), &app.session.typing_props()).font)
-            .unwrap_or_else(|| wordcraft_doc::styles::BODY_FONT.to_string());
+            .unwrap_or_else(|| docufy_doc::styles::BODY_FONT.to_string());
         let recent = app.ui.recent_symbols.first().cloned();
         let font = recent.as_ref().map(|r| r.font.clone()).unwrap_or_default();
         let selected = recent.and_then(|r| r.ch.chars().next());
@@ -169,7 +169,7 @@ impl SymbolForm {
             return;
         }
         // The face the document's text would use (with Word's font substitutes).
-        let face = wordcraft_fonts::word::resolve(&family, false, false).face.get();
+        let face = docufy_fonts::word::resolve(&family, false, false).face.get();
         self.chars = face.chars().into_iter().map(|(c, _)| c).filter(|c| !c.is_control() && !(0xD800..=0xDFFF).contains(&(*c as u32))).collect();
         self.chars_of = Some(family);
         // Keep the selection when the new font has it; otherwise its first character.
@@ -228,15 +228,14 @@ fn glyph_texture(app: &mut WordApp, ctx: &egui::Context, font: &str, c: char) ->
 }
 
 fn glyph_image(font: &str, c: char, ppp: f32) -> Option<egui::ColorImage> {
-    use wordcraft_doc::props::{Align, CharProps, LineSpacing};
+    use docufy_doc::props::{Align, CharProps, LineSpacing};
     let size = 16.0;
-    let mut p =
-        wordcraft_doc::Paragraph::with_text(&c.to_string(), CharProps { font: Some(font.to_string()), size: Some(size), ..Default::default() });
+    let mut p = docufy_doc::Paragraph::with_text(&c.to_string(), CharProps { font: Some(font.to_string()), size: Some(size), ..Default::default() });
     p.props.align = Some(Align::Center);
     p.props.space_before = Some(((CELL - size * 1.3) / 2.0).max(0.0));
     p.props.space_after = Some(0.0);
     p.props.line_spacing = Some(LineSpacing::Multiple(1.0));
-    let mut img = crate::previews::snippet(&wordcraft_doc::Document::new(), p, CELL - 2.0, CELL - 2.0, ppp, 0.0)?;
+    let mut img = crate::previews::snippet(&docufy_doc::Document::new(), p, CELL - 2.0, CELL - 2.0, ppp, 0.0)?;
     // Ink against the paper (the first pixel) becomes coverage.
     let lum = |p: &Color32| (p.r() as u16 + p.g() as u16 + p.b() as u16) / 3;
     let bg = img.pixels.first().map(lum).unwrap_or(255);

@@ -6,14 +6,14 @@
 //! row's column widths (`widths`). A paragraph's indents and tabs in a cell are measured from the
 //! cell's text area (`text_area`).
 
+use docufy_layout::{DocLayout, Placed};
 use egui::{Rect, Sense, Stroke, Ui, pos2, vec2};
-use wordcraft_layout::{DocLayout, Placed};
 
 use crate::WordApp;
 use crate::theme::Tokens;
 
 /// The cells of the caret's table drawn on `page`: (row, cell, box in page points).
-fn cells(app: &WordApp, layout: &DocLayout, page: usize) -> Vec<(usize, usize, wordcraft_geom::Rect)> {
+fn cells(app: &WordApp, layout: &DocLayout, page: usize) -> Vec<(usize, usize, docufy_geom::Rect)> {
     let story = app.session.sel.focus.story;
     let (Some((tp, _, _)), Some(pg)) = (app.session.sel.focus.path.cell(), layout.pages.get(page)) else { return Vec::new() };
     pg.items
@@ -31,7 +31,7 @@ pub(crate) fn text_area(app: &WordApp, layout: &DocLayout, page: usize) -> Optio
     let story = app.session.sel.focus.story;
     let (tp, r, c) = app.session.sel.focus.path.cell()?;
     let (.., b) = cells(app, layout, page).into_iter().find(|(row, cell, _)| *row == r && *cell == c)?;
-    let m = wordcraft_layout::cell_margins(&app.session.doc, app.session.doc.table(story, &tp)?, r, c);
+    let m = docufy_layout::cell_margins(&app.session.doc, app.session.doc.table(story, &tp)?, r, c);
     let (left, right) = (m[1].max(0.0), m[3].max(0.0));
     Some((b.x + left, (b.w - left - right).max(0.0)))
 }
@@ -65,9 +65,9 @@ fn grip(app: &mut WordApp, ui: &Ui, layout: &DocLayout, zone: Rect, column: bool
 }
 
 /// The caret row's cells on `page`, left to right.
-fn caret_row(app: &WordApp, layout: &DocLayout, page: usize) -> Vec<wordcraft_geom::Rect> {
+fn caret_row(app: &WordApp, layout: &DocLayout, page: usize) -> Vec<docufy_geom::Rect> {
     let Some((_, r, _)) = app.session.sel.focus.path.cell() else { return Vec::new() };
-    let mut row: Vec<wordcraft_geom::Rect> = cells(app, layout, page).into_iter().filter(|(row, ..)| *row == r).map(|(.., b)| b).collect();
+    let mut row: Vec<docufy_geom::Rect> = cells(app, layout, page).into_iter().filter(|(row, ..)| *row == r).map(|(.., b)| b).collect();
     row.sort_by(|a, b| a.x.total_cmp(&b.x));
     row
 }
@@ -103,7 +103,7 @@ pub(crate) fn columns(app: &mut WordApp, ui: &Ui, layout: &DocLayout, page: usiz
     }
     for (mid, w) in widths(app, ui.ctx(), layout, page) {
         let at = pos2(x0 + mid * scale, bar.center().y);
-        let text = painter.layout_no_wrap(wordcraft_geom::Unit::default().format(w), crate::theme::regular(9.5), t.text);
+        let text = painter.layout_no_wrap(docufy_geom::Unit::default().format(w), crate::theme::regular(9.5), t.text);
         painter.rect_filled(Rect::from_center_size(at, text.size() + vec2(4.0, 0.0)), 1.0, t.ruler);
         painter.galley(at - text.size() / 2.0, text, t.text);
     }
@@ -133,8 +133,8 @@ pub(crate) fn column_markers(app: &WordApp, ctx: &egui::Context, layout: &DocLay
 /// Each row of the caret's table on `page` with the cell its bottom is taken from (a press in
 /// the middle of it grabs the bottom): its shortest box, as a vertically merged cell's box spans
 /// all its rows (#640), and of those the leftmost.
-fn row_bottoms(app: &WordApp, layout: &DocLayout, page: usize) -> Vec<(usize, wordcraft_geom::Rect)> {
-    let mut rows: Vec<(usize, wordcraft_geom::Rect)> = Vec::new();
+fn row_bottoms(app: &WordApp, layout: &DocLayout, page: usize) -> Vec<(usize, docufy_geom::Rect)> {
+    let mut rows: Vec<(usize, docufy_geom::Rect)> = Vec::new();
     for (r, _, b) in cells(app, layout, page) {
         match rows.iter_mut().find(|(row, _)| *row == r) {
             Some((_, first)) if b.bottom() < first.bottom() - 0.01 || (b.bottom() <= first.bottom() + 0.01 && b.x < first.x) => *first = b,

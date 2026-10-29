@@ -10,7 +10,7 @@ pub(crate) struct Key {
     pub(crate) rev: u64,
     pub(crate) width: u32,
     pub(crate) label: Option<String>,
-    pub(crate) page: Option<(u32, u32, u32, u32, u64, wordcraft_doc::section::NumFormat)>,
+    pub(crate) page: Option<(u32, u32, u32, u32, u64, docufy_doc::section::NumFormat)>,
     /// The pages a split paragraph's fields are on after its first (`FieldCtx::page_from`).
     pub(crate) page_from: u64,
     pub(crate) table: u64,
@@ -102,7 +102,7 @@ pub(crate) fn env_hash(doc: &Document, opts: &LayoutOptions) -> u64 {
     opts.numeral.hash(&mut h);
     opts.field_codes.hash(&mut h);
     opts.proof.hash(&mut h);
-    wordcraft_proof::dictionary_generation().hash(&mut h);
+    docufy_proof::dictionary_generation().hash(&mut h);
     hyphenation_key(doc).hash(&mut h);
     outline.hash(&mut h);
     opts.filename.hash(&mut h);

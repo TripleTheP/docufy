@@ -33,7 +33,7 @@ pub(super) fn table_design(app: &mut WordApp, ui: &mut Ui) {
             .styles
             .styles
             .iter()
-            .filter(|s| s.kind == wordcraft_doc::StyleKind::Table && !s.hidden)
+            .filter(|s| s.kind == docufy_doc::StyleKind::Table && !s.hidden)
             .map(|s| (s.builtin, s.id.clone(), crate::i18n::style_name(s)))
             .collect();
         styles.sort_by_key(|(builtin, _, _)| *builtin);
@@ -54,8 +54,8 @@ pub(super) fn table_design(app: &mut WordApp, ui: &mut Ui) {
                     .doc
                     .styles
                     .get(&id)
-                    .filter(|st| st.kind == wordcraft_doc::StyleKind::Table)
-                    .map(wordcraft_engine::cmd::table_style::is_builtin_table_style)
+                    .filter(|st| st.kind == docufy_doc::StyleKind::Table)
+                    .map(docufy_engine::cmd::table_style::is_builtin_table_style)
             });
             let can_modify = current.is_some();
             // Built-in table styles can't be deleted.
@@ -120,7 +120,7 @@ fn cell_size_boxes(ui: &mut Ui, app: &mut WordApp) {
     let row = t.rows.get(r).map(|x| x.props.clone()).unwrap_or_default();
     let stored_w = t.grid.get(t.grid_col(r, c)).copied();
     let laid = app.session.layout().pages.iter().flat_map(|pg| pg.items.iter()).find_map(|it| match it {
-        wordcraft_layout::Placed::Cell { rect, table, row, cell, story: st, .. } if *table == tp && *row == r && *cell == c && *st == story => {
+        docufy_layout::Placed::Cell { rect, table, row, cell, story: st, .. } if *table == tp && *row == r && *cell == c && *st == story => {
             Some(*rect)
         }
         _ => None,
@@ -134,7 +134,7 @@ fn cell_size_boxes(ui: &mut Ui, app: &mut WordApp) {
         .iter()
         .flat_map(|pg| pg.items.iter())
         .filter_map(|it| match it {
-            wordcraft_layout::Placed::Cell { rect, table, row, story: st, .. } if *table == tp && *row == r && *st == story => Some(rect.h),
+            docufy_layout::Placed::Cell { rect, table, row, story: st, .. } if *table == tp && *row == r && *st == story => Some(rect.h),
             _ => None,
         })
         .reduce(f32::min);
@@ -142,7 +142,7 @@ fn cell_size_boxes(ui: &mut Ui, app: &mut WordApp) {
     let k = unit.pt_per_unit();
     let h0 = row.height.or(row_h).unwrap_or(0.0);
     let w0 = laid.map(|x| x.w).or(stored_w).unwrap_or(0.0);
-    let exact = row.height_rule == wordcraft_doc::props::HeightRule::Exact;
+    let exact = row.height_rule == docufy_doc::props::HeightRule::Exact;
     // The edited value in points, and whether it continues a drag (joins the previous Undo step).
     let boxed = |ui: &mut Ui, label: &str, pt: f32| -> Option<(f32, bool)> {
         let mut out = None;

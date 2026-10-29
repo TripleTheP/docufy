@@ -13,7 +13,7 @@ const MIN_LINE_WIDTH: f32 = 1.0;
 /// are broken in, from one to the next.
 struct Breaker<'e> {
     level: Option<&'e Level>,
-    rp: wordcraft_doc::resolve::ResolvedPara,
+    rp: docufy_doc::resolve::ResolvedPara,
     mark_style: u32,
     exclusions: &'e [Exclusion],
     n: usize,
@@ -186,7 +186,7 @@ impl<'e> Breaker<'e> {
             first_left: rp.indent_left + rp.indent_first,
             default_tab: settings.default_tab,
             hanging_at: if rp.indent_first < 0.0 { Some(rp.indent_left) } else { None },
-            shrink_spaces: rp.align == Align::Justify && settings.compat_mode >= wordcraft_doc::COMPAT_MODE_CURRENT,
+            shrink_spaces: rp.align == Align::Justify && settings.compat_mode >= docufy_doc::COMPAT_MODE_CURRENT,
             expand_break: !settings.do_not_expand_shift_return,
             zone: Some(settings.hyphenation_zone).filter(|z| z.is_finite() && *z >= 0.0).unwrap_or(HYPHENATION_ZONE).min(1584.0),
             hyph_limit: settings.consecutive_hyphen_limit as usize,

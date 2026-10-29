@@ -17,17 +17,17 @@ impl WordApp {
             return;
         }
         let end = self.session.sel.focus.clone();
-        let Some(off) = end.off.checked_sub(wordcraft_doc::para::OBJ.len_utf8()) else { return };
-        let start = wordcraft_doc::Pos { off, ..end.clone() };
+        let Some(off) = end.off.checked_sub(docufy_doc::para::OBJ.len_utf8()) else { return };
+        let start = docufy_doc::Pos { off, ..end.clone() };
         if self.session.doc.para_at(&start).and_then(|p| p.object_at(off)).is_some_and(|o| o.is_drawing()) {
-            self.session.sel = wordcraft_engine::Selection { anchor: start, focus: end };
+            self.session.sel = docufy_engine::Selection { anchor: start, focus: end };
         }
     }
 
     /// Media key of the selected picture, if any.
     pub(crate) fn selected_picture_media(&self) -> Option<String> {
-        match wordcraft_engine::cmd::objects::selected(&self.session) {
-            Some((_, wordcraft_doc::para::InlineObject::Image { media, .. })) => Some(media),
+        match docufy_engine::cmd::objects::selected(&self.session) {
+            Some((_, docufy_doc::para::InlineObject::Image { media, .. })) => Some(media),
             _ => None,
         }
     }
@@ -78,7 +78,7 @@ impl WordApp {
                 log::debug!("pasted picture ignored: the document is not the edit target");
                 continue;
             }
-            let _ = self.insert_or_change_picture(json!({"data": wordcraft_engine::cmd::insert::base64_encode(&bytes)}));
+            let _ = self.insert_or_change_picture(json!({"data": docufy_engine::cmd::insert::base64_encode(&bytes)}));
         }
     }
 }

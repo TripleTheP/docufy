@@ -9,7 +9,7 @@ use crate::Session;
 
 /// Creates an empty-document session for the IME no-op regressions.
 fn s() -> Session {
-    Session::new(wordcraft_doc::Document::new())
+    Session::new(docufy_doc::Document::new())
 }
 
 /// Runs a command in the test session, panicking with the command id on error.
@@ -69,7 +69,7 @@ fn a_same_text_set_text_advances_the_body_epoch_without_an_application_change() 
 /// new Undo step instead of joining the deletion.
 #[test]
 fn tab_between_an_ime_replacement_and_its_commit_keeps_the_steps_apart() {
-    let text = |s: &Session| s.doc.plain_text(wordcraft_doc::StoryRef::Body);
+    let text = |s: &Session| s.doc.plain_text(docufy_doc::StoryRef::Body);
 
     // The promise itself joins the commit at the unchanged selection.
     let mut s = self::s();

@@ -126,7 +126,7 @@ pub(super) struct St {
     /// (`\li`, `\ri`, `\fi`), twips.
     /// The paragraph's borders (`\brdrt`, `\brdrb`, `\brdrl`, `\brdrr`) and the side being
     /// described.
-    pub(super) borders: wordcraft_doc::props::Borders,
+    pub(super) borders: docufy_doc::props::Borders,
     pub(super) border_side: Option<char>,
     pub(super) sb: Option<i32>,
     pub(super) sa: Option<i32>,
@@ -179,7 +179,7 @@ pub(super) struct CellDef {
     pub(super) right: i32,
     /// The borders the cell names (`\clbrdrt` … `\clbrdrr`, each with its line style, `\brdrw`
     /// width and `\brdrcf` colour).
-    pub(super) borders: wordcraft_doc::props::Borders,
+    pub(super) borders: docufy_doc::props::Borders,
     pub(super) valign: Option<VAlign>,
 }
 
@@ -199,8 +199,8 @@ pub(super) struct PageGeom {
 
 impl PageGeom {
     /// The section properties these give, Word's defaults where the file names none.
-    fn section(&self) -> wordcraft_doc::SectionProps {
-        let mut s = wordcraft_doc::SectionProps::default();
+    fn section(&self) -> docufy_doc::SectionProps {
+        let mut s = docufy_doc::SectionProps::default();
         // Twips to points, ignoring nonsense (zero, negative, or beyond Word's 22").
         let pt = |v: Option<i32>, lo: f32, hi: f32| v.map(|t| t as f32 / 20.0).filter(|v| v.is_finite() && (lo..=hi).contains(v));
         if let Some(w) = pt(self.w, 72.0, 1584.0) {
@@ -226,7 +226,7 @@ impl PageGeom {
             }
         }
         // Margins that leave no room for text fall back to Word's.
-        let d = wordcraft_doc::SectionProps::default();
+        let d = docufy_doc::SectionProps::default();
         if s.page_w - s.margin_left - s.margin_right < 72.0 {
             (s.margin_left, s.margin_right) = (d.margin_left, d.margin_right);
         }
@@ -242,19 +242,19 @@ impl PageGeom {
 #[derive(Clone, Debug, Default)]
 pub(super) struct SecFmt {
     pub(super) page: PageGeom,
-    pub(super) start: wordcraft_doc::section::SectionStart,
+    pub(super) start: docufy_doc::section::SectionStart,
     pub(super) cols: Option<i32>,
     pub(super) colsx: Option<i32>,
     pub(super) linebetcol: bool,
     pub(super) pgn_restart: bool,
     pub(super) pgn_start: Option<i32>,
-    pub(super) pgn_fmt: wordcraft_doc::section::NumFormat,
+    pub(super) pgn_fmt: docufy_doc::section::NumFormat,
     pub(super) title_page: bool,
 }
 
 impl SecFmt {
     /// The section's properties over the document's page (`doc`); headers and footers unset.
-    pub(super) fn props(&self, doc: &PageGeom) -> wordcraft_doc::SectionProps {
+    pub(super) fn props(&self, doc: &PageGeom) -> docufy_doc::SectionProps {
         let p = &self.page;
         let page = PageGeom {
             w: p.w.or(doc.w),

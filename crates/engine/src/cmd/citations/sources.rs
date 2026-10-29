@@ -80,7 +80,7 @@ fn import_sources(s: &mut Session, path: &str) -> Result<(), CmdError> {
     {
         // Through `io`, which keeps automation inside its read root (#769).
         let bytes = crate::io::read_file_capped(path, MAX_SOURCES_FILE, "sources file").map_err(CmdError::Failed)?;
-        let file = wordcraft_docx::read_sources(&bytes).map_err(|e| CmdError::Failed(e.to_string()))?;
+        let file = docufy_docx::read_sources(&bytes).map_err(|e| CmdError::Failed(e.to_string()))?;
         let mut added = false;
         // The tags and (title, author-or-editor) keys already here, once: an import of thousands
         // of untagged sources must not rescan the list per source. Tags follow `auto_tag`: the
@@ -90,7 +90,7 @@ fn import_sources(s: &mut Session, path: &str) -> Result<(), CmdError> {
             s.doc.sources.iter().map(|x| (x.title.clone(), by_author(x).to_string())).collect();
         let mut next: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
         for mut src in file.sources {
-            if s.doc.sources.len() >= wordcraft_docx::MAX_SOURCES {
+            if s.doc.sources.len() >= docufy_docx::MAX_SOURCES {
                 break;
             }
             if src.tag.is_empty() {

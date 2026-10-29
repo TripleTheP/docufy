@@ -25,7 +25,7 @@ pub(super) fn inspect_doc(s: &mut Session, v: &Value) -> CmdResult {
         "hidden": hidden.iter().take(MAX_HIDDEN_LISTED).map(|h| h.report(&s.doc)).collect::<Vec<_>>(),
         "truncated": hidden.len() > MAX_HIDDEN_LISTED,
         "unsupported": unsupported_hidden(&s.doc),
-        "headers": s.doc.parts.values().filter(|p| matches!(p.kind, wordcraft_doc::PartKind::Header | wordcraft_doc::PartKind::Footer)).count(),
+        "headers": s.doc.parts.values().filter(|p| matches!(p.kind, docufy_doc::PartKind::Header | docufy_doc::PartKind::Footer)).count(),
     });
     let mut removed_notes = Vec::new();
     for r in &remove {
@@ -71,7 +71,7 @@ const MAX_NOTE_TEXT: usize = 1000;
 /// is hidden too and so is all its text, so the paragraph itself goes.
 struct Hidden {
     story: StoryRef,
-    path: wordcraft_doc::Path,
+    path: docufy_doc::Path,
     range: std::ops::Range<usize>,
     whole: bool,
 }
@@ -114,8 +114,7 @@ fn remove_hidden(doc: &mut Document) -> Result<Vec<Value>, CmdError> {
     refs.dedup();
     let mut out = Vec::new();
     for id in refs {
-        if kept.contains(&id)
-            || !doc.parts.get(&id).is_some_and(|p| matches!(p.kind, wordcraft_doc::PartKind::Footnote | wordcraft_doc::PartKind::Endnote))
+        if kept.contains(&id) || !doc.parts.get(&id).is_some_and(|p| matches!(p.kind, docufy_doc::PartKind::Footnote | docufy_doc::PartKind::Endnote))
         {
             continue;
         }
@@ -132,7 +131,7 @@ fn remove_hidden(doc: &mut Document) -> Result<Vec<Value>, CmdError> {
 /// Whether a whole hidden paragraph can go, mark and all. It stays when it is the last block of
 /// its story or cell (they end with a paragraph), carries a section break, holds content control
 /// markers (their partners may be elsewhere), or sits between two tables (they'd join on reopen).
-fn removable(doc: &Document, story: StoryRef, path: &wordcraft_doc::Path, p: &Paragraph) -> bool {
+fn removable(doc: &Document, story: StoryRef, path: &docufy_doc::Path, p: &Paragraph) -> bool {
     let i = path.last();
     let Some(c) = doc.container(story, path) else { return false };
     let is_table = |j: Option<usize>| j.and_then(|j| c.get(j)).is_some_and(|b| matches!(**b, Block::Table(_)));
@@ -197,7 +196,7 @@ fn all_stories(doc: &Document) -> Vec<StoryRef> {
 
 /// What the inspector calls a story.
 fn story_kind(doc: &Document, st: StoryRef) -> &'static str {
-    use wordcraft_doc::PartKind;
+    use docufy_doc::PartKind;
     match st {
         StoryRef::Body => "body",
         StoryRef::Part(id) => match doc.parts.get(&id).map(|p| p.kind) {
@@ -280,7 +279,7 @@ fn unsupported_hidden(doc: &Document) -> Vec<Value> {
 
 /// Tables whose table style (or one of its conditional parts: header row, bands, first or last
 /// column, total row) hides text. The inspector doesn't resolve table styles, so it lists them.
-fn tables_hiding_text(doc: &Document, story: StoryRef, blocks: &wordcraft_doc::Blocks, depth: usize, out: &mut Vec<Value>) {
+fn tables_hiding_text(doc: &Document, story: StoryRef, blocks: &docufy_doc::Blocks, depth: usize, out: &mut Vec<Value>) {
     if depth > 32 {
         return;
     }

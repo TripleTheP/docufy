@@ -3,12 +3,12 @@
 //! The selected object is the first picture/shape inside the selection (or right before the
 //! caret). Picture adjustments re-encode the bitmap (originals are kept for Reset Picture).
 
+use docufy_doc::graphic::GraphicKind;
+use docufy_doc::para::{Float, InlineObject, Wrap, WrapText};
+use docufy_doc::props::{Rgb, TextVert, VAlign};
+use docufy_doc::{Pos, StoryRef, TextBody};
+use docufy_geom::Spin;
 use serde_json::{Value, json};
-use wordcraft_doc::graphic::GraphicKind;
-use wordcraft_doc::para::{Float, InlineObject, Wrap, WrapText};
-use wordcraft_doc::props::{Rgb, TextVert, VAlign};
-use wordcraft_doc::{Pos, StoryRef, TextBody};
-use wordcraft_geom::Spin;
 
 use super::sel_result;
 use crate::{CmdError, CmdResult, CommandSpec, Selection, Session, p};

@@ -104,7 +104,7 @@ fn captioned_as(p: &Paragraph, ident: &str) -> bool {
 /// caption typed by hand what follows the label and the number, less the separator.
 fn caption_body(p: &Paragraph, label: &str) -> String {
     let seq_end = p.object_offsets().into_iter().find_map(|o| match p.object_at(o) {
-        Some(InlineObject::Field { instr, .. }) if FieldCode::parse(instr).name == "SEQ" => Some(o + wordcraft_doc::para::OBJ.len_utf8()),
+        Some(InlineObject::Field { instr, .. }) if FieldCode::parse(instr).name == "SEQ" => Some(o + docufy_doc::para::OBJ.len_utf8()),
         _ => None,
     });
     let rest = match seq_end {
@@ -112,7 +112,7 @@ fn caption_body(p: &Paragraph, label: &str) -> String {
             let mut k = 0;
             let mut rest = String::new();
             for (at, c) in p.text.char_indices() {
-                if c == wordcraft_doc::para::OBJ {
+                if c == docufy_doc::para::OBJ {
                     if at >= end
                         && let Some(o) = p.objects.get(k)
                     {
@@ -222,12 +222,12 @@ pub fn update_generated(s: &mut Session) -> Result<(), CmdError> {
 /// layout cache starts over (and the saved file would gain a style it doesn't use).
 fn add_entry_style(s: &mut Session) {
     if s.doc.styles.get(ENTRY_STYLE).is_none() {
-        s.doc.styles.upsert(wordcraft_doc::Style {
+        s.doc.styles.upsert(docufy_doc::Style {
             id: ENTRY_STYLE.into(),
             name: "List Entry".into(),
-            kind: wordcraft_doc::StyleKind::Paragraph,
+            kind: docufy_doc::StyleKind::Paragraph,
             based_on: Some("Normal".into()),
-            para: wordcraft_doc::ParaProps { space_after: Some(4.0), ..Default::default() },
+            para: docufy_doc::ParaProps { space_after: Some(4.0), ..Default::default() },
             hidden: true,
             ..Default::default()
         });

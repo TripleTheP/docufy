@@ -6,7 +6,7 @@ use crate::table_resize::tests::{H, cell, screen, steps, table_window};
 /// request the page is the document's own again.
 #[test]
 fn the_page_shows_the_table_the_grid_previews() {
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("Lanterns")), crate::Services::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("Lanterns")), crate::Services::default());
     let cells = |l: &DocLayout| l.index.keys().filter(|(st, p)| *st == StoryRef::Body && p.0.len() == 4).count();
     let (doc, rev) = (app.session.doc.clone(), app.session.rev());
     app.canvas.table_preview = Some((2, 3));
@@ -24,11 +24,11 @@ fn the_page_shows_the_table_the_grid_previews() {
 /// table moves "Kites" down a block, so the document's own block there is not its paragraph.
 #[test]
 fn the_previewed_pages_are_drawn_from_the_previewed_document() {
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("Lanterns\nKites")), crate::Services::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("Lanterns\nKites")), crate::Services::default());
     app.session.run("caret.end", &json!({})).unwrap();
     app.canvas.table_preview = Some((2, 2));
     let layout = shown_layout(&mut app);
-    let text = |doc: &wordcraft_doc::Document, story, path| doc.para(story, path).map(|p| p.text.clone());
+    let text = |doc: &docufy_doc::Document, story, path| doc.para(story, path).map(|p| p.text.clone());
     let mut kites = 0;
     for it in layout.pages.iter().flat_map(|p| &p.items) {
         let Placed::Lines { story, path, .. } = it else { continue };
@@ -46,8 +46,8 @@ fn the_previewed_pages_are_drawn_from_the_previewed_document() {
 /// moved in the preview's layout.
 #[test]
 fn the_preview_draws_the_copy_caret_and_selection() {
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("Lanterns\nKites")), crate::Services::default());
-    app.session.sel = wordcraft_engine::Selection { anchor: Pos::body(0, 3), focus: Pos::body(1, 2) };
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("Lanterns\nKites")), crate::Services::default());
+    app.session.sel = docufy_engine::Selection { anchor: Pos::body(0, 3), focus: Pos::body(1, 2) };
     app.canvas.table_preview = Some((2, 2));
     let layout = shown_layout(&mut app);
     let sel = preview_sel(&app).expect("the preview's selection").clone();
@@ -65,7 +65,7 @@ fn the_preview_draws_the_copy_caret_and_selection() {
 /// view's width.
 #[test]
 fn the_preview_follows_the_caret_and_the_view() {
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("Lanterns\nKites")), crate::Services::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("Lanterns\nKites")), crate::Services::default());
     let tables =
         |l: &DocLayout| l.index.keys().filter(|(st, p)| *st == StoryRef::Body && p.0.len() == 4).map(|(_, p)| p.0[0]).collect::<HashSet<u32>>();
     app.session.run("caret.docEnd", &json!({})).unwrap();
@@ -77,7 +77,7 @@ fn the_preview_follows_the_caret_and_the_view() {
     assert_ne!(at_start, at_end, "the caret moved: so did the table");
     let (_, _, fresh) = app.session.preview_layout("insert.table", &json!({"rows": 2, "cols": 2})).unwrap();
     assert_eq!(at_start, tables(&fresh));
-    app.session.view.mode = wordcraft_layout::ViewMode::Web;
+    app.session.view.mode = docufy_layout::ViewMode::Web;
     app.session.view.web_width = 300.0;
     app.canvas.table_preview = Some((2, 2));
     let web = shown_layout(&mut app);
@@ -105,16 +105,16 @@ fn settle_waits_for_a_drag_to_stop() {
 /// #2545: notes belong to the body editing context, not the faded header/footer context.
 #[test]
 fn editing_notes_keeps_the_body_and_active_note_opaque() {
-    use wordcraft_layout::display::{Draw, page_display};
+    use docufy_layout::display::{Draw, page_display};
     for command in ["references.footnote", "references.endnote"] {
-        let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("Body marker.")), Default::default());
+        let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("Body marker.")), Default::default());
         app.run(command, json!({"text": "Note marker."})).unwrap();
         let note = app.session.sel.focus.story;
         assert!(matches!(part_kind(&app, note), Some(PartKind::Footnote | PartKind::Endnote)));
         app.run("insert.header", json!({"text": "Header marker."})).unwrap();
         let header = app.session.sel.focus.story;
         for story in [note, StoryRef::Body, header] {
-            app.session.sel = wordcraft_engine::Selection::caret(app.session.doc.end_of(story));
+            app.session.sel = docufy_engine::Selection::caret(app.session.doc.end_of(story));
             let layout = app.session.layout();
             for dark in [false, true] {
                 app.session.view.dark_mode = dark;
@@ -141,7 +141,7 @@ fn editing_notes_keeps_the_body_and_active_note_opaque() {
 }
 
 /// What `page_image` replaced: the raster un-premultiplied, for egui to premultiply again.
-fn by_straight_alpha(img: &wordcraft_render::Rendered) -> egui::ColorImage {
+fn by_straight_alpha(img: &docufy_render::Rendered) -> egui::ColorImage {
     egui::ColorImage::from_rgba_unmultiplied([img.width as usize, img.height as usize], &img.to_straight())
 }
 
@@ -164,14 +164,14 @@ fn page_image_keeps_every_pixel_the_straight_alpha_round_trip_gave() {
             pixels.extend([c, a, a - c, a]);
         }
     }
-    let every = wordcraft_render::Rendered { width: (pixels.len() / 4) as u32, height: 1, pixels };
+    let every = docufy_render::Rendered { width: (pixels.len() / 4) as u32, height: 1, pixels };
     assert!(page_image(&every).pixels == by_straight_alpha(&every).pixels, "a premultiplied pixel changed");
     // And real pages as the canvas draws them: text, a table, a picture.
-    let mut s = wordcraft_engine::Session::new(wordcraft_engine::sample::sample_document());
+    let mut s = docufy_engine::Session::new(docufy_engine::sample::sample_document());
     let layout = s.layout();
     assert!(!layout.pages.is_empty());
     for page in &layout.pages {
-        let img = wordcraft_render::render_page(&s.doc, page, 2.0, &screen_render_options());
+        let img = docufy_render::render_page(&s.doc, page, 2.0, &screen_render_options());
         let ours = page_image(&img);
         assert_eq!(ours.size, [img.width as usize, img.height as usize]);
         assert!(ours.pixels == by_straight_alpha(&img).pixels, "a page pixel changed");
@@ -332,7 +332,7 @@ fn reading_wheel_snaps_one_column_per_tick_and_respects_touchpads() {
 /// theme: on white paper, a dark page colour, a dark page (Switch Modes) and a highlight.
 #[test]
 fn caret_contrasts_with_what_lies_under_it() {
-    use wordcraft_doc::props::Rgb;
+    use docufy_doc::props::Rgb;
     assert_eq!(caret_contrast(Rgb::WHITE), Color32::BLACK);
     assert_eq!(caret_contrast(Rgb::BLACK), Color32::WHITE);
     assert_eq!(caret_contrast(Rgb(0xFF, 0xFF, 0x00)), Color32::BLACK, "yellow highlight");
@@ -340,8 +340,8 @@ fn caret_contrasts_with_what_lies_under_it() {
     assert_eq!(caret_contrast(Rgb(0x33, 0x33, 0x33)), Color32::WHITE, "dark paper");
     assert_eq!(caret_contrast(Rgb(0xC0, 0xC0, 0xC0)), Color32::BLACK, "light grey");
 
-    let doc = wordcraft_doc::Document::from_text("Hello WordCraft");
-    let mut a = WordApp::new(wordcraft_engine::Session::new(doc), Default::default());
+    let doc = docufy_doc::Document::from_text("Hello Docufy");
+    let mut a = WordApp::new(docufy_engine::Session::new(doc), Default::default());
     let at = |a: &mut WordApp, off: usize| {
         let layout = a.session.layout();
         let c = layout.caret_on(&Pos::body(0, off), 0).unwrap();
@@ -367,8 +367,8 @@ fn caret_contrasts_with_what_lies_under_it() {
 /// page, in place of the document's page color; other views keep the page color.
 #[test]
 fn read_mode_page_color_sets_the_reading_paper() {
-    use wordcraft_doc::props::Rgb;
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("Hello WordCraft")), Default::default());
+    use docufy_doc::props::Rgb;
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("Hello Docufy")), Default::default());
     a.run("design.pageColor", json!({"color": "#102040"})).unwrap();
     let paper = |a: &WordApp| page_render_options(a, false).paper_of(&a.session.doc);
     assert_eq!(paper(&a), Rgb(0x10, 0x20, 0x40), "Print Layout shows the page color");
@@ -377,12 +377,12 @@ fn read_mode_page_color_sets_the_reading_paper() {
     assert_eq!(paper(&a), Rgb::WHITE, "None: white, the page color ignored");
     let none_key = view_key(&a, false, None);
     a.run("view.readPageColor", json!({"value": "sepia"})).unwrap();
-    assert_eq!(paper(&a), wordcraft_render::SEPIA_PAPER);
+    assert_eq!(paper(&a), docufy_render::SEPIA_PAPER);
     assert!(!page_render_options(&a, false).dark, "Sepia keeps the text's colors");
     let sepia_key = view_key(&a, false, None);
     a.run("view.readPageColor", json!({"value": "inverse"})).unwrap();
     assert!(page_render_options(&a, false).dark);
-    let d = wordcraft_render::DARK_PAPER;
+    let d = docufy_render::DARK_PAPER;
     assert_eq!(paper(&a), Rgb(d, d, d));
     let inverse_key = view_key(&a, false, None);
     let keys = [print_key, none_key, sepia_key, inverse_key];
@@ -398,7 +398,7 @@ fn read_mode_page_color_sets_the_reading_paper() {
     assert!(!page_render_options(&a, false).dark);
     assert_eq!(paper(&a), Rgb::WHITE);
     a.run("view.readPageColor", json!({"value": "sepia"})).unwrap();
-    assert_eq!(paper(&a), wordcraft_render::SEPIA_PAPER);
+    assert_eq!(paper(&a), docufy_render::SEPIA_PAPER);
     a.run("view.printLayout", json!({})).unwrap();
     assert!(page_render_options(&a, false).dark, "Print Layout keeps Switch Modes");
 }
@@ -407,7 +407,7 @@ fn read_mode_page_color_sets_the_reading_paper() {
 /// there is no caret, so the page's draw list isn't built for it.
 #[test]
 fn caret_colour_is_not_worked_out_while_the_caret_is_hidden() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("Hello WordCraft")), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("Hello Docufy")), Default::default());
     a.run("select.text", json!({"text": "Hello"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
         |ui, app: &mut WordApp| {
@@ -425,7 +425,7 @@ fn caret_colour_is_not_worked_out_while_the_caret_is_hidden() {
 /// always leaving an inch of text.
 #[test]
 fn margin_drags_are_clamped() {
-    let s = wordcraft_doc::section::SectionProps {
+    let s = docufy_doc::section::SectionProps {
         page_w: 612.0,
         page_h: 792.0,
         margin_left: 72.0,
@@ -442,31 +442,31 @@ fn margin_drags_are_clamped() {
     assert_eq!(dragged_margin(MarginEdge::Right, 0.0, &s), 612.0 - 72.0 - 72.0);
     assert_eq!(dragged_margin(MarginEdge::Top, 9.0, &s), 9.0);
     assert_eq!(dragged_margin(MarginEdge::Bottom, 100.0, &s), 792.0 - 72.0 - 72.0);
-    let g = wordcraft_doc::section::SectionProps { gutter: 36.0, ..s.clone() };
+    let g = docufy_doc::section::SectionProps { gutter: 36.0, ..s.clone() };
     assert_eq!(dragged_margin(MarginEdge::Left, 144.0, &g), 108.0, "the gutter isn't margin");
     assert_eq!(dragged_margin(MarginEdge::Left, f32::NAN, &s), 72.0, "junk keeps the margin");
 
     // Through the command: the result is applied and is one undo step.
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
-    let sect = wordcraft_engine::cmd::page::sect(&app.session);
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
+    let sect = docufy_engine::cmd::page::sect(&app.session);
     let v = dragged_margin(MarginEdge::Left, sect.page_w, &sect);
     app.run("layout.margins", json!({"left": v})).unwrap();
-    let after = wordcraft_engine::cmd::page::sect(&app.session);
+    let after = docufy_engine::cmd::page::sect(&app.session);
     assert!(after.page_w - after.margin_left - after.margin_right - after.gutter >= MIN_TEXT - 0.01);
     assert!(app.session.undo());
-    assert_eq!(wordcraft_engine::cmd::page::sect(&app.session).margin_left, sect.margin_left);
+    assert_eq!(docufy_engine::cmd::page::sect(&app.session).margin_left, sect.margin_left);
 }
 
 /// #2914: on an even page of a mirrored layout the page is the odd page reflected, so dragging
 /// its visible left edge edits the stored right margin and the visible right edge the left one.
 #[test]
 fn ruler_margin_drags_on_even_mirrored_pages_move_the_visible_edge() {
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("one")), Default::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("one")), Default::default());
     app.session.doc.settings.mirror_margins = true;
     app.run("layout.margins", json!({"left": 72.0, "right": 36.0})).unwrap();
     app.run("caret.docEnd", json!({})).unwrap();
     app.run("insert.pageBreak", json!({})).unwrap();
-    let sect = wordcraft_engine::cmd::page::sect(&app.session);
+    let sect = docufy_engine::cmd::page::sect(&app.session);
     let body = |app: &mut WordApp, page: usize| {
         let l = app.session.layout();
         let b = l.pages.get(page).expect("the page exists").body;
@@ -483,7 +483,7 @@ fn ruler_margin_drags_on_even_mirrored_pages_move_the_visible_edge() {
     let (edge, v) = margin_drag(MarginEdge::Left, 90.0, &sect, true);
     assert_eq!(edge, MarginEdge::Right);
     app.run("layout.margins", json!({edge.param(): v})).unwrap();
-    let after = wordcraft_engine::cmd::page::sect(&app.session);
+    let after = docufy_engine::cmd::page::sect(&app.session);
     assert_eq!((after.margin_left, after.margin_right), (72.0, 90.0), "the left margin was not touched");
     let (x, right, _) = body(&mut app, 1);
     assert!((x - 90.0).abs() < 0.01 && (right - (sect.page_w - 72.0)).abs() < 0.01, "the visible left edge moved to the pointer ({x}, {right})");
@@ -508,7 +508,7 @@ fn ruler_margin_drags_on_even_mirrored_pages_move_the_visible_edge() {
 #[test]
 fn dragging_the_bottom_margin_on_the_ruler_keeps_the_view_and_follows_the_pointer() {
     let text = vec!["A line of text."; 20].join("\n");
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text(&text)), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text(&text)), Default::default());
     a.run("view.ruler", json!({"value": true})).unwrap();
     a.run("caret.docStart", json!({})).unwrap();
     let mut h: H = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(0.25).build_ui_state(
@@ -529,7 +529,7 @@ fn dragging_the_bottom_margin_on_the_ruler_keeps_the_view_and_follows_the_pointe
     h.run_steps(4);
     assert!(screen(&mut h, 0.0, body.y).y < area.min.y, "the caret's line is above the view");
     let offset = h.state().canvas.scroll_offset;
-    let sect = wordcraft_engine::cmd::page::sect(&h.state().session);
+    let sect = docufy_engine::cmd::page::sect(&h.state().session);
     let depth = h.state().session.undo_depth();
 
     // The bottom margin's edge on the vertical ruler, dragged up 36 points in a few moves.
@@ -548,7 +548,7 @@ fn dragging_the_bottom_margin_on_the_ruler_keeps_the_view_and_follows_the_pointe
     h.event(egui::Event::PointerButton { pos: end, button: egui::PointerButton::Primary, pressed: false, modifiers: Default::default() });
     h.run_steps(3);
     assert_eq!(h.state().canvas.scroll_offset, offset, "the view moved after the drag");
-    let after = wordcraft_engine::cmd::page::sect(&h.state().session);
+    let after = docufy_engine::cmd::page::sect(&h.state().session);
     assert!((after.margin_bottom - (sect.margin_bottom + 36.0)).abs() <= 4.5, "{} → {}", sect.margin_bottom, after.margin_bottom);
     assert_eq!(h.state().session.undo_depth(), depth + 1, "one undo step for the drag");
 }
@@ -558,7 +558,7 @@ fn dragging_the_bottom_margin_on_the_ruler_keeps_the_view_and_follows_the_pointe
 /// while the Comments pane is open.
 #[test]
 fn a_deletion_alone_opens_the_markup_area_when_revisions_go_in_balloons() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("document.setText", json!({"text": "keep gone"})).unwrap();
     a.run("review.trackChanges", json!({"value": true})).unwrap();
     a.run("select.range", json!({"anchor": {"block": 0, "off": 5}, "focus": {"block": 0, "off": 9}})).unwrap();
@@ -591,7 +591,7 @@ fn presses_count_up_to_three() {
 #[test]
 fn multi_click_drag_extends_by_units() {
     use egui::{Event, PointerButton};
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": "Alpha beta gamma delta\rSecond para\rThird para"})).unwrap();
     a.run("view.commentsPane", json!({"value": false})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
@@ -662,7 +662,7 @@ fn dragging_the_scrollbar_names_the_page_at_the_top() {
     use egui::{Event, PointerButton};
     use egui_kittest::kittest::Queryable;
     for hide_white_space in [false, true] {
-        let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+        let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
         for _ in 0..11 {
             a.run("text.insert", json!({"text": "Page text"})).unwrap();
             a.run("layout.break", json!({"kind": "page"})).unwrap();
@@ -730,7 +730,7 @@ fn dragging_the_scrollbar_names_the_page_at_the_top() {
 #[test]
 fn the_status_bar_names_the_page_in_view_not_only_the_caret_page() {
     use egui_kittest::kittest::Queryable;
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     for _ in 0..11 {
         a.run("text.insert", json!({"text": "Page text"})).unwrap();
         a.run("layout.break", json!({"kind": "page"})).unwrap();
@@ -805,7 +805,7 @@ fn the_page_at_the_top_of_the_window() {
 #[test]
 fn ctrl_drag_copies_an_object() {
     use egui::{Event, Modifiers, PointerButton};
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": "Some text"})).unwrap();
     a.run("view.commentsPane", json!({"value": false})).unwrap();
     a.run("insert.shape", json!({"kind": "rectangle"})).unwrap();
@@ -823,7 +823,7 @@ fn ctrl_drag_copies_an_object() {
     }
     let objects = |h: &mut egui_kittest::Harness<'_, WordApp>| {
         let doc = &h.state().session.doc;
-        doc.para(wordcraft_doc::StoryRef::Body, &wordcraft_doc::Path::top(0)).map_or(0, |p| p.objects.len())
+        doc.para(docufy_doc::StoryRef::Body, &docufy_doc::Path::top(0)).map_or(0, |p| p.objects.len())
     };
     let xs = |h: &mut egui_kittest::Harness<'_, WordApp>| {
         let mut v: Vec<i32> = Vec::new();
@@ -868,7 +868,7 @@ fn ctrl_drag_copies_an_object() {
 fn selection_bar_clicks_select_lines() {
     use egui::{Event, Modifiers, PointerButton};
     let long = "The quick brown fox jumps over the lazy dog. ".repeat(8);
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": format!("{}\rSecond para\rThird para", long.trim_end())})).unwrap();
     a.run("view.commentsPane", json!({"value": false})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
@@ -922,7 +922,7 @@ fn selection_bar_clicks_select_lines() {
     // Click beside the second line: that whole line is selected, not a caret at its start.
     let at = margin(&mut h, Pos::body(0, 0), 1.0);
     let l2 = line_start(&mut h, at);
-    assert!(l2.off > 0 && l2.path == wordcraft_doc::Path::top(0));
+    assert!(l2.off > 0 && l2.path == docufy_doc::Path::top(0));
     clicks_drag(&mut h, at, at, 1);
     let (_, l2_end, _) = span(&mut h, &l2);
     assert_eq!(h.state().session.sel.ordered(), (l2.clone(), l2_end.clone()), "the line");
@@ -963,7 +963,7 @@ fn selection_bar_clicks_select_lines() {
 #[test]
 fn selection_bar_of_a_right_to_left_paragraph_is_on_the_right() {
     use egui::{Event, PointerButton};
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": "First para\r\u{5e9}\u{5dc}\u{5d5}\u{5dd} \u{5e9}\u{5dc}\u{5d5}\u{5dd}\rThird para"})).unwrap();
     a.run("caret.set", json!({"pos": serde_json::to_value(Pos::body(1, 0)).unwrap()})).unwrap();
     a.run("para.rtl", json!({})).unwrap();
@@ -1003,7 +1003,7 @@ fn selection_bar_of_a_right_to_left_paragraph_is_on_the_right() {
     click(&mut h, right);
     let (s, e) = h.state().session.sel.ordered();
     assert_eq!(s, Pos::body(1, 0), "the line is selected");
-    assert!(e > s && (e.path == wordcraft_doc::Path::top(1) || e == Pos::body(2, 0)), "{s:?}..{e:?}");
+    assert!(e > s && (e.path == docufy_doc::Path::top(1) || e == Pos::body(2, 0)), "{s:?}..{e:?}");
     // Beside it on the left: no bar (not the bar's arrow, and a caret, not a line selection).
     // The cursor there is the text cursor, or none at all on some platforms' test windows.
     h.event(Event::PointerMoved(left));
@@ -1017,7 +1017,7 @@ fn selection_bar_of_a_right_to_left_paragraph_is_on_the_right() {
 /// back once the painter is off. The selection bar keeps its arrow while it is armed.
 #[test]
 fn an_armed_format_painter_changes_the_pointer() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": "Paint this formatting"})).unwrap();
     a.run("view.commentsPane", json!({"value": false})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
@@ -1058,7 +1058,7 @@ fn an_armed_format_painter_changes_the_pointer() {
 #[test]
 fn an_empty_comment_balloon_deletes() {
     for body in ["", "Some text here"] {
-        let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+        let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
         if !body.is_empty() {
             a.run("text.insert", json!({"text": body})).unwrap();
             a.run("select.text", json!({"text": "text"})).unwrap();
@@ -1103,7 +1103,7 @@ fn an_empty_comment_balloon_deletes() {
 /// one: keys are handled before the canvas takes the layout it paints.
 #[test]
 fn a_keystroke_is_painted_in_its_own_frame() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": "Some text"})).unwrap();
     a.canvas.want_focus = true;
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
@@ -1137,7 +1137,7 @@ fn balloon_glyphs(text: &str, width: f32) -> Option<Vec<(char, f32)>> {
 /// Lays `text` out for a balloon at `ppp` with the document fallback face and returns each glyph's
 /// character and physical left edge, asserting that wrapping stays within `width`.
 fn balloon_glyphs_at_scale(text: &str, width: f32, ppp: f32) -> Option<Vec<(char, f32)>> {
-    let face = wordcraft_fonts::FontDb::global().fallback_for('ش', u32::MAX)?;
+    let face = docufy_fonts::FontDb::global().fallback_for('ش', u32::MAX)?;
     let ctx = egui::Context::default();
     ctx.set_pixels_per_point(ppp);
     let mut fonts = crate::theme::font_definitions(false, false);
@@ -1238,7 +1238,7 @@ fn balloon_font_fixtures() -> (egui::FontDefinitions, Vec<BalloonFontFixture>) {
         ("Noto Sans Arabic", "Arab", "شركة", "شركة اي\n123\nالربط (APIs) هنا\nLatin\n"),
         ("Noto Sans Hebrew", "Hebr", "שלום", "שלום עולם\n123\nשלום (APIs) עולם\nLatin\n"),
     ] {
-        if let Some(face) = wordcraft_fonts::CRAFT_FONTS.iter().find(|face| face.family == family && face.style == "Regular") {
+        if let Some(face) = docufy_fonts::CRAFT_FONTS.iter().find(|face| face.family == family && face.style == "Regular") {
             assert!(face.scripts.contains(&script));
             assert!(!face.bytes.is_empty());
             fonts.font_data.insert(family.into(), std::sync::Arc::new(egui::FontData::from_static(face.bytes)));
@@ -1447,7 +1447,7 @@ fn balloon_wrapper_keeps_real_font_rows_ink_and_reading_origins() {
 }
 
 fn assert_balloon_timestamp(when: &str) {
-    assert_eq!(when.len(), 16, "WordCraft comments carry a local YYYY-MM-DD HH:MM timestamp: {when:?}");
+    assert_eq!(when.len(), 16, "Docufy comments carry a local YYYY-MM-DD HH:MM timestamp: {when:?}");
     let b = when.as_bytes();
     assert_eq!((b.get(4), b.get(7), b.get(10), b.get(13)), (Some(&b'-'), Some(&b'-'), Some(&b' '), Some(&b':')), "timestamp separators: {when:?}");
     assert!(b.iter().enumerate().all(|(i, c)| matches!(i, 4 | 7 | 10 | 13) || c.is_ascii_digit()), "timestamp fields are digits: {when:?}");
@@ -1565,14 +1565,14 @@ fn assert_balloon_card(app: &WordApp, ctx: &egui::Context, output: &egui::FullOu
 #[test]
 fn read_only_balloon_bodies_and_replies_keep_real_font_card_geometry() {
     let (_, fixtures) = balloon_font_fixtures();
-    let db = wordcraft_fonts::FontDb::with_font_dirs(Vec::new());
+    let db = docufy_fonts::FontDb::with_font_dirs(Vec::new());
     let mut rtl_cases = 0;
     for fixture in &fixtures {
-        let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+        let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
         if fixture.family != "Balloon Latin" {
             let face = db.face(fixture.family, "Regular");
             assert_eq!(face.family, fixture.family, "do not accept a substitute fixture face");
-            let embedded = wordcraft_fonts::CRAFT_FONTS.iter().find(|font| font.family == fixture.family && font.style == "Regular").unwrap();
+            let embedded = docufy_fonts::CRAFT_FONTS.iter().find(|font| font.family == fixture.family && font.style == "Regular").unwrap();
             assert_eq!(face.data(), embedded.bytes);
             assert!(fixture.probe.chars().all(|c| face.covers(c)));
             app.canvas.ime_faces.push(face);
@@ -1622,7 +1622,7 @@ fn read_only_balloon_bodies_and_replies_keep_real_font_card_geometry() {
 /// Painted balloon text is clipped inside its comment card.
 #[test]
 fn read_only_balloon_text_is_clipped_to_its_card() {
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     app.run("text.insert", json!({"text": "Some text here"})).unwrap();
     app.run("select.text", json!({"text": "text"})).unwrap();
     let body = "Balloon ink stays within its own card";
@@ -1659,7 +1659,7 @@ fn read_only_balloon_text_is_clipped_to_its_card() {
 
 #[test]
 fn a_balloon_edits_its_comment() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": "Some text here"})).unwrap();
     a.run("select.text", json!({"text": "text"})).unwrap();
     let id = a.run("review.newComment", json!({"text": "Original"})).unwrap()["id"].as_u64().unwrap() as u32;
@@ -1706,7 +1706,7 @@ fn a_balloon_edits_its_comment() {
 #[test]
 fn double_click_margin_creates_header_and_footer() {
     use egui::{Event, PointerButton};
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": "Body text"})).unwrap();
     a.run("view.commentsPane", json!({"value": false})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 2200.0)).with_step_dt(1.0 / 60.0).build_ui_state(
@@ -1776,7 +1776,7 @@ fn double_click_margin_creates_header_and_footer() {
 #[test]
 fn double_click_reaches_the_first_page_header_from_another_header() {
     use egui::{Event, PointerButton};
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": "Body text"})).unwrap();
     a.run("view.commentsPane", json!({"value": false})).unwrap();
     a.run("insert.header", json!({"text": "Head"})).unwrap();
@@ -1819,7 +1819,7 @@ fn double_click_reaches_the_first_page_header_from_another_header() {
 #[test]
 fn double_click_switches_between_header_and_footer() {
     use egui::{Event, PointerButton};
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": "Body text"})).unwrap();
     a.run("view.commentsPane", json!({"value": false})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 2200.0)).with_step_dt(1.0 / 60.0).build_ui_state(
@@ -1879,7 +1879,7 @@ fn double_click_switches_between_header_and_footer() {
 /// Square there wraps text around it.
 /// #1348: an app with one comment ("Original") on some text, its balloon on screen.
 fn comment_harness() -> (egui_kittest::Harness<'static, WordApp>, u32) {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": "Some text here"})).unwrap();
     a.run("select.text", json!({"text": "text"})).unwrap();
     let id = a.run("review.newComment", json!({"text": "Original"})).unwrap()["id"].as_u64().unwrap() as u32;
@@ -1991,7 +1991,7 @@ fn a_comment_draft_stays_with_its_document() {
     click_balloon(&mut h, id);
     type_in(&mut h, " stale");
     // An agent replaces the document while the balloon is still being typed in.
-    h.state_mut().session.set_document(wordcraft_doc::Document::new());
+    h.state_mut().session.set_document(docufy_doc::Document::new());
     let a = h.state_mut();
     a.run("text.insert", json!({"text": "Other words here"})).unwrap();
     a.run("select.text", json!({"text": "words"})).unwrap();
@@ -2012,12 +2012,12 @@ fn saving_writes_a_pending_comment_draft_first() {
     let (mut h, id) = comment_harness();
     click_balloon(&mut h, id);
     type_in(&mut h, "Typed ");
-    let path = std::env::temp_dir().join(format!("wordcraft-1348-save-{}.docx", std::process::id()));
+    let path = std::env::temp_dir().join(format!("docufy-1348-save-{}.docx", std::process::id()));
     h.state_mut().run("file.save", json!({"path": path.to_string_lossy()})).unwrap();
     let text = comment_text(h.state(), id);
     assert!(text.contains("Typed"), "the draft was written before saving: {text:?}");
     assert!(!h.state().session.dirty, "and saved");
-    let saved = wordcraft_engine::io::open_path(&path).unwrap();
+    let saved = docufy_engine::io::open_path(&path).unwrap();
     let _ = std::fs::remove_file(&path);
     let part = saved.comments.values().next().expect("the comment was saved").part;
     assert!(saved.plain_text(StoryRef::Part(part)).contains("Typed"), "the file has the typed text");
@@ -2090,9 +2090,9 @@ fn a_refused_comment_draft_stays_with_its_document_on_new() {
 fn saving_with_a_refused_comment_draft_saves_the_document() {
     let (mut h, id) = refused_draft();
     h.state_mut().session.dirty = true;
-    let path = std::env::temp_dir().join(format!("wordcraft-1348-refused-{}.docx", std::process::id()));
+    let path = std::env::temp_dir().join(format!("docufy-1348-refused-{}.docx", std::process::id()));
     let r = h.state_mut().run("file.save", json!({"path": path.to_string_lossy()}));
-    let saved = wordcraft_engine::io::open_path(&path);
+    let saved = docufy_engine::io::open_path(&path);
     let _ = std::fs::remove_file(&path);
     assert!(r.is_ok(), "{r:?}");
     assert!(saved.is_ok(), "the document was saved");
@@ -2132,14 +2132,14 @@ fn escape_reverts_a_comment_draft() {
 #[test]
 fn right_click_on_a_picture_offers_wrap_text() {
     use egui_kittest::kittest::Queryable;
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": "Text before the picture "})).unwrap();
     let mut png = Vec::new();
     let img = image::RgbaImage::from_pixel(40, 20, image::Rgba([200, 30, 30, 255]));
     image::DynamicImage::ImageRgba8(img).write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
-    a.run("insert.picture", json!({"data": wordcraft_engine::cmd::insert::base64_encode(&png), "width": 160})).unwrap();
-    let pos = wordcraft_engine::cmd::objects::selected(&a.session).unwrap().0;
-    a.session.sel = wordcraft_engine::Selection::caret(Pos::body(0, 0));
+    a.run("insert.picture", json!({"data": docufy_engine::cmd::insert::base64_encode(&png), "width": 160})).unwrap();
+    let pos = docufy_engine::cmd::objects::selected(&a.session).unwrap().0;
+    a.session.sel = docufy_engine::Selection::caret(Pos::body(0, 0));
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
         |ui, app: &mut WordApp| {
             let ctx = ui.ctx().clone();
@@ -2159,7 +2159,7 @@ fn right_click_on_a_picture_offers_wrap_text() {
         h.step();
     }
     h.step();
-    let picked = wordcraft_engine::cmd::objects::object_selection(&h.state().session).map(|(p, _)| p);
+    let picked = docufy_engine::cmd::objects::object_selection(&h.state().session).map(|(p, _)| p);
     assert_eq!(picked, Some(pos.clone()), "the right-click selected the picture");
     h.get_by_label_contains("Wrap Text").hover();
     for _ in 0..3 {
@@ -2170,8 +2170,8 @@ fn right_click_on_a_picture_offers_wrap_text() {
     for _ in 0..3 {
         h.step();
     }
-    let o = wordcraft_engine::cmd::objects::selected(&h.state().session).unwrap().1;
-    assert_eq!(o.frame().unwrap().2.wrap, wordcraft_doc::para::Wrap::Square);
+    let o = docufy_engine::cmd::objects::selected(&h.state().session).unwrap().1;
+    assert_eq!(o.frame().unwrap().2.wrap, docufy_doc::para::Wrap::Square);
 }
 
 /// #1500: right-clicking a selected shape offers Format Shape…, which opens the Format Shape
@@ -2179,10 +2179,10 @@ fn right_click_on_a_picture_offers_wrap_text() {
 #[test]
 fn right_click_on_a_shape_opens_the_format_shape_pane() {
     use egui_kittest::kittest::Queryable;
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": "Text before the shape "})).unwrap();
     a.run("insert.shape", json!({"kind": "rectangle"})).unwrap();
-    let pos = wordcraft_engine::cmd::objects::selected(&a.session).unwrap().0;
+    let pos = docufy_engine::cmd::objects::selected(&a.session).unwrap().0;
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
         |ui, app: &mut WordApp| {
             let ctx = ui.ctx().clone();
@@ -2213,7 +2213,7 @@ fn right_click_on_a_shape_opens_the_format_shape_pane() {
         h.step();
     }
     assert!(h.state().session.view.format_shape_pane, "Format Shape… opened the pane");
-    let picked = wordcraft_engine::cmd::objects::object_selection(&h.state().session).map(|(p, _)| p);
+    let picked = docufy_engine::cmd::objects::object_selection(&h.state().session).map(|(p, _)| p);
     assert_eq!(picked, Some(pos), "the same shape stays selected");
 }
 
@@ -2221,9 +2221,9 @@ fn right_click_on_a_shape_opens_the_format_shape_pane() {
 /// it brings the table up to date.
 #[test]
 fn context_menu_on_a_toc_entry_updates_the_table() {
+    use docufy_doc::{Block, Paragraph, Path, props::CharProps};
     use egui_kittest::kittest::Queryable;
-    use wordcraft_doc::{Block, Paragraph, Path, props::CharProps};
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_engine::sample::report()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_engine::sample::report()), Default::default());
     a.run("caret.docStart", json!({})).unwrap();
     a.run("references.toc", json!({})).unwrap();
     let end = a.session.doc.body.len();
@@ -2263,10 +2263,10 @@ fn context_menu_on_a_toc_entry_updates_the_table() {
 #[test]
 fn context_menu_on_a_toc_entry_removes_the_table() {
     use egui_kittest::kittest::Queryable;
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_engine::sample::report()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_engine::sample::report()), Default::default());
     a.run("caret.docStart", json!({})).unwrap();
     a.run("references.toc", json!({})).unwrap();
-    let is_entry = |b: &wordcraft_doc::Block| b.as_para().is_some_and(|p| p.props.style.as_deref() == Some("TOC1"));
+    let is_entry = |b: &docufy_doc::Block| b.as_para().is_some_and(|p| p.props.style.as_deref() == Some("TOC1"));
     let entry = a.session.doc.body.iter().position(|b| is_entry(b)).expect("a TOC entry");
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
         |ui, app: &mut WordApp| {
@@ -2298,9 +2298,9 @@ fn context_menu_on_a_toc_entry_removes_the_table() {
 /// still offers Update Field, so a later heading change can be brought in again.
 #[test]
 fn context_menu_on_a_toc_still_offers_update_field_after_an_update() {
+    use docufy_doc::{Block, Paragraph, Path, props::CharProps};
     use egui_kittest::kittest::Queryable;
-    use wordcraft_doc::{Block, Paragraph, Path, props::CharProps};
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_engine::sample::report()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_engine::sample::report()), Default::default());
     a.run("caret.docStart", json!({})).unwrap();
     a.run("references.toc", json!({})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
@@ -2352,8 +2352,8 @@ fn context_menu_on_a_toc_still_offers_update_field_after_an_update() {
 /// Formatting keeps only the bold, Keep Text Only neither; Paste Special… opens its dialog.
 #[test]
 fn context_menu_offers_the_ribbons_paste_items() {
+    use docufy_doc::props::{Rgb, TextColor};
     use egui_kittest::kittest::Queryable;
-    use wordcraft_doc::props::{Rgb, TextColor};
     let red = Some(TextColor::Rgb(Rgb(0xC0, 0, 0)));
     let items = [
         ("Paste", "edit.paste"),
@@ -2364,7 +2364,7 @@ fn context_menu_offers_the_ribbons_paste_items() {
     for (choice, pasted) in
         [("Paste", Some((true, red))), ("Merge Formatting", Some((true, None))), ("Keep Text Only", Some((false, None))), ("Paste Special…", None)]
     {
-        let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("Bold\nTarget")), Default::default());
+        let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("Bold\nTarget")), Default::default());
         a.session
             .doc
             .format_range(&Pos::body(0, 0), &Pos::body(0, 4), &|c| {
@@ -2424,8 +2424,8 @@ fn context_menu_offers_the_ribbons_paste_items() {
 /// strip and grip keep their screen size at every zoom.
 #[test]
 fn the_equation_frame_holds_the_equation_and_its_strip() {
-    let math = wordcraft_layout::math::MathLayout { width: 40.0, ascent: 10.0, descent: 5.0, ..Default::default() };
-    let bx = wordcraft_layout::hit::EquationBox { page: 0, x: 100.0, base: 90.0, top: 76.0, bottom: 98.0, math: std::sync::Arc::new(math) };
+    let math = docufy_layout::math::MathLayout { width: 40.0, ascent: 10.0, descent: 5.0, ..Default::default() };
+    let bx = docufy_layout::hit::EquationBox { page: 0, x: 100.0, base: 90.0, top: 76.0, bottom: 98.0, math: std::sync::Arc::new(math) };
     let page = Rect::from_min_size(pos2(10.0, 20.0), vec2(600.0, 800.0));
     for scale in [1.0, 2.5] {
         let f = equation_frame(page, &bx, scale);
@@ -2444,9 +2444,9 @@ fn the_equation_frame_holds_the_equation_and_its_strip() {
 #[test]
 fn control_click_on_macos_opens_the_context_menu() {
     use egui_kittest::kittest::Queryable;
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": "The quick brwn fox"})).unwrap();
-    a.session.sel = wordcraft_engine::Selection::caret(Pos::body(0, 12));
+    a.session.sel = docufy_engine::Selection::caret(Pos::body(0, 12));
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
         |ui, app: &mut WordApp| {
             let ctx = ui.ctx().clone();
@@ -2460,7 +2460,7 @@ fn control_click_on_macos_opens_the_context_menu() {
     }
     let (p, ht) = caret_screen(h.state_mut()).unwrap();
     let at = p + egui::vec2(0.0, ht / 2.0);
-    h.state_mut().session.sel = wordcraft_engine::Selection::caret(Pos::body(0, 0));
+    h.state_mut().session.sel = docufy_engine::Selection::caret(Pos::body(0, 0));
     h.step();
     let ctrl = egui::Modifiers { ctrl: true, ..Default::default() };
     // The events winit delivers for a Control-click, through the app's input hook as eframe runs it.
@@ -2495,9 +2495,9 @@ fn control_click_on_macos_opens_the_context_menu() {
 #[test]
 fn spelling_and_grammar_opens_suggestions_for_the_issue_it_selects() {
     use egui_kittest::kittest::Queryable;
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": "The quick brwn fox"})).unwrap();
-    a.session.sel = wordcraft_engine::Selection::caret(Pos::body(0, 0));
+    a.session.sel = docufy_engine::Selection::caret(Pos::body(0, 0));
     a.run("review.spelling", json!({})).unwrap();
     assert!(a.canvas.context_menu_from_keys, "queues the open the context menu already uses for Shift+F10");
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
@@ -2544,7 +2544,7 @@ fn behind_picture_dragged_over_text_without_being_selected_first() {
 fn drag_floating_picture(wrap: &str, header: bool, preselect: bool) {
     use egui::{Event, PointerButton};
     {
-        let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+        let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
         if header {
             a.run("insert.editHeader", json!({})).unwrap();
         }
@@ -2552,8 +2552,8 @@ fn drag_floating_picture(wrap: &str, header: bool, preselect: bool) {
         let mut png = Vec::new();
         let img = image::RgbaImage::from_pixel(40, 20, image::Rgba([200, 30, 30, 255]));
         image::DynamicImage::ImageRgba8(img).write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
-        a.run("insert.picture", json!({"data": wordcraft_engine::cmd::insert::base64_encode(&png), "width": 160})).unwrap();
-        let pos = wordcraft_engine::cmd::objects::selected(&a.session).unwrap().0;
+        a.run("insert.picture", json!({"data": docufy_engine::cmd::insert::base64_encode(&png), "width": 160})).unwrap();
+        let pos = docufy_engine::cmd::objects::selected(&a.session).unwrap().0;
         a.run("arrange.bounds", json!({"x": 120, "y": 80})).unwrap();
         a.run("arrange.wrap", json!({"wrap": wrap})).unwrap();
         let before = a.session.layout().object(&pos, 0).unwrap().rect;
@@ -2585,9 +2585,9 @@ fn drag_floating_picture(wrap: &str, header: bool, preselect: bool) {
             for _ in 0..3 {
                 h.step();
             }
-            assert!(wordcraft_engine::cmd::objects::object_selection(&h.state().session).is_none(), "a click still selects text");
+            assert!(docufy_engine::cmd::objects::object_selection(&h.state().session).is_none(), "a click still selects text");
             if preselect {
-                let end = Pos { off: pos.off + wordcraft_doc::para::OBJ.len_utf8(), ..pos.clone() };
+                let end = Pos { off: pos.off + docufy_doc::para::OBJ.len_utf8(), ..pos.clone() };
                 h.state_mut().run("select.range", json!({"anchor": pos, "focus": end})).unwrap();
             }
             for _ in 0..40 {
@@ -2606,7 +2606,7 @@ fn drag_floating_picture(wrap: &str, header: bool, preselect: bool) {
         for _ in 0..3 {
             h.step();
         }
-        let picked = wordcraft_engine::cmd::objects::object_selection(&h.state().session).map(|(p, _)| p);
+        let picked = docufy_engine::cmd::objects::object_selection(&h.state().session).map(|(p, _)| p);
         let moved = picked.and_then(|p| h.state_mut().session.layout().object(&p, 0)).map(|o| o.rect);
         assert!(moved.is_some_and(|after| (after.x - before.x).abs() > 1.0 || (after.y - before.y).abs() > 1.0), "{wrap}: {before:?} -> {moved:?}");
     }
@@ -2639,7 +2639,7 @@ fn only_web_and_email_links_are_followed() {
 /// only Go To selects the bookmark's text (#1236).
 #[test]
 fn a_link_to_a_bookmark_puts_the_caret_at_its_start() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("Alpha beta gamma\nSee here")), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("Alpha beta gamma\nSee here")), Default::default());
     a.run("select.text", json!({"text": "beta"})).unwrap();
     a.run("insert.bookmark", json!({"name": "Spot"})).unwrap();
     a.run("select.text", json!({"text": "here"})).unwrap();
@@ -2655,7 +2655,7 @@ fn a_link_to_a_bookmark_puts_the_caret_at_its_start() {
     );
     steps(&mut h, 6);
     // Between the link's "h" and "e".
-    let c = h.state_mut().session.layout().caret(&Pos { story: StoryRef::Body, path: wordcraft_doc::Path::top(1), off: 5 }).unwrap();
+    let c = h.state_mut().session.layout().caret(&Pos { story: StoryRef::Body, path: docufy_doc::Path::top(1), off: 5 }).unwrap();
     let at = screen(&mut h, c.x, c.top + c.height / 2.0);
     h.event(egui::Event::PointerMoved(at));
     h.step();
@@ -2664,7 +2664,7 @@ fn a_link_to_a_bookmark_puts_the_caret_at_its_start() {
     h.event(egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed: false, modifiers: Default::default() });
     steps(&mut h, 3);
     let s = &h.state().session;
-    let (start, _) = wordcraft_engine::cmd::insert::bookmark_range(&s.doc, "Spot").unwrap();
+    let (start, _) = docufy_engine::cmd::insert::bookmark_range(&s.doc, "Spot").unwrap();
     assert!(s.sel.is_collapsed(), "a caret, not a selection: {:?}", s.sel);
     assert_eq!(s.sel.focus, start, "at the bookmark's start");
 }
@@ -2672,7 +2672,7 @@ fn a_link_to_a_bookmark_puts_the_caret_at_its_start() {
 /// #2945: only a `REF` or `PAGEREF` with `\h` and a bookmark makes a link.
 #[test]
 fn only_hyperlinked_reference_fields_make_links() {
-    let field = |instr: &str| wordcraft_doc::InlineObject::Field {
+    let field = |instr: &str| docufy_doc::InlineObject::Field {
         instr: instr.into(),
         result: "x".into(),
         locked: false,
@@ -2692,7 +2692,7 @@ fn only_hyperlinked_reference_fields_make_links() {
 /// and its hover tip names no bookmark.
 #[test]
 fn ctrl_click_on_a_cross_reference_goes_to_its_target() {
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("Rock\nSee ")), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("Rock\nSee ")), Default::default());
     a.run("select.text", json!({"text": "Rock"})).unwrap();
     a.run("references.caption", json!({"label": "Figure", "text": "A rock"})).unwrap();
     a.run("caret.docEnd", json!({})).unwrap();
@@ -2710,10 +2710,10 @@ fn ctrl_click_on_a_cross_reference_goes_to_its_target() {
     );
     steps(&mut h, 6);
     // The field sits after "See ": click between its two edges.
-    let obj = wordcraft_doc::para::OBJ.len_utf8();
+    let obj = docufy_doc::para::OBJ.len_utf8();
     let (before, after) = {
         let l = h.state_mut().session.layout();
-        let pos = |off| Pos { story: StoryRef::Body, path: wordcraft_doc::Path::top(last), off };
+        let pos = |off| Pos { story: StoryRef::Body, path: docufy_doc::Path::top(last), off };
         (l.caret(&pos(4)).unwrap(), l.caret(&pos(4 + obj)).unwrap())
     };
     let at = screen(&mut h, (before.x + after.x) / 2.0, before.top + before.height / 2.0);
@@ -2733,7 +2733,7 @@ fn ctrl_click_on_a_cross_reference_goes_to_its_target() {
 #[test]
 fn right_clicking_a_link_hides_the_hover_tooltip() {
     use egui_kittest::kittest::Queryable;
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("See here")), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("See here")), Default::default());
     a.run("select.text", json!({"text": "here"})).unwrap();
     a.run("insert.link", json!({"url": "https://example.com/very/long/tracking/url?with=parameters&and=still-more"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
@@ -2746,7 +2746,7 @@ fn right_clicking_a_link_hides_the_hover_tooltip() {
     );
     steps(&mut h, 6);
     // Between the link's "h" and "e".
-    let c = h.state_mut().session.layout().caret(&Pos { story: StoryRef::Body, path: wordcraft_doc::Path::top(0), off: 5 }).unwrap();
+    let c = h.state_mut().session.layout().caret(&Pos { story: StoryRef::Body, path: docufy_doc::Path::top(0), off: 5 }).unwrap();
     let at = screen(&mut h, c.x, c.top + c.height / 2.0);
     h.event(egui::Event::PointerMoved(at));
     steps(&mut h, 2);
@@ -2809,7 +2809,7 @@ fn edge_auto_scroll_ramps_from_the_margins_and_clamps() {
 #[test]
 fn middle_click_scrolls_toward_the_pointer_until_clicked_again() {
     let text = vec!["A line of text in a long document."; 400].join("\n");
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text(&text)), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text(&text)), Default::default());
     a.canvas.auto_scroll.supported = true;
     let mut h: H = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
         |ui, app: &mut WordApp| {
@@ -2952,14 +2952,14 @@ fn right_click_on_a_picture_offers_insert_caption() {
     let mut png = Vec::new();
     let img = image::RgbaImage::from_pixel(40, 20, image::Rgba([30, 90, 200, 255]));
     image::DynamicImage::ImageRgba8(img).write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
-    h.state_mut().run("insert.picture", json!({"data": wordcraft_engine::cmd::insert::base64_encode(&png), "width": 60})).unwrap();
-    let pos = wordcraft_engine::cmd::objects::selected(&h.state().session).unwrap().0;
-    h.state_mut().session.sel = wordcraft_engine::Selection::caret(Pos::body(1, 0));
+    h.state_mut().run("insert.picture", json!({"data": docufy_engine::cmd::insert::base64_encode(&png), "width": 60})).unwrap();
+    let pos = docufy_engine::cmd::objects::selected(&h.state().session).unwrap().0;
+    h.state_mut().session.sel = docufy_engine::Selection::caret(Pos::body(1, 0));
     steps(&mut h, 4);
     let rect = h.state_mut().session.layout().object(&pos, 0).expect("the picture is laid out").rect;
     let at = crate::frame::to_screen(h.state().canvas.page_rects[0], h.state().canvas.scale, rect).center();
     right_click(&mut h, at);
-    assert!(wordcraft_engine::cmd::objects::object_selection(&h.state().session).is_some(), "the right-click selected the picture");
+    assert!(docufy_engine::cmd::objects::object_selection(&h.state().session).is_some(), "the right-click selected the picture");
     assert_menu(&h, &["Insert Caption…", "Wrap Text"], true);
     pick(&mut h, &["Insert Caption…"]);
     let form = match &h.state().dialog {
@@ -3003,7 +3003,7 @@ fn a_right_click_in_a_cell_deletes_the_table() {
 /// between the selection's ends in the text, and the menu is a cell's again.
 #[test]
 fn a_right_click_keeps_selected_cells_only_on_them() {
-    use wordcraft_doc::props::TextDirection;
+    use docufy_doc::props::TextDirection;
     let mut h = table_window();
     h.state_mut().run("table.selectColumn", json!({})).unwrap();
     assert_eq!(h.state().session.cell_range().map(|r| (r.rows, r.cols)), Some(((0, 1), (0, 0))));
@@ -3115,7 +3115,7 @@ const HALF_CM: f32 = 72.0 * 0.5 / 2.54;
 #[test]
 fn table_gridlines_include_header_and_footer_tables() {
     let cell = |y: f32, covered: bool, story: StoryRef| Placed::Cell {
-        rect: wordcraft_geom::Rect::new(0.0, y, 10.0, 10.0),
+        rect: docufy_geom::Rect::new(0.0, y, 10.0, 10.0),
         covered,
         table: Default::default(),
         row: 0,
@@ -3142,7 +3142,7 @@ fn table_gridlines_include_header_and_footer_tables() {
 #[test]
 fn drawing_grid_starts_at_the_margins_and_stays_inside_them() {
     // Letter page with 1" margins: the text area is 468 x 648 pt from (72, 72).
-    let body = wordcraft_geom::Rect::new(72.0, 72.0, 468.0, 648.0);
+    let body = docufy_geom::Rect::new(72.0, 72.0, 468.0, 648.0);
     let (xs, ys) = drawing_grid(body, (HALF_CM, HALF_CM));
     assert_eq!(xs.first().copied(), Some(72.0));
     assert_eq!(ys.first().copied(), Some(72.0));
@@ -3158,18 +3158,18 @@ fn drawing_grid_starts_at_the_margins_and_stays_inside_them() {
     let (xs, ys) = drawing_grid(body, (9.0, 18.0));
     assert_eq!((xs.len(), ys.len()), (53, 37));
     // A grid line that lands on the margin is kept.
-    let (xs, _) = drawing_grid(wordcraft_geom::Rect::new(0.0, 0.0, 100.0, 10.0), (25.0, 25.0));
+    let (xs, _) = drawing_grid(docufy_geom::Rect::new(0.0, 0.0, 100.0, 10.0), (25.0, 25.0));
     assert_eq!(xs, vec![0.0, 25.0, 50.0, 75.0, 100.0]);
 }
 
 #[test]
 fn drawing_grid_survives_hostile_sizes() {
-    let r = wordcraft_geom::Rect::new;
+    let r = docufy_geom::Rect::new;
     for (body, step) in [
         (r(72.0, 72.0, 468.0, 648.0), 0.0),
         (r(72.0, 72.0, 468.0, 648.0), -5.0),
         (r(72.0, 72.0, 468.0, 648.0), f32::NAN),
-        (wordcraft_geom::Rect { x: f32::NAN, y: 0.0, w: f32::INFINITY, h: -10.0 }, HALF_CM),
+        (docufy_geom::Rect { x: f32::NAN, y: 0.0, w: f32::INFINITY, h: -10.0 }, HALF_CM),
     ] {
         let (xs, ys) = drawing_grid(body, (step, step));
         assert!(xs.is_empty() && ys.is_empty(), "{body:?} {step}");
@@ -3177,7 +3177,7 @@ fn drawing_grid_survives_hostile_sizes() {
     let (xs, ys) = drawing_grid(r(0.0, 0.0, 1.0e9, 1.0e9), (HALF_CM, HALF_CM));
     assert_eq!((xs.len(), ys.len()), (DRAWING_GRID_MAX_LINES, DRAWING_GRID_MAX_LINES));
     // Zoomed far out, lines thin out instead of filling the page.
-    let grid = wordcraft_doc::DEFAULT_GRID;
+    let grid = docufy_doc::DEFAULT_GRID;
     assert_eq!(drawing_grid_step(grid, PX_PER_PT), grid);
     assert_eq!(drawing_grid_step(HALF_CM, PX_PER_PT), HALF_CM);
     assert!(drawing_grid_step(grid, 0.1) * 0.1 >= DRAWING_GRID_MIN_PX);
@@ -3247,7 +3247,7 @@ fn the_ruler_scale_mirrors_for_right_to_left() {
 #[test]
 fn setting_a_paragraph_rtl_mirrors_the_ruler_numbers() {
     let ctx = egui::Context::default();
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": "Hello"})).unwrap();
     let screen = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1440.0, 900.0));
     let mut t = 0.0;
@@ -3360,7 +3360,7 @@ fn ruler_marks_number_the_text_area_and_thin_out_zoomed_out() {
     // only across the text area.
     for z in 1..=100 {
         let scale = z as f32 * 0.05;
-        for (unit, div, step) in [(72.0, 8, 1), (wordcraft_geom::PT_PER_CM, 4, 1), (wordcraft_geom::PT_PER_CM, 4, 10), (72.0, 8, 72)] {
+        for (unit, div, step) in [(72.0, 8, 1), (docufy_geom::PT_PER_CM, 4, 1), (docufy_geom::PT_PER_CM, 4, 10), (72.0, 8, 72)] {
             let marks = ruler_marks(72.0, text_w, page_w, (unit, div, step), scale);
             let found = labels(&marks);
             let xs: Vec<f32> = found.iter().map(|(d, _)| d * scale).collect();
@@ -3434,7 +3434,7 @@ fn drawn_rulers(ctx: &egui::Context, a: &mut WordApp, t: &mut f64) -> DrawnRuler
 #[test]
 fn the_rulers_span_the_caret_page_in_multiple_pages() {
     let ctx = egui::Context::default();
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": "One"})).unwrap();
     for text in ["Two", "Three", "Four"] {
         a.run("insert.pageBreak", json!({})).unwrap();
@@ -3478,7 +3478,7 @@ fn the_rulers_span_the_caret_page_in_multiple_pages() {
 #[test]
 fn ruler_numbers_skip_the_margins_and_the_markers_and_thin_out() {
     let ctx = egui::Context::default();
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": "Hello"})).unwrap();
     a.run("view.zoom", json!({"value": 100})).unwrap();
     let mut t = 0.0;
@@ -3519,7 +3519,7 @@ fn ruler_numbers_skip_the_margins_and_the_markers_and_thin_out() {
 #[test]
 fn ruler_numbers_give_way_to_tab_stops_and_table_markers() {
     use crate::ruler_tabs::TabDrag;
-    use wordcraft_doc::props::{TabAlign, TabLeader};
+    use docufy_doc::props::{TabAlign, TabLeader};
     let ctx = egui::Context::default();
     let mut t = 0.0;
     let frames = |a: &mut WordApp, t: &mut f64| {
@@ -3529,7 +3529,7 @@ fn ruler_numbers_give_way_to_tab_stops_and_table_markers() {
         drawn_rulers(&ctx, a, t)
     };
     let names = |labels: &[(String, f32)]| labels.iter().map(|(s, _)| s.clone()).collect::<Vec<String>>();
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": "Hello"})).unwrap();
     a.run("view.zoom", json!({"value": 100})).unwrap();
     assert_eq!(names(&frames(&mut a, &mut t).h_labels), ["1", "2", "3", "4", "5", "6"]);
@@ -3549,7 +3549,7 @@ fn ruler_numbers_give_way_to_tab_stops_and_table_markers() {
     // A three-column table with the caret in the first cell. Narrowing that column puts the
     // table's right border six inches from the margin: its marker takes the "6", while the
     // caret cell's own edge (and so its indent marker) ends well short of any whole inch.
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("insert.table", json!({"rows": 1, "cols": 3})).unwrap();
     a.run("text.insert", json!({"text": "A"})).unwrap();
     a.run("view.zoom", json!({"value": 100})).unwrap();
@@ -3558,7 +3558,7 @@ fn ruler_numbers_give_way_to_tab_stops_and_table_markers() {
             .items
             .iter()
             .find_map(|it| match it {
-                wordcraft_layout::Placed::Cell { rect, row: 0, cell, .. } if *cell == c => Some(*rect),
+                docufy_layout::Placed::Cell { rect, row: 0, cell, .. } if *cell == c => Some(*rect),
                 _ => None,
             })
             .unwrap()
@@ -3590,9 +3590,9 @@ fn ruler_numbers_give_way_to_tab_stops_and_table_markers() {
 /// the caret leaves is abandoned instead of applied there.
 #[test]
 fn ruler_tab_gestures_are_primary_only_and_cancellable() {
+    use docufy_doc::props::TabAlign;
     use egui::{Event, Key, PointerButton};
-    use wordcraft_doc::props::TabAlign;
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": "Name\tScore\rSecond"})).unwrap();
     a.run("view.ruler", json!({"value": true})).unwrap();
     a.run("view.commentsPane", json!({"value": false})).unwrap();
@@ -3694,9 +3694,9 @@ fn ruler_tab_gestures_are_primary_only_and_cancellable() {
 /// moves it, dragging it off clears it, and each gesture is one undo step.
 #[test]
 fn ruler_tab_stops_are_set_moved_and_cleared_with_the_pointer() {
+    use docufy_doc::props::TabAlign;
     use egui::{Event, PointerButton};
-    use wordcraft_doc::props::TabAlign;
-    let mut a = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut a = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     a.run("text.insert", json!({"text": "Name\tScore"})).unwrap();
     a.run("view.ruler", json!({"value": true})).unwrap();
     a.run("view.commentsPane", json!({"value": false})).unwrap();
@@ -3817,7 +3817,7 @@ fn hiding_white_space_stacks_page_bands_and_keeps_hit_testing() {
 /// commits when the caret moves.
 #[test]
 fn space_and_enter_on_the_canvas_do_not_interrupt_ime() {
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     app.run("document.setText", json!({"text": "The"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
         |ui, app: &mut WordApp| {
@@ -3838,7 +3838,7 @@ fn space_and_enter_on_the_canvas_do_not_interrupt_ime() {
     h.event(egui::Event::Text(" ".into()));
     h.step();
     assert_eq!(ime_interrupted(&h), Some(false), "space must not recreate the XIM context");
-    let text = h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body);
+    let text = h.state().session.doc.plain_text(docufy_doc::StoryRef::Body);
     assert!(text.contains("The") && text.contains(' '), "the space is still inserted: {text:?}");
     assert!(h.state().canvas.focused, "the canvas keeps the keyboard");
     h.event(key(egui::Key::Enter));
@@ -3863,7 +3863,7 @@ fn space_and_enter_on_the_canvas_do_not_interrupt_ime() {
 /// Japanese system font), and these IME tests compose Japanese through the interface font
 /// chain. Draw a stand-in for exactly those characters; every other missing glyph still panics.
 fn kana_test_glyphs(ctx: &egui::Context) {
-    ctx.add_glyph_rasterizer(egui::GlyphRasterizer::new("wordcraft::canvas::tests::kana", |req| {
+    ctx.add_glyph_rasterizer(egui::GlyphRasterizer::new("docufy::canvas::tests::kana", |req| {
         let kana =
             *req.family == egui::FontFamily::Proportional && !req.cluster.is_empty() && req.cluster.chars().all(|c| matches!(c, 'に' | 'ほ' | 'ん'));
         kana.then(|| egui::RasterizedGlyph {
@@ -3902,7 +3902,7 @@ fn the_ime_fixture_draws_kana_without_a_japanese_font() {
 /// range comes from the OS and is clamped, whatever it holds.
 #[test]
 fn the_caret_follows_the_input_method_cursor_in_the_composition() {
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     app.run("document.setText", json!({"text": "The"})).unwrap();
     let mut h = egui_kittest::Harness::builder()
         .with_size(egui::vec2(1440.0, 900.0))
@@ -3938,7 +3938,7 @@ fn the_caret_follows_the_input_method_cursor_in_the_composition() {
     h.event(egui::Event::Ime(egui::ImeEvent::Commit("にほん".into())));
     h.step();
     assert_eq!(h.state().canvas.ime_preedit_range, None, "the commit clears the range");
-    assert!(h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body).contains("にほん"));
+    assert!(h.state().session.doc.plain_text(docufy_doc::StoryRef::Body).contains("にほん"));
 }
 
 /// The outgoing IME descriptor is built from settled, visible logical text. A pre-edit does
@@ -3947,7 +3947,7 @@ fn the_caret_follows_the_input_method_cursor_in_the_composition() {
 #[test]
 fn ime_descriptor_reports_visible_logical_text_and_exact_cause() {
     use egui::ImeChangeCause;
-    let app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("ab")), Default::default());
+    let app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("ab")), Default::default());
     let mut h = egui_kittest::Harness::builder()
         .with_size(egui::vec2(1440.0, 900.0))
         .with_context_setup(kana_test_glyphs)
@@ -3963,7 +3963,7 @@ fn ime_descriptor_reports_visible_logical_text_and_exact_cause() {
     for _ in 0..8 {
         h.step();
     }
-    h.state_mut().session.sel = wordcraft_engine::Selection::caret(wordcraft_doc::Pos::body(0, 2));
+    h.state_mut().session.sel = docufy_engine::Selection::caret(docufy_doc::Pos::body(0, 2));
     h.step();
     let text = |h: &egui_kittest::Harness<'_, WordApp>| {
         h.output().platform_output.ime.as_ref().and_then(|i| i.surrounding_text.available()).map(|p| p.text.clone())
@@ -3987,8 +3987,8 @@ fn ime_descriptor_reports_visible_logical_text_and_exact_cause() {
 /// selection direction survives the visible mapping.
 #[test]
 fn ime_descriptor_hides_tracked_deletions_and_preserves_reversed_selection() {
-    use wordcraft_doc::props::CharProps;
-    use wordcraft_doc::{Paragraph, Run, para_block};
+    use docufy_doc::props::CharProps;
+    use docufy_doc::{Paragraph, Run, para_block};
     let mut p = Paragraph::new();
     p.text = "abDELcd".into();
     p.runs = vec![
@@ -3996,9 +3996,9 @@ fn ime_descriptor_hides_tracked_deletions_and_preserves_reversed_selection() {
         Run { len: 3, props: CharProps { del: Some(0), ..Default::default() } },
         Run { len: 2, props: CharProps::default() },
     ];
-    let mut doc = wordcraft_doc::Document::from_text("x");
+    let mut doc = docufy_doc::Document::from_text("x");
     doc.body = vec![para_block(p)];
-    let app = WordApp::new(wordcraft_engine::Session::new(doc), Default::default());
+    let app = WordApp::new(docufy_engine::Session::new(doc), Default::default());
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
         |ui, app: &mut WordApp| {
             let ctx = ui.ctx().clone();
@@ -4010,7 +4010,7 @@ fn ime_descriptor_hides_tracked_deletions_and_preserves_reversed_selection() {
     for _ in 0..8 {
         h.step();
     }
-    h.state_mut().session.sel = wordcraft_engine::Selection { anchor: wordcraft_doc::Pos::body(0, 2), focus: wordcraft_doc::Pos::body(0, 7) };
+    h.state_mut().session.sel = docufy_engine::Selection { anchor: docufy_doc::Pos::body(0, 2), focus: docufy_doc::Pos::body(0, 7) };
     h.step();
     let payload =
         |h: &egui_kittest::Harness<'_, WordApp>| h.output().platform_output.ime.as_ref().and_then(|i| i.surrounding_text.available()).cloned();
@@ -4025,7 +4025,7 @@ fn ime_descriptor_hides_tracked_deletions_and_preserves_reversed_selection() {
 #[test]
 fn ime_byte_deletion_preserves_the_selection_and_earns_input_method() {
     use egui::ImeChangeCause;
-    let app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("abcd")), Default::default());
+    let app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("abcd")), Default::default());
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
         |ui, app: &mut WordApp| {
             let ctx = ui.ctx().clone();
@@ -4037,12 +4037,12 @@ fn ime_byte_deletion_preserves_the_selection_and_earns_input_method() {
     for _ in 0..8 {
         h.step();
     }
-    h.state_mut().session.sel = wordcraft_engine::Selection { anchor: wordcraft_doc::Pos::body(0, 3), focus: wordcraft_doc::Pos::body(0, 1) };
+    h.state_mut().session.sel = docufy_engine::Selection { anchor: docufy_doc::Pos::body(0, 3), focus: docufy_doc::Pos::body(0, 1) };
     h.step();
     let cause = |h: &egui_kittest::Harness<'_, WordApp>| h.output().platform_output.ime.as_ref().map(|i| i.change_cause);
     h.event(egui::Event::Ime(egui::ImeEvent::DeleteSurroundingBytes { before_bytes: 1, after_bytes: 1 }));
     h.step();
-    let body = |h: &egui_kittest::Harness<'_, WordApp>| h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body).trim_end().to_string();
+    let body = |h: &egui_kittest::Harness<'_, WordApp>| h.state().session.doc.plain_text(docufy_doc::StoryRef::Body).trim_end().to_string();
     assert_eq!(body(&h), "bc", "the selected text is preserved");
     assert_eq!(h.state().session.sel.anchor.off, 2, "the selection anchor moved with the erased prefix");
     assert_eq!(h.state().session.sel.focus.off, 0);
@@ -4056,7 +4056,7 @@ fn ime_byte_deletion_preserves_the_selection_and_earns_input_method() {
 /// A selection wider than the protocol limit is honestly unavailable, not truncated.
 #[test]
 fn ime_descriptor_is_unavailable_for_a_too_wide_selection() {
-    let app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text(&"a".repeat(5000))), Default::default());
+    let app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text(&"a".repeat(5000))), Default::default());
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
         |ui, app: &mut WordApp| {
             let ctx = ui.ctx().clone();
@@ -4068,7 +4068,7 @@ fn ime_descriptor_is_unavailable_for_a_too_wide_selection() {
     for _ in 0..8 {
         h.step();
     }
-    h.state_mut().session.sel = wordcraft_engine::Selection { anchor: wordcraft_doc::Pos::body(0, 0), focus: wordcraft_doc::Pos::body(0, 5000) };
+    h.state_mut().session.sel = docufy_engine::Selection { anchor: docufy_doc::Pos::body(0, 0), focus: docufy_doc::Pos::body(0, 5000) };
     h.step();
     let ime = h.output().platform_output.ime.clone().expect("the canvas owns the IME context");
     assert!(ime.surrounding_text.available().is_none(), "a 5000-byte selection is unavailable");
@@ -4077,7 +4077,7 @@ fn ime_descriptor_is_unavailable_for_a_too_wide_selection() {
 /// Replacing the document starts a new IME context; caret motion inside it does not.
 #[test]
 fn ime_generation_changes_on_document_replacement_but_not_on_caret_motion() {
-    let app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("hello")), Default::default());
+    let app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("hello")), Default::default());
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
         |ui, app: &mut WordApp| {
             let ctx = ui.ctx().clone();
@@ -4094,7 +4094,7 @@ fn ime_generation_changes_on_document_replacement_but_not_on_caret_motion() {
     h.state_mut().run("caret.right", json!({})).unwrap();
     h.step();
     assert_eq!(generation(&h), Some(first), "caret motion keeps the context");
-    h.state_mut().session.set_document(wordcraft_doc::Document::from_text("new"));
+    h.state_mut().session.set_document(docufy_doc::Document::from_text("new"));
     h.step();
     assert!(generation(&h) > Some(first), "a replaced document starts a new context");
 }
@@ -4106,7 +4106,7 @@ fn ime_generation_changes_on_document_replacement_but_not_on_caret_motion() {
 #[test]
 fn ime_equation_is_unavailable_with_a_stable_session_context() {
     use egui::ImeChangeCause;
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     app.run("insert.equation", json!({"linear": "x+y"})).unwrap();
     assert!(app.session.math.is_some(), "the equation is being edited");
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
@@ -4142,7 +4142,7 @@ fn ime_equation_is_unavailable_with_a_stable_session_context() {
 fn ime_transformed_equation_commits_are_other() {
     use egui::ImeChangeCause;
     for (typed, latex) in [("a/b ", "\\frac{a}{b}"), ("\\alpha ", "\\alpha")] {
-        let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+        let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
         app.run("insert.equation", json!({})).unwrap();
         let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
             |ui, app: &mut WordApp| {
@@ -4169,7 +4169,7 @@ fn ime_transformed_equation_commits_are_other() {
 #[test]
 fn ime_literal_commit_after_autoformat_is_input_method() {
     use egui::ImeChangeCause;
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     for text in ["Word", " ", "(c)", " "] {
         app.run("text.insert", json!({"text": text})).unwrap();
     }
@@ -4187,7 +4187,7 @@ fn ime_literal_commit_after_autoformat_is_input_method() {
     }
     h.event(egui::Event::Ime(egui::ImeEvent::Commit("x".into())));
     h.step();
-    assert_eq!(h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body).trim_end(), "Word \u{a9} x");
+    assert_eq!(h.state().session.doc.plain_text(docufy_doc::StoryRef::Body).trim_end(), "Word \u{a9} x");
     let ime = h.output().platform_output.ime.clone().expect("an IME context");
     assert_eq!(ime.change_cause, ImeChangeCause::InputMethod, "the literal commit is not the earlier AutoFormat");
 }
@@ -4197,7 +4197,7 @@ fn ime_literal_commit_after_autoformat_is_input_method() {
 #[test]
 fn exhausted_ime_revisions_never_certify_equation_or_wide_body_edits() {
     use egui::ImeChangeCause;
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     app.run("insert.equation", json!({"linear": "x"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
         |ui, app: &mut WordApp| {
@@ -4220,7 +4220,7 @@ fn exhausted_ime_revisions_never_certify_equation_or_wide_body_edits() {
     let ime = h.output().platform_output.ime.clone().expect("still editing the equation");
     assert_eq!(ime.change_cause, ImeChangeCause::Other, "without a revision the change cannot be certified");
 
-    let app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text(&"a".repeat(5000))), Default::default());
+    let app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text(&"a".repeat(5000))), Default::default());
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
         |ui, app: &mut WordApp| {
             let ctx = ui.ctx().clone();
@@ -4232,13 +4232,13 @@ fn exhausted_ime_revisions_never_certify_equation_or_wide_body_edits() {
     for _ in 0..8 {
         h.step();
     }
-    h.state_mut().session.sel = wordcraft_engine::Selection { anchor: wordcraft_doc::Pos::body(0, 1), focus: wordcraft_doc::Pos::body(0, 5000) };
+    h.state_mut().session.sel = docufy_engine::Selection { anchor: docufy_doc::Pos::body(0, 1), focus: docufy_doc::Pos::body(0, 5000) };
     h.step();
     h.state_mut().session.exhaust_ime_state_revision();
     h.step();
     h.event(egui::Event::Ime(egui::ImeEvent::DeleteSurroundingBytes { before_bytes: 1, after_bytes: 0 }));
     h.step();
-    let body = h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body);
+    let body = h.state().session.doc.plain_text(docufy_doc::StoryRef::Body);
     assert_eq!(body.matches('a').count(), 4999, "the wide body delete still happened");
     let ime = h.output().platform_output.ime.clone().expect("an IME context");
     assert_eq!(ime.change_cause, ImeChangeCause::Other, "the exhausted revision cannot prove the delete");
@@ -4248,7 +4248,7 @@ fn exhausted_ime_revisions_never_certify_equation_or_wide_body_edits() {
 /// live composition, even when the replacement text (and so the bounded window) is identical.
 #[test]
 fn ime_generation_changes_on_body_replacement_with_the_same_text() {
-    let app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("hello")), Default::default());
+    let app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("hello")), Default::default());
     let mut h = egui_kittest::Harness::builder()
         .with_size(egui::vec2(1440.0, 900.0))
         .with_context_setup(kana_test_glyphs)
@@ -4280,7 +4280,7 @@ fn ime_generation_changes_on_body_replacement_with_the_same_text() {
 /// Undo (and a version restore) puts a whole body back: the IME generation follows it too.
 #[test]
 fn ime_generation_changes_on_undo_and_version_restore() {
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("one")), Default::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("one")), Default::default());
     app.run("file.versions", json!({"save": "v1"})).unwrap();
     app.run("document.setText", json!({"text": "two"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
@@ -4303,7 +4303,7 @@ fn ime_generation_changes_on_undo_and_version_restore() {
     h.state_mut().run("file.versions", json!({"restore": 0})).unwrap();
     h.step();
     assert!(generation(&h) > after_undo, "a version restore replaces the body");
-    assert_eq!(h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body).trim_end(), "one");
+    assert_eq!(h.state().session.doc.plain_text(docufy_doc::StoryRef::Body).trim_end(), "one");
 }
 
 /// With smart quotes off the engine inserts the quote as typed: that is the input method's
@@ -4311,7 +4311,7 @@ fn ime_generation_changes_on_undo_and_version_restore() {
 #[test]
 fn ime_apostrophe_with_smart_quotes_off_is_an_input_method_change() {
     use egui::ImeChangeCause;
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     app.run("tools.autocorrect", json!({"smartQuotes": false})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
         |ui, app: &mut WordApp| {
@@ -4326,7 +4326,7 @@ fn ime_apostrophe_with_smart_quotes_off_is_an_input_method_change() {
     }
     h.event(egui::Event::Ime(egui::ImeEvent::Commit("'".into())));
     h.step();
-    assert_eq!(h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body).trim_end(), "'", "the quote is not curled");
+    assert_eq!(h.state().session.doc.plain_text(docufy_doc::StoryRef::Body).trim_end(), "'", "the quote is not curled");
     let ime = h.output().platform_output.ime.clone().expect("an IME context");
     assert_eq!(ime.change_cause, ImeChangeCause::InputMethod, "the engine inserted it unchanged");
 }
@@ -4336,7 +4336,7 @@ fn ime_apostrophe_with_smart_quotes_off_is_an_input_method_change() {
 #[test]
 fn ime_apostrophe_with_smart_quotes_on_stays_other() {
     use egui::ImeChangeCause;
-    let app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     // Smart quotes are on by default.
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
         |ui, app: &mut WordApp| {
@@ -4351,7 +4351,7 @@ fn ime_apostrophe_with_smart_quotes_on_stays_other() {
     }
     h.event(egui::Event::Ime(egui::ImeEvent::Commit("'".into())));
     h.step();
-    assert_eq!(h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body).trim_end(), "\u{2018}", "curled");
+    assert_eq!(h.state().session.doc.plain_text(docufy_doc::StoryRef::Body).trim_end(), "\u{2018}", "curled");
     let ime = h.output().platform_output.ime.clone().expect("an IME context");
     assert_eq!(ime.change_cause, ImeChangeCause::Other, "AutoFormat changed the text");
 }
@@ -4360,7 +4360,7 @@ fn ime_apostrophe_with_smart_quotes_on_stays_other() {
 #[test]
 fn ime_literal_commit_is_input_method() {
     use egui::ImeChangeCause;
-    let app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
         |ui, app: &mut WordApp| {
             let ctx = ui.ctx().clone();
@@ -4374,7 +4374,7 @@ fn ime_literal_commit_is_input_method() {
     }
     h.event(egui::Event::Ime(egui::ImeEvent::Commit("literal".into())));
     h.step();
-    assert_eq!(h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body).trim_end(), "literal");
+    assert_eq!(h.state().session.doc.plain_text(docufy_doc::StoryRef::Body).trim_end(), "literal");
     let ime = h.output().platform_output.ime.clone().expect("an IME context");
     assert_eq!(ime.change_cause, ImeChangeCause::InputMethod);
 }
@@ -4384,7 +4384,7 @@ fn ime_literal_commit_is_input_method() {
 #[test]
 fn para_alignment_before_ime_commit_is_other() {
     use egui::ImeChangeCause;
-    let app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("hello")), Default::default());
+    let app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("hello")), Default::default());
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
         |ui, app: &mut WordApp| {
             let ctx = ui.ctx().clone();
@@ -4396,17 +4396,17 @@ fn para_alignment_before_ime_commit_is_other() {
     for _ in 0..8 {
         h.step();
     }
-    h.state_mut().session.sel = wordcraft_engine::Selection::caret(wordcraft_doc::Pos::body(0, 5));
+    h.state_mut().session.sel = docufy_engine::Selection::caret(docufy_doc::Pos::body(0, 5));
     h.step();
     h.state_mut().run("para.alignCenter", json!({})).unwrap();
     h.event(egui::Event::Ime(egui::ImeEvent::Commit("x".into())));
     h.step();
     let ime = h.output().platform_output.ime.clone().expect("an IME context");
     assert_eq!(ime.change_cause, ImeChangeCause::Other, "an application change before the receipt poisons the frame");
-    assert_eq!(h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body).trim_end(), "hellox");
+    assert_eq!(h.state().session.doc.plain_text(docufy_doc::StoryRef::Body).trim_end(), "hellox");
     assert_eq!(
-        h.state().session.doc.para_at(&wordcraft_doc::Pos::body(0, 0)).and_then(|p| p.props.align),
-        Some(wordcraft_doc::props::Align::Center),
+        h.state().session.doc.para_at(&docufy_doc::Pos::body(0, 0)).and_then(|p| p.props.align),
+        Some(docufy_doc::props::Align::Center),
         "the application command really ran"
     );
 }
@@ -4416,7 +4416,7 @@ fn para_alignment_before_ime_commit_is_other() {
 #[test]
 fn para_alignment_after_ime_commit_is_other() {
     use egui::ImeChangeCause;
-    let app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("hello")), Default::default());
+    let app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text("hello")), Default::default());
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
         |ui, app: &mut WordApp| {
             let ctx = ui.ctx().clone();
@@ -4428,7 +4428,7 @@ fn para_alignment_after_ime_commit_is_other() {
     for _ in 0..8 {
         h.step();
     }
-    h.state_mut().session.sel = wordcraft_engine::Selection::caret(wordcraft_doc::Pos::body(0, 5));
+    h.state_mut().session.sel = docufy_engine::Selection::caret(docufy_doc::Pos::body(0, 5));
     h.step();
     h.event(egui::Event::Ime(egui::ImeEvent::Commit("x".into())));
     h.event(egui::Event::Key {
@@ -4441,10 +4441,10 @@ fn para_alignment_after_ime_commit_is_other() {
     h.step();
     let ime = h.output().platform_output.ime.clone().expect("an IME context");
     assert_eq!(ime.change_cause, ImeChangeCause::Other, "an application change after the receipt poisons the frame");
-    assert_eq!(h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body).trim_end(), "hellox");
+    assert_eq!(h.state().session.doc.plain_text(docufy_doc::StoryRef::Body).trim_end(), "hellox");
     assert_eq!(
-        h.state().session.doc.para_at(&wordcraft_doc::Pos::body(0, 0)).and_then(|p| p.props.align),
-        Some(wordcraft_doc::props::Align::Center),
+        h.state().session.doc.para_at(&docufy_doc::Pos::body(0, 0)).and_then(|p| p.props.align),
+        Some(docufy_doc::props::Align::Center),
         "the application command really ran"
     );
 }
@@ -4454,7 +4454,7 @@ fn para_alignment_after_ime_commit_is_other() {
 #[test]
 fn smart_art_item_ime_commit_is_other_and_does_not_reach_the_body() {
     use egui::ImeChangeCause;
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     app.run("insert.smartArt", json!({"items": ["A"]})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
         |ui, app: &mut WordApp| {
@@ -4469,9 +4469,9 @@ fn smart_art_item_ime_commit_is_other_and_does_not_reach_the_body() {
     }
     h.event(egui::Event::Ime(egui::ImeEvent::Commit("x".into())));
     h.step();
-    let body = h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body).trim_end().to_string();
+    let body = h.state().session.doc.plain_text(docufy_doc::StoryRef::Body).trim_end().to_string();
     assert_eq!(body, "", "the commit must not fall through into the body");
-    let item = wordcraft_engine::cmd::smart_art::selected_smart_art(&h.state().session).and_then(|g| g.items.first().map(|i| i.text.clone()));
+    let item = docufy_engine::cmd::smart_art::selected_smart_art(&h.state().session).and_then(|g| g.items.first().map(|i| i.text.clone()));
     assert_eq!(item.as_deref(), Some("Ax"), "the SmartArt item really changed");
     let ime = h.output().platform_output.ime.clone().expect("an IME context");
     assert_eq!(ime.change_cause, ImeChangeCause::Other);
@@ -4482,12 +4482,12 @@ fn smart_art_item_ime_commit_is_other_and_does_not_reach_the_body() {
 #[test]
 fn empty_smart_art_ime_commit_is_consumed_without_body_insertion() {
     use egui::ImeChangeCause;
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     app.run("insert.smartArt", json!({"items": ["A"]})).unwrap();
     // `insert.smartArt` refuses an empty item list, but an imported/edited model may hold
     // none: make the selected graphic empty while keeping its identity.
     let at = app.session.sel.ordered().0;
-    if let Some(wordcraft_doc::InlineObject::Graphic { graphic, .. }) =
+    if let Some(docufy_doc::InlineObject::Graphic { graphic, .. }) =
         app.session.doc.para_mut(at.story, &at.path).expect("paragraph").object_at_mut(at.off)
         && let Some(spec) = std::sync::Arc::make_mut(graphic).smart_art.as_mut()
     {
@@ -4507,7 +4507,7 @@ fn empty_smart_art_ime_commit_is_consumed_without_body_insertion() {
     let depth = h.state().session.undo_depth();
     h.event(egui::Event::Ime(egui::ImeEvent::Commit("x".into())));
     h.step();
-    assert_eq!(h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body).trim_end(), "", "no body insertion");
+    assert_eq!(h.state().session.doc.plain_text(docufy_doc::StoryRef::Body).trim_end(), "", "no body insertion");
     assert_eq!(h.state().session.undo_depth(), depth, "consuming an empty graphic changes no document");
     let ime = h.output().platform_output.ime.clone().expect("an IME context");
     assert_eq!(ime.change_cause, ImeChangeCause::Other, "no receipt and no application edit");
@@ -4518,7 +4518,7 @@ fn empty_smart_art_ime_commit_is_consumed_without_body_insertion() {
 #[test]
 fn ime_wide_unavailable_deletion_uses_engine_revisions() {
     use egui::ImeChangeCause;
-    let app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text(&"a".repeat(5000))), Default::default());
+    let app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::from_text(&"a".repeat(5000))), Default::default());
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
         |ui, app: &mut WordApp| {
             let ctx = ui.ctx().clone();
@@ -4532,13 +4532,13 @@ fn ime_wide_unavailable_deletion_uses_engine_revisions() {
     }
     // A wide selection with one character before it: the counted deletion is outside the
     // selection, so the selection stays wide (unavailable) after it.
-    h.state_mut().session.sel = wordcraft_engine::Selection { anchor: wordcraft_doc::Pos::body(0, 1), focus: wordcraft_doc::Pos::body(0, 5000) };
+    h.state_mut().session.sel = docufy_engine::Selection { anchor: docufy_doc::Pos::body(0, 1), focus: docufy_doc::Pos::body(0, 5000) };
     h.step();
     let before = h.output().platform_output.ime.clone().expect("an IME context");
     assert!(before.surrounding_text.available().is_none(), "the wide selection is unavailable");
     h.event(egui::Event::Ime(egui::ImeEvent::DeleteSurroundingBytes { before_bytes: 1, after_bytes: 0 }));
     h.step();
-    let body = h.state().session.doc.plain_text(wordcraft_doc::StoryRef::Body);
+    let body = h.state().session.doc.plain_text(docufy_doc::StoryRef::Body);
     assert_eq!(body.matches('a').count(), 4999);
     let after = h.output().platform_output.ime.clone().expect("an IME context");
     assert!(after.surrounding_text.available().is_none(), "the selection is still wide after the deletion");
@@ -4550,7 +4550,7 @@ fn ime_wide_unavailable_deletion_uses_engine_revisions() {
 #[test]
 fn ime_equation_delete_at_start_is_refused_without_a_receipt() {
     use egui::ImeChangeCause;
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     app.run("insert.equation", json!({"linear": "x+y"})).unwrap();
     app.run("equation.move", json!({"dir": "home"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
@@ -4580,7 +4580,7 @@ fn ime_equation_delete_at_start_is_refused_without_a_receipt() {
 #[test]
 fn ime_equation_byte_delete_drops_only_its_immediate_replacement() {
     use egui::ImeChangeCause;
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     app.run("insert.equation", json!({"linear": "x+y"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
         |ui, app: &mut WordApp| {
@@ -4642,7 +4642,7 @@ fn ime_equation_byte_delete_drops_only_its_immediate_replacement() {
 #[test]
 fn ime_equation_delete_is_one_input_method_change() {
     use egui::ImeChangeCause;
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     app.run("insert.equation", json!({"linear": "x+y"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
         |ui, app: &mut WordApp| {
@@ -4668,7 +4668,7 @@ fn ime_equation_delete_is_one_input_method_change() {
 #[test]
 fn ime_equation_context_mixes_with_application_changes() {
     use egui::ImeChangeCause;
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     app.run("insert.equation", json!({"linear": "x"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
         |ui, app: &mut WordApp| {
@@ -4703,7 +4703,7 @@ fn ime_equation_context_mixes_with_application_changes() {
 /// the IME context changes and the old composition is interrupted.
 #[test]
 fn ime_equation_replacement_starts_a_new_context() {
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     app.run("insert.equation", json!({"linear": "x+y"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
         |ui, app: &mut WordApp| {
@@ -4727,9 +4727,9 @@ fn ime_equation_replacement_starts_a_new_context() {
 
 #[test]
 fn context_menu_crop_item_activates_crop_mode() {
+    use docufy_doc::para::{InlineObject, OBJ};
     use egui_kittest::kittest::Queryable;
-    use wordcraft_doc::para::{InlineObject, OBJ};
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
     let pic = InlineObject::Image { media: "m".into(), w: 200.0, h: 100.0, alt: String::new(), float: Default::default(), crop: [0.0; 4], ole: None };
     app.session.doc.insert_object(&Pos::body(0, 0), pic, &Default::default()).unwrap();
     let end = Pos::body(0, OBJ.len_utf8());
@@ -4763,8 +4763,8 @@ fn context_menu_crop_item_activates_crop_mode() {
 
 #[test]
 fn crop_is_disabled_when_cursor_is_adjacent_without_selection() {
-    let mut app = WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
-    let pic = wordcraft_doc::para::InlineObject::Image {
+    let mut app = WordApp::new(docufy_engine::Session::new(docufy_doc::Document::new()), Default::default());
+    let pic = docufy_doc::para::InlineObject::Image {
         media: "m".into(),
         w: 200.0,
         h: 100.0,
@@ -4775,7 +4775,7 @@ fn crop_is_disabled_when_cursor_is_adjacent_without_selection() {
     };
     app.session.doc.insert_object(&Pos::body(0, 0), pic, &Default::default()).unwrap();
     // Caret is collapsed right at pos 0 (adjacent to the picture).
-    app.session.sel = wordcraft_engine::Selection::caret(Pos::body(0, 0));
+    app.session.sel = docufy_engine::Selection::caret(Pos::body(0, 0));
     assert!(crate::ribbon::has_picture_selected(&app.session), "adjacent caret sees picture in ribbon");
     assert!(!crate::widgets::enabled(&app, "ui.crop"), "ui.crop is disabled when not selected as object");
     assert!(crate::crop::active(&app).is_none());
@@ -4791,8 +4791,8 @@ fn page_at_index(rects: &[Rect], p: Pos2) -> Option<usize> {
 /// the preview follows the pointer, and the object shows twice.
 #[test]
 fn the_view_key_changes_when_a_drag_takes_an_object_off_the_page() {
-    let doc = wordcraft_doc::Document::from_text("Hello WordCraft");
-    let app = WordApp::new(wordcraft_engine::Session::new(doc), Default::default());
+    let doc = docufy_doc::Document::from_text("Hello Docufy");
+    let app = WordApp::new(docufy_engine::Session::new(doc), Default::default());
     let object = Pos::body(0, 5);
     let hidden = view_key(&app, false, Some(&object));
     assert_ne!(hidden, view_key(&app, false, None), "the page without the dragged object is rendered again");

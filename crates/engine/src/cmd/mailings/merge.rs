@@ -405,7 +405,7 @@ fn merge_blocks(s: &Session, blocks: &mut Blocks, cur: &mut usize, end: usize, d
                 }
                 for (off, val) in repl.into_iter().rev() {
                     let props = p.props_of_char(off).clone();
-                    let _ = p.delete(off, off + wordcraft_doc::para::OBJ.len_utf8());
+                    let _ = p.delete(off, off + docufy_doc::para::OBJ.len_utf8());
                     let _ = p.insert_text(off, &val, &props);
                 }
             }

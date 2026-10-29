@@ -1,6 +1,6 @@
 //! Print settings (#641): which pages go out, how many copies, as a PDF.
 //!
-//! WordCraft prints through a PDF (the host opens it in the system's print flow), so the settings
+//! Docufy prints through a PDF (the host opens it in the system's print flow), so the settings
 //! that can be delivered are the ones that shape the PDF: the page range, odd/even pages, copies
 //! and collation. Printer choice, duplex and pages per sheet belong to the OS print dialog.
 //!
@@ -8,8 +8,8 @@
 //! text is at most [`MAX_SPEC_CHARS`] long, copies are clamped to [`MAX_COPIES`], and the
 //! resulting page list never exceeds [`MAX_PRINT_PAGES`].
 
+use docufy_layout::DocLayout;
 use serde_json::{Value, json};
-use wordcraft_layout::DocLayout;
 
 use crate::{CmdError, Session, p};
 
@@ -131,15 +131,15 @@ pub fn plan(v: &Value, total: usize, current: (usize, usize)) -> Result<PrintPla
     Ok(PrintPlan { pages: out, chosen, copies })
 }
 
-/// The `paper` param of a print job: the standard paper (see [`wordcraft_geom::PAPER_SIZES`]) to
+/// The `paper` param of a print job: the standard paper (see [`docufy_geom::PAPER_SIZES`]) to
 /// scale every page to (Scale to paper size, #2108), or `None` to print the document's own page
 /// sizes (absent, null, `""`, `none` or `document`). Any other value is an error.
 pub fn paper(v: &Value) -> Result<Option<(&'static str, f32, f32)>, CmdError> {
     match v.get("paper") {
         None | Some(Value::Null) => Ok(None),
         Some(Value::String(name)) if name.trim().is_empty() || ["none", "document"].contains(&name.trim().to_ascii_lowercase().as_str()) => Ok(None),
-        Some(Value::String(name)) => wordcraft_geom::paper_by_name(name).map(Some).ok_or_else(|| {
-            let names: Vec<&str> = wordcraft_geom::PAPER_SIZES.iter().map(|(n, _, _)| *n).collect();
+        Some(Value::String(name)) => docufy_geom::paper_by_name(name).map(Some).ok_or_else(|| {
+            let names: Vec<&str> = docufy_geom::PAPER_SIZES.iter().map(|(n, _, _)| *n).collect();
             CmdError::Params(format!("unknown paper `{}`; use none or one of {}", name.chars().take(40).collect::<String>(), names.join(", ")))
         }),
         Some(_) => Err(CmdError::Params("paper must be a paper size name or none".into())),
@@ -163,7 +163,7 @@ impl Session {
         let lay = self.export_layout_with(markup.markup);
         let plan = plan(v, lay.pages.len(), self.current_pages(&lay))?;
         let paper = paper(v)?.map(|(_, w, h)| (w, h));
-        let opts = wordcraft_pdf::PdfOptions {
+        let opts = docufy_pdf::PdfOptions {
             pages: Some(plan.pages.clone()),
             // Repeated pages would repeat the structure tree's entries too.
             tagged: plan.copies <= 1,
@@ -172,7 +172,7 @@ impl Session {
             paper,
             ..Default::default()
         };
-        let bytes = wordcraft_pdf::export_layout(&self.doc, &lay, &opts).map_err(|e| CmdError::Failed(e.to_string()))?;
+        let bytes = docufy_pdf::export_layout(&self.doc, &lay, &opts).map_err(|e| CmdError::Failed(e.to_string()))?;
         Ok((bytes, plan))
     }
 }

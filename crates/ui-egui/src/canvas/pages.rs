@@ -7,7 +7,7 @@ use super::{DocLayout, Hash, Hasher, Page, Placed, Pos, Pos2, Rect, StoryRef, Wo
 pub(super) fn view_key(app: &WordApp, dim_body: bool, hidden: Option<&Pos>) -> u64 {
     let mut h = std::collections::hash_map::DefaultHasher::new();
     let v = &app.session.view;
-    (v.marks, app.session.prefs.marks, v.show_markup, v.dark_mode, wordcraft_render::DARK_PAPER, v.hide_ink, v.draw.replay).hash(&mut h);
+    (v.marks, app.session.prefs.marks, v.show_markup, v.dark_mode, docufy_render::DARK_PAPER, v.hide_ink, v.draw.replay).hash(&mut h);
     (v.read_mode, v.read_page_color).hash(&mut h);
     app.session.prefs.markup.hash(&mut h);
     dim_body.hash(&mut h);
@@ -96,7 +96,7 @@ pub(super) fn to_screen(origin: Pos2, page_rect: Rect, scale: f32, x: f32, y: f3
 /// A page raster as an egui image. Both hold premultiplied RGBA8, so the pixels go across as they
 /// are: un-premultiplying them for egui to premultiply again gave the same image for two more
 /// passes over every pixel of the page, on each keystroke.
-pub(super) fn page_image(img: &wordcraft_render::Rendered) -> egui::ColorImage {
+pub(super) fn page_image(img: &docufy_render::Rendered) -> egui::ColorImage {
     egui::ColorImage::from_rgba_premultiplied([img.width as usize, img.height as usize], &img.pixels)
 }
 
@@ -139,7 +139,7 @@ pub(super) const DRAWING_GRID_MAX_LINES: usize = 2000;
 /// The View › Gridlines drawing grid over a page's text area, in document points: the x of each
 /// vertical line and the y of each horizontal line, starting at the margins and `step` (across,
 /// down) apart, never outside the margins. Drawn on screen only — never printed or exported.
-pub(super) fn drawing_grid(body: wordcraft_geom::Rect, step: (f32, f32)) -> (Vec<f32>, Vec<f32>) {
+pub(super) fn drawing_grid(body: docufy_geom::Rect, step: (f32, f32)) -> (Vec<f32>, Vec<f32>) {
     let axis = |start: f32, len: f32, step: f32| -> Vec<f32> {
         if !(step.is_finite() && step > 0.0 && start.is_finite() && len.is_finite() && len >= 0.0) {
             return Vec::new();
@@ -152,7 +152,7 @@ pub(super) fn drawing_grid(body: wordcraft_geom::Rect, step: (f32, f32)) -> (Vec
 
 /// Global View Gridlines outlines every table (#1628). While editing a header/footer, also
 /// outline that story's cells (#2197), without adding printable borders or changing the view flag.
-pub(super) fn gridline_cells(page: &Page, all: bool, editing: Option<StoryRef>) -> impl Iterator<Item = wordcraft_geom::Rect> + '_ {
+pub(super) fn gridline_cells(page: &Page, all: bool, editing: Option<StoryRef>) -> impl Iterator<Item = docufy_geom::Rect> + '_ {
     // Automatic header/footer guides need not scan a potentially large body placement list.
     let body = if all { page.items.as_slice() } else { &[] };
     body.iter().chain(&page.header).chain(&page.footer).filter_map(move |it| match it {
@@ -165,7 +165,7 @@ pub(super) fn gridline_cells(page: &Page, all: bool, editing: Option<StoryRef>) 
 /// ECMA-376's 1/8 inch when it doesn't say), doubled until the lines are at least
 /// [`DRAWING_GRID_MIN_PX`] apart on screen.
 pub(super) fn drawing_grid_step(spacing: f32, scale: f32) -> f32 {
-    let mut step = if spacing.is_finite() && spacing > 0.0 { spacing } else { wordcraft_doc::DEFAULT_GRID };
+    let mut step = if spacing.is_finite() && spacing > 0.0 { spacing } else { docufy_doc::DEFAULT_GRID };
     if !(scale.is_finite() && scale > 0.0) {
         return step;
     }
@@ -211,18 +211,18 @@ pub(super) fn shown_layout(app: &mut WordApp) -> std::sync::Arc<DocLayout> {
 
 /// The document the pages of [`shown_layout`] are drawn from: the previewed copy while the page
 /// shows Insert › Table's preview, whose paragraph paths are the layout's (#3931).
-pub(crate) fn page_doc(app: &WordApp) -> &wordcraft_doc::Document {
+pub(crate) fn page_doc(app: &WordApp) -> &docufy_doc::Document {
     app.canvas.table_preview_layout.as_ref().map_or(&app.session.doc, |(_, doc, _, _)| doc)
 }
 
 /// The previewed copy's selection while the page shows Insert › Table's preview: the caret and
 /// selection are drawn from it, as the document's own name other places in the preview's layout.
-pub(crate) fn preview_sel(app: &WordApp) -> Option<&wordcraft_engine::Selection> {
+pub(crate) fn preview_sel(app: &WordApp) -> Option<&docufy_engine::Selection> {
     app.canvas.table_preview_layout.as_ref().map(|(_, _, sel, _)| sel)
 }
 
 /// Render options for this view's page rasters: marks, markup, dark page, header/body dimming.
-pub(super) fn page_render_options(app: &WordApp, dim_body: bool) -> wordcraft_render::RenderOptions {
+pub(super) fn page_render_options(app: &WordApp, dim_body: bool) -> docufy_render::RenderOptions {
     let mut opts = screen_render_options();
     opts.display.marks = app.session.view.marks;
     opts.display.always = app.session.prefs.marks;
@@ -232,12 +232,12 @@ pub(super) fn page_render_options(app: &WordApp, dim_body: bool) -> wordcraft_re
     opts.display.hide_ink = app.session.view.hide_ink || app.session.view.draw.replay;
     opts.display.revisions = app.session.prefs.markup.clone();
     opts.dark = app.session.view.dark_mode;
-    opts.dark_paper = wordcraft_render::DARK_PAPER;
+    opts.dark_paper = docufy_render::DARK_PAPER;
     // In Read Mode the Page color sets the paper and the dark page, and Switch Modes is ignored.
     if app.session.view.read_mode {
-        use wordcraft_engine::cmd::view::ReadPageColor;
+        use docufy_engine::cmd::view::ReadPageColor;
         let color = app.session.view.read_page_color;
-        opts.read_paper = Some(if color == ReadPageColor::Sepia { wordcraft_render::SEPIA_PAPER } else { wordcraft_doc::props::Rgb::WHITE });
+        opts.read_paper = Some(if color == ReadPageColor::Sepia { docufy_render::SEPIA_PAPER } else { docufy_doc::props::Rgb::WHITE });
         opts.dark = color == ReadPageColor::Inverse;
     }
     opts.display.dim_header = !dim_body;
@@ -247,6 +247,6 @@ pub(super) fn page_render_options(app: &WordApp, dim_body: bool) -> wordcraft_re
 
 /// Render options for page rasters shown on screen: on macOS, text is darkened the way the system
 /// draws it, so a page looks as it does in other Mac apps (exports never are).
-pub(crate) fn screen_render_options() -> wordcraft_render::RenderOptions {
-    wordcraft_render::RenderOptions { text_darkening: cfg!(target_os = "macos"), ..Default::default() }
+pub(crate) fn screen_render_options() -> docufy_render::RenderOptions {
+    docufy_render::RenderOptions { text_darkening: cfg!(target_os = "macos"), ..Default::default() }
 }

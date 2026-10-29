@@ -2,14 +2,14 @@
 //! text. A run's language is its BCP 47 tag (`w:lang` in .docx, `CharProps::lang` in the model),
 //! resolved with [`ProofLang::from_tag`].
 
-/// A language WordCraft can proof, or [`ProofLang::Other`] for one it can't.
+/// A language Docufy can proof, or [`ProofLang::Other`] for one it can't.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ProofLang {
     /// American English (`en`, `en-US`, and every region not listed for [`ProofLang::EnGb`] or
     /// [`ProofLang::EnCa`]): the public-domain Moby word list, the English grammar rules and the
     /// English hyphenation dictionary and patterns. British spellings (`colour`, `centre`,
     /// `organise`) are flagged, with the American form suggested ([`crate::en_variants`]). Also
-    /// text with no language at all (WordCraft's default editing language is US English, like
+    /// text with no language at all (Docufy's default editing language is US English, like
     /// Word's).
     #[default]
     En,
@@ -99,7 +99,7 @@ impl ProofLang {
 
     /// The proofing language of a BCP 47 tag (`pl-PL`, `en_GB`, `PL`…). The primary subtag
     /// counts, and for English and Spanish the region too ([`ProofLang::english`],
-    /// [`ProofLang::spanish`]). No tag (or an empty one) is English, WordCraft's default editing
+    /// [`ProofLang::spanish`]). No tag (or an empty one) is English, Docufy's default editing
     /// language.
     pub fn from_tag(tag: Option<&str>) -> ProofLang {
         let Some(tag) = tag.map(str::trim).filter(|t| !t.is_empty()) else { return ProofLang::En };
@@ -186,7 +186,7 @@ impl ProofLang {
         }
     }
 
-    /// Does WordCraft check spelling and grammar in this language?
+    /// Does Docufy check spelling and grammar in this language?
     pub fn is_proofed(self) -> bool {
         Self::PROOFED.contains(&self)
     }

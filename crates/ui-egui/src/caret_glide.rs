@@ -22,7 +22,7 @@
 //! With animations off the caret jumps and blinks on and off, as it always did: File ▸ Options ▸
 //! Advanced ▸ Animation (the `ui.caretAnimation` command) turns them off, and so do egui's
 //! `animation_time` at 0 (the headless test harness, so scripted screenshots never catch a caret
-//! in flight) and `WORDCRAFT_CARET_GLIDE_MS=0`. The variable also sets the duration, for looking
+//! in flight) and `DOCUFY_CARET_GLIDE_MS=0`. The variable also sets the duration, for looking
 //! at the motion slowed down.
 //!
 //! The glide runs in content space (screen points from the top-left of the scrolled content), so
@@ -39,7 +39,7 @@ use crate::canvas::Geometry;
 pub const GLIDE_SECS: f64 = 0.10;
 /// The caret is on for this long, then off for this long (seconds).
 pub const BLINK_SECS: f64 = 0.53;
-/// The longest glide `WORDCRAFT_CARET_GLIDE_MS` can ask for.
+/// The longest glide `DOCUFY_CARET_GLIDE_MS` can ask for.
 const MAX_GLIDE_SECS: f64 = 10.0;
 /// Moves shorter than this (screen points) aren't worth a glide.
 const MIN_MOVE: f32 = 0.5;
@@ -315,13 +315,13 @@ fn is_finite(b: Bar) -> bool {
     b[0].x.is_finite() && b[0].y.is_finite() && b[1].x.is_finite() && b[1].y.is_finite()
 }
 
-/// The glide's duration: [`GLIDE_SECS`], or `WORDCRAFT_CARET_GLIDE_MS` when set (tests ignore it).
+/// The glide's duration: [`GLIDE_SECS`], or `DOCUFY_CARET_GLIDE_MS` when set (tests ignore it).
 fn glide_secs() -> f64 {
     if cfg!(test) {
         return GLIDE_SECS;
     }
     static SECS: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
-    *SECS.get_or_init(|| parse_ms(std::env::var("WORDCRAFT_CARET_GLIDE_MS").ok().as_deref()))
+    *SECS.get_or_init(|| parse_ms(std::env::var("DOCUFY_CARET_GLIDE_MS").ok().as_deref()))
 }
 
 fn parse_ms(value: Option<&str>) -> f64 {

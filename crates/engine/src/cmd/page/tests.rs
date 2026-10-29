@@ -1,7 +1,7 @@
 use super::*;
 
 fn doc() -> Session {
-    Session::new(wordcraft_doc::Document::from_text("one\ntwo\nthree"))
+    Session::new(docufy_doc::Document::from_text("one\ntwo\nthree"))
 }
 
 fn with_section(f: impl Fn(&mut Value)) -> Value {
@@ -69,9 +69,9 @@ fn page_setup_section_is_validated() {
     let l = x.line_numbers.unwrap();
     assert_eq!((l.count_by, l.start, l.distance), (1, 1, 1584.0));
     let g = x.doc_grid.unwrap();
-    assert_eq!((g.line_pitch, g.char_space), (wordcraft_doc::section::MAX_GRID_PITCH, wordcraft_doc::section::MAX_CHAR_SPACE));
+    assert_eq!((g.line_pitch, g.char_space), (docufy_doc::section::MAX_GRID_PITCH, docufy_doc::section::MAX_CHAR_SPACE));
     assert_eq!(x.page_num_start, Some(100_000));
-    assert_eq!(x.footnote_pr.num_start, Some(wordcraft_doc::section::MAX_NOTE_START));
+    assert_eq!(x.footnote_pr.num_start, Some(docufy_doc::section::MAX_NOTE_START));
     assert_eq!(x.endnote_pr.num_start, Some(1));
     let b = x.page_borders.unwrap();
     let (t, lf) = (b.top.unwrap(), b.left.unwrap());
@@ -145,7 +145,7 @@ fn page_setup_section_allows_a_tiny_page_without_margins() {
 /// Layout › Text Direction turns the section, or the table cell the caret is in; one undo step.
 #[test]
 fn text_direction_turns_the_section_or_the_cell() {
-    use wordcraft_doc::props::TextDirection;
+    use docufy_doc::props::TextDirection;
     let mut s = doc();
     s.run("layout.textDirection", &json!({"value": "down"})).unwrap();
     assert_eq!(sect(&s).text_direction, TextDirection::Down);
@@ -196,18 +196,18 @@ fn page_setup_presets_are_recognised() {
 /// opened again, both sections' text lays out on page 1, the second below the first.
 #[test]
 fn section_break_keeps_the_selected_text() {
-    let mut s = Session::new(wordcraft_doc::Document::from_text("one\ntwo"));
+    let mut s = Session::new(docufy_doc::Document::from_text("one\ntwo"));
     s.run("select.text", &json!({"text": "one"})).unwrap();
     s.run("layout.break", &json!({"kind": "continuous"})).unwrap();
     assert_eq!(s.selected_text(), "one");
     assert_eq!(s.doc.sections().len(), 2);
-    let texts = |d: &wordcraft_doc::Document| -> Vec<String> {
+    let texts = |d: &docufy_doc::Document| -> Vec<String> {
         d.body.iter().filter_map(|b| if let Block::Para(p) = &**b { Some(p.plain_text().to_string()) } else { None }).collect()
     };
     assert_eq!(texts(&s.doc), ["", "one", "two"]);
     // A backward selection in the middle of a paragraph keeps its text and direction too.
-    let mut s = Session::new(wordcraft_doc::Document::from_text("alpha beta\ngamma"));
-    let p = |off| Pos { story: StoryRef::Body, path: wordcraft_doc::Path::top(0), off };
+    let mut s = Session::new(docufy_doc::Document::from_text("alpha beta\ngamma"));
+    let p = |off| Pos { story: StoryRef::Body, path: docufy_doc::Path::top(0), off };
     s.sel = Selection { anchor: p(10), focus: p(6) };
     s.run("layout.break", &json!({"kind": "continuous"})).unwrap();
     assert_eq!(s.selected_text(), "beta");
@@ -215,11 +215,11 @@ fn section_break_keeps_the_selected_text() {
     assert_eq!(texts(&s.doc), ["alpha ", "beta", "gamma"]);
 
     // The issue's document: "one", a continuous break, "two" — both on page 1 after a round trip.
-    let mut s = Session::new(wordcraft_doc::Document::from_text("one\ntwo"));
+    let mut s = Session::new(docufy_doc::Document::from_text("one\ntwo"));
     s.run("select.text", &json!({"text": "one"})).unwrap();
     s.run("caret.end", &json!({})).unwrap();
     s.run("layout.break", &json!({"kind": "continuous"})).unwrap();
-    let back = wordcraft_docx::read(&wordcraft_docx::write(&s.doc).unwrap()).unwrap();
+    let back = docufy_docx::read(&docufy_docx::write(&s.doc).unwrap()).unwrap();
     assert_eq!(back.sections().len(), 2);
     assert_eq!(back.last_section.start, SectionStart::Continuous);
     let mut s = Session::new(back);
@@ -298,7 +298,7 @@ fn strs(v: &[&str]) -> Vec<String> {
 /// and after the selection, the columns on the section between, the rest left alone.
 #[test]
 fn columns_apply_to_the_selected_text() {
-    let five = || Session::new(wordcraft_doc::Document::from_text("p1\np2\nalpha beta gamma\np4\np5"));
+    let five = || Session::new(docufy_doc::Document::from_text("p1\np2\nalpha beta gamma\np4\np5"));
     // A whole paragraph (a triple-click takes its mark): each break gets a paragraph of its own.
     let mut s = five();
     select(&mut s, (2, 0), (3, 0));
@@ -356,8 +356,8 @@ fn columns_apply_to_the_selected_text() {
 /// restart mode, `none` turns numbering off.
 #[test]
 fn line_numbering_options() {
-    use wordcraft_doc::section::LineNumberRestart;
-    let mut s = Session::new(wordcraft_doc::Document::from_text("One\nTwo"));
+    use docufy_doc::section::LineNumberRestart;
+    let mut s = Session::new(docufy_doc::Document::from_text("One\nTwo"));
     s.run("layout.lineNumbers", &json!({"value": "restartSection", "start": 5, "countBy": 2, "distance": 18})).unwrap();
     let l = s.doc.last_section.line_numbers.clone().unwrap();
     assert_eq!((l.start, l.count_by, l.distance, l.restart), (5, 2, 18.0, LineNumberRestart::Section));
@@ -375,7 +375,7 @@ fn line_numbering_options() {
 #[test]
 fn hyphenation_options_and_manual_hyphenation() {
     let mut s =
-        Session::new(wordcraft_doc::Document::from_text(&"a extraordinarily be uncharacteristic of responsibilities the considerations ".repeat(12)));
+        Session::new(docufy_doc::Document::from_text(&"a extraordinarily be uncharacteristic of responsibilities the considerations ".repeat(12)));
     let r = s.run("layout.hyphenation", &json!({"zone": 36, "caps": false, "limit": 3})).unwrap();
     assert_eq!(r, json!({"value": false, "zone": 36.0, "caps": false, "limit": 3}));
     s.run("layout.hyphenation", &json!({})).unwrap();
@@ -404,7 +404,7 @@ fn hyphenation_options_and_manual_hyphenation() {
     }
     // Some line of thirty or so starts with a long word that fits hyphenated above, whatever the font.
     assert!(found > 0, "no candidates");
-    assert_eq!(s.doc.plain_text(wordcraft_doc::StoryRef::Body).matches('\u{ad}').count(), found);
+    assert_eq!(s.doc.plain_text(docufy_doc::StoryRef::Body).matches('\u{ad}').count(), found);
     assert!(s.run("layout.manualHyphenation", &json!({"from": {"block": 999, "off": 0}})).unwrap()["done"] == true);
 }
 
@@ -414,7 +414,7 @@ fn hyphenation_options_and_manual_hyphenation() {
 /// section" (#1113).
 #[test]
 fn page_number_format_keeps_or_clears_the_start() {
-    use wordcraft_doc::section::NumFormat;
+    use docufy_doc::section::NumFormat;
     let mut s = doc();
     s.run("layout.pageNumberFormat", &json!({"format": "upperRoman", "start": 3})).unwrap();
     let x = sect(&s);

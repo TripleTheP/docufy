@@ -20,11 +20,11 @@ impl FormulaForm {
         let s = &app.session;
         let (tp, r, c) = s.sel.focus.path.cell()?;
         let t = s.doc.table(s.sel.focus.story, &tp)?;
-        let lang = wordcraft_engine::cmd::default_lang(s);
+        let lang = docufy_engine::cmd::default_lang(s);
         let number = |row: Option<usize>, col: Option<usize>| {
             let cell = t.rows.get(row?)?.cells.get(col?)?;
             let text = cell.blocks.iter().filter_map(|b| b.as_para()).map(|p| p.plain_text()).collect::<Vec<_>>().join(" ");
-            wordcraft_doc::locale_number::parse_number(text.trim(), lang.as_deref())
+            docufy_doc::locale_number::parse_number(text.trim(), lang.as_deref())
         };
         let formula = if number(r.checked_sub(1), Some(c)).is_some() {
             "=SUM(ABOVE)"
@@ -177,14 +177,14 @@ impl SplitCellsForm {
     pub fn read(app: &WordApp) -> Option<SplitCellsForm> {
         let s = &app.session;
         let (tp, _, _) = s.sel.focus.path.cell()?;
-        let mut cells = wordcraft_engine::cmd::table::selected_cells(s);
+        let mut cells = docufy_engine::cmd::table::selected_cells(s);
         cells.sort_unstable();
         cells.dedup();
         let mut rows: Vec<usize> = cells.iter().map(|&(r, _)| r).collect();
         rows.dedup();
         let per_row = rows.iter().map(|&r| cells.iter().filter(|c| c.0 == r).count()).max().unwrap_or(1);
         // A vertically merged cell is one cell, however many rows it covers.
-        let targets = wordcraft_engine::cmd::table::split_targets(s);
+        let targets = docufy_engine::cmd::table::split_targets(s);
         let t = s.doc.table(s.sel.focus.story, &tp);
         let (span, height) = match (targets.as_slice(), t) {
             ([(top, g)], Some(t)) => t
@@ -303,7 +303,7 @@ pub struct TextToTableForm {
 impl TextToTableForm {
     /// The selected paragraphs; none when the selection can't be converted (a table inside it).
     pub fn read(app: &WordApp) -> Option<TextToTableForm> {
-        let lines = wordcraft_engine::cmd::table::text_table_lines(&app.session).ok()?;
+        let lines = docufy_engine::cmd::table::text_table_lines(&app.session).ok()?;
         // Tabs when the text has them, else paragraphs (Word doesn't guess commas).
         let separator = if lines.iter().any(|l| l.contains('\t')) { "tab" } else { "paragraph" };
         let mut f = TextToTableForm {
@@ -331,14 +331,14 @@ impl TextToTableForm {
 
     /// The column count the text gives with the chosen separator.
     pub fn guess_columns(&mut self) {
-        let cols = wordcraft_engine::cmd::table::text_table_cells(&self.lines, self.sep(), None).1;
+        let cols = docufy_engine::cmd::table::text_table_cells(&self.lines, self.sep(), None).1;
         self.columns = cols.clamp(1, 63) as u32;
         self.count_rows();
     }
 
     /// The row count for the chosen separator and columns.
     pub fn count_rows(&mut self) {
-        self.rows = wordcraft_engine::cmd::table::text_table_cells(&self.lines, self.sep(), Some(self.columns as usize)).0.len();
+        self.rows = docufy_engine::cmd::table::text_table_cells(&self.lines, self.sep(), Some(self.columns as usize)).0.len();
     }
 
     /// The initial column width in points: 0 for Auto, `None` when it isn't a measurement from
@@ -348,7 +348,7 @@ impl TextToTableForm {
         if text.is_empty() || text.eq_ignore_ascii_case("auto") || text == tl!("Auto") {
             return Some(0.0);
         }
-        wordcraft_geom::parse_measure(text, unit()).filter(|pt| (0.0..=22.0 * 72.0).contains(pt))
+        docufy_geom::parse_measure(text, unit()).filter(|pt| (0.0..=22.0 * 72.0).contains(pt))
     }
 
     /// Word's message when the initial column width is out of range (only with that option).

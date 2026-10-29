@@ -27,7 +27,7 @@ pub fn pos_from_screen(app: &mut WordApp, p: Pos2) -> Option<Pos> {
 /// The caret colour that shows against `bg`: black or white, whichever contrasts more (WCAG
 /// contrast ratio), as Word's caret inverts what lies under it (#299). A white caret on white
 /// paper, or a black one on a dark page colour or highlight, would vanish.
-pub(crate) fn caret_contrast(bg: wordcraft_doc::props::Rgb) -> Color32 {
+pub(crate) fn caret_contrast(bg: docufy_doc::props::Rgb) -> Color32 {
     let lin = |v: u8| {
         let c = v as f32 / 255.0;
         if c <= 0.04045 { c / 12.92 } else { ((c + 0.055) / 1.055).powf(2.4) }
@@ -65,7 +65,7 @@ pub(super) fn caret_color_at(
         return c;
     }
     let Some(p) = layout.pages.get(page) else { return Color32::BLACK };
-    let bg = wordcraft_render::background_at(&app.session.doc, p, &page_render_options(app, dim_body), x, y);
+    let bg = docufy_render::background_at(&app.session.doc, p, &page_render_options(app, dim_body), x, y);
     let c = caret_contrast(bg);
     app.canvas.caret_bg = Some((key, c));
     c
@@ -75,5 +75,5 @@ pub(super) fn caret_color_at(
 /// dragging, such as an inline picture's insertion cursor.
 pub(crate) fn caret_color_on(app: &WordApp, layout: &DocLayout, page: usize, x: f32, y: f32) -> Color32 {
     let Some(p) = layout.pages.get(page) else { return Color32::BLACK };
-    caret_contrast(wordcraft_render::background_at(&app.session.doc, p, &page_render_options(app, dims_body(app, layout)), x, y))
+    caret_contrast(docufy_render::background_at(&app.session.doc, p, &page_render_options(app, dims_body(app, layout)), x, y))
 }

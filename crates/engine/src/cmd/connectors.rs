@@ -8,10 +8,10 @@
 
 use std::collections::HashMap;
 
+use docufy_doc::connector::{ConnEnd, Frame, ends, nearest_site, route, site_point};
+use docufy_doc::para::{Anchor, InlineObject, Wrap};
+use docufy_doc::{Pos, StoryRef};
 use serde_json::{Value, json};
-use wordcraft_doc::connector::{ConnEnd, Frame, ends, nearest_site, route, site_point};
-use wordcraft_doc::para::{Anchor, InlineObject, Wrap};
-use wordcraft_doc::{Pos, StoryRef};
 
 use crate::{CmdError, CmdResult, CommandSpec, Session, p};
 
@@ -78,7 +78,7 @@ pub fn reroute(s: &mut Session) -> bool {
     for pos in groups {
         if let Ok(para) = s.doc.para_mut(pos.story, &pos.path)
             && let Some(group @ InlineObject::Group { .. }) = para.object_at_mut(pos.off)
-            && wordcraft_doc::connector::reroute_group(group)
+            && docufy_doc::connector::reroute_group(group)
         {
             para.touch();
             moved = true;
@@ -132,7 +132,7 @@ fn place(s: &mut Session, pos: &Pos, to: Frame, at: (f32, f32), origin: (f32, f3
     {
         return false;
     }
-    let clamp = |v: f32| wordcraft_geom::finite(v).clamp(-MAX_OFFSET, MAX_OFFSET);
+    let clamp = |v: f32| docufy_geom::finite(v).clamp(-MAX_OFFSET, MAX_OFFSET);
     // An aligned position becomes an offset from the column / paragraph (where `origin` is).
     if float.h_align.take().is_some() {
         float.h_rel = Anchor::Column;
@@ -160,7 +160,7 @@ fn body_pos(e: &Value) -> Option<Pos> {
     let path: Option<Vec<u32>> =
         e.get("path").and_then(Value::as_array).map(|a| a.iter().take(64).filter_map(Value::as_u64).filter_map(|x| u32::try_from(x).ok()).collect());
     match (path, p::u64(e, "off").and_then(|o| usize::try_from(o).ok())) {
-        (Some(path), Some(off)) if !path.is_empty() => Some(Pos { story: StoryRef::Body, path: wordcraft_doc::Path(path), off }),
+        (Some(path), Some(off)) if !path.is_empty() => Some(Pos { story: StoryRef::Body, path: docufy_doc::Path(path), off }),
         _ => super::parse_pos(e).filter(|t| t.story == StoryRef::Body),
     }
 }
@@ -237,7 +237,7 @@ fn connect(s: &mut Session, v: &Value) -> CmdResult {
             let mut best: Option<(Pos, u32, f32)> = None;
             if let Some(pg) = layout.pages.get(page) {
                 for it in &pg.items {
-                    let wordcraft_layout::Placed::Object { rect, spin, story: StoryRef::Body, path, off, .. } = it else { continue };
+                    let docufy_layout::Placed::Object { rect, spin, story: StoryRef::Body, path, off, .. } = it else { continue };
                     let at = Pos { story: StoryRef::Body, path: path.clone(), off: *off };
                     if at == pos {
                         continue;
@@ -294,8 +294,8 @@ fn connect(s: &mut Session, v: &Value) -> CmdResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wordcraft_doc::connector::ShapeExtra;
-    use wordcraft_doc::para::{Float, GroupChild, ShapeKind};
+    use docufy_doc::connector::ShapeExtra;
+    use docufy_doc::para::{Float, GroupChild, ShapeKind};
 
     fn shape(kind: ShapeKind, extra: ShapeExtra, float: Float) -> InlineObject {
         InlineObject::Shape {
@@ -370,7 +370,7 @@ mod tests {
         // Rendering scales each child rectangle before applying its own spin.
         let before = visual_ends(&group);
         let expected = if free_start { before.0 } else { before.1 };
-        let mut s = Session::new(wordcraft_doc::Document::new());
+        let mut s = Session::new(docufy_doc::Document::new());
         let pos = s.doc.start_of(StoryRef::Body);
         s.doc.para_mut(pos.story, &pos.path).unwrap().insert_object(pos.off, group, &Default::default()).unwrap();
         assert!(reroute(&mut s));

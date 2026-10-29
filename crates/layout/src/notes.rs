@@ -13,9 +13,9 @@ use super::{
 /// earlier pass (empty: numbered on). With `hide_deleted`, notes whose reference mark is a
 /// tracked deletion are left out, as in the final text.
 pub(crate) fn note_info(doc: &Document, hide_deleted: HideDeleted, pages: &HashMap<u32, usize>) -> HashMap<u32, fields::NoteNum> {
-    use wordcraft_doc::section::NoteRestart;
+    use docufy_doc::section::NoteRestart;
     let sections = doc.sections();
-    let opts: Vec<[wordcraft_doc::section::NoteOptions; 2]> =
+    let opts: Vec<[docufy_doc::section::NoteOptions; 2]> =
         sections.iter().map(|(_, s)| [doc.note_options(s, false), doc.note_options(s, true)]).collect();
     let mut m = HashMap::new();
     // Per kind (footnotes, endnotes): the last number, and the section and page of the last note.
@@ -39,7 +39,7 @@ pub(crate) fn note_info(doc: &Document, hide_deleted: HideDeleted, pages: &HashM
             while sections.get(si).is_some_and(|(end, _)| block > *end) && si + 1 < sections.len() {
                 si += 1;
             }
-            let ki = usize::from(*kind == wordcraft_doc::para::NoteKind::Endnote);
+            let ki = usize::from(*kind == docufy_doc::para::NoteKind::Endnote);
             let Some(o) = opts.get(si).and_then(|o| o.get(ki)) else { return true };
             let page = if ki == 0 { pages.get(id).copied() } else { None };
             let Some(slot) = last.get_mut(ki) else { return true };
@@ -78,7 +78,7 @@ pub(crate) fn footnote_pages(doc: &Document, pages: &[Page]) -> HashMap<u32, usi
     for (pi, p) in pages.iter().enumerate() {
         for it in &p.items {
             if let Placed::Lines { story: StoryRef::Part(id), .. } | Placed::Cell { story: StoryRef::Part(id), .. } = it
-                && doc.parts.get(id).is_some_and(|part| part.kind == wordcraft_doc::PartKind::Footnote)
+                && doc.parts.get(id).is_some_and(|part| part.kind == docufy_doc::PartKind::Footnote)
             {
                 m.entry(*id).or_insert(pi);
             }
@@ -111,7 +111,7 @@ pub(crate) struct NoteSeps {
 
 impl NoteSeps {
     /// Lay out `seps` `width` wide.
-    pub(crate) fn new(ctx: &mut Ctx, seps: &wordcraft_doc::NoteSeparators, width: f32) -> NoteSeps {
+    pub(crate) fn new(ctx: &mut Ctx, seps: &docufy_doc::NoteSeparators, width: f32) -> NoteSeps {
         let mut lay = |blocks: &Option<Blocks>| blocks.as_ref().map(|b| sep_box(ctx, b, width));
         NoteSeps { sep: lay(&seps.separator), cont: lay(&seps.continuation_separator), notice: lay(&seps.continuation_notice) }
     }
@@ -401,7 +401,7 @@ pub(crate) fn table_notes(ctx: &mut Ctx, pb: &mut PageBuilder, items: &[Placed])
     }
     let before = pb.notes_h();
     for id in ids {
-        let Some(part) = ctx.doc.parts.get(&id).filter(|p| p.kind == wordcraft_doc::PartKind::Footnote) else { continue };
+        let Some(part) = ctx.doc.parts.get(&id).filter(|p| p.kind == docufy_doc::PartKind::Footnote) else { continue };
         let blocks = part.blocks.clone();
         let BoxLayout { items, height: h, .. } = layout_box(ctx, BoxInput::other(StoryRef::Part(id), &blocks, pb.sect.text_width(), 0, None));
         pb.notes.push(NoteBox { id, items, h, cont: false });
