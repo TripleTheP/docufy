@@ -90,6 +90,8 @@ pub struct Windows {
     input_plugin: bool,
     /// The viewport driver draws the windows this frame, and titles them.
     driven: bool,
+    /// Another interface covered the main window last frame ([`WordApp::other_windows_ui`]).
+    root_covered: bool,
 }
 
 impl Windows {
@@ -113,6 +115,7 @@ impl Windows {
             builder: egui::ViewportBuilder::default().with_inner_size([1440.0, 920.0]).with_min_inner_size([760.0, 480.0]),
             input_plugin: false,
             driven: false,
+            root_covered: false,
         }
     }
 
@@ -570,6 +573,30 @@ impl WordApp {
 
     /// Draw every window, each in its viewport (see the module documentation).
     pub(crate) fn windows_ui(&mut self, ui: &mut egui::Ui) {
+        self.draw_windows(ui, false);
+    }
+
+    /// Draw every window but the one in the main (root) viewport, which another interface shows
+    /// meanwhile (the desktop app's PDF mode): the other documents' windows stay open and work.
+    /// The root window's focus and close events are that interface's, not a document's.
+    pub fn other_windows_ui(&mut self, ui: &mut egui::Ui) {
+        if self.has_other_windows() {
+            // Installing this interface's fonts would swap them under the main window's text.
+            self.fonts_lent = true;
+            self.draw_windows(ui, true);
+            self.fonts_lent = false;
+        } else {
+            self.windows.root_covered = true;
+        }
+    }
+
+    /// Whether documents are open in native windows besides the main one.
+    pub fn has_other_windows(&self) -> bool {
+        self.windows.native && self.windows.open.len() > 1
+    }
+
+    /// [`Self::windows_ui`], or with `skip_root` [`Self::other_windows_ui`].
+    fn draw_windows(&mut self, ui: &mut egui::Ui, skip_root: bool) {
         let ctx = ui.ctx().clone();
         self.prune_windows();
         self.settle_windows();
@@ -579,29 +606,51 @@ impl WordApp {
         // widgets in one viewport.
         self.windows.driven = !ctx.embed_viewports() && self.windows.viewports.is_some();
         if !self.windows.driven {
-            let active = self.windows.recent_keys().first().copied().unwrap_or(self.windows.shown);
-            self.draw_window(ui, active);
-            self.after_windows();
+            // Embedded, the one window there is is the root's.
+            if !skip_root {
+                let active = self.windows.recent_keys().first().copied().unwrap_or(self.windows.shown);
+                self.draw_window(ui, active);
+                self.after_windows();
+            }
             return;
         }
         let Some(mut viewports) = self.windows.viewports.take() else { return };
+        // The window the other interface covers: drawn, titled and answered by that interface.
+        let covered = viewports.root().filter(|_| skip_root);
         let mut list = std::mem::take(&mut self.windows.list);
         self.windows.recent = list.recent().filter_map(|id| list.get(id).copied()).collect();
         let titles: HashMap<u64, String> = self.windows.open.iter().map(|w| (w.key, w.title.clone())).collect();
         let base = self.windows.builder.clone();
         self.windows.showing = true;
-        let events = viewports.show(
+        let mut events = viewports.show(
             ui,
             &mut list,
-            |_, key| match titles.get(key).filter(|t| !t.is_empty()) {
+            |id, key| match titles.get(key).filter(|t| !t.is_empty()) {
+                // No title: the covered window keeps the one the other interface gave it.
+                _ if covered == Some(id) => egui::ViewportBuilder::default(),
                 Some(t) => base.clone().with_title(t.clone()),
                 None => base.clone().with_title("Docufy"),
             },
-            |ui, _, key| self.draw_window(ui, *key),
+            |ui, id, key| {
+                if covered != Some(id) {
+                    self.draw_window(ui, *key);
+                }
+            },
         );
         self.windows.showing = false;
+        // The other interface titled the main window itself, unseen by the viewport driver,
+        // which then sees no change to send when the window is the document's again.
+        if std::mem::replace(&mut self.windows.root_covered, covered.is_some())
+            && covered.is_none()
+            && let Some(title) = viewports.root().and_then(|id| list.get(id)).and_then(|key| titles.get(key)).filter(|t| !t.is_empty())
+        {
+            ctx.send_viewport_cmd_to(egui::ViewportId::ROOT, egui::ViewportCommand::Title(title.clone()));
+        }
         self.windows.list = list;
         self.windows.viewports = Some(viewports);
+        if let Some(root) = covered {
+            events.retain(|e| !matches!(*e, WindowEvent::Focused(id) | WindowEvent::CloseRequested(id) if id == root));
+        }
         self.window_events(&ctx, &events);
         self.after_windows();
     }

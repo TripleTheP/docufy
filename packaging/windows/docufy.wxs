@@ -3,8 +3,8 @@
   <?ifndef HasCraftFontLicences ?>
   <?define HasCraftFontLicences=0 ?>
   <?endif?>
-  <Package Name="Docufy" Manufacturer="Learning Machines LLC" Version="$(var.Version)" UpgradeCode="075497F9-E861-45D0-9C7F-A74F8C34E6BA" Scope="perUserOrMachine" Compressed="yes" Language="1033">
-    <SummaryInformation Description="Docufy word processor" Manufacturer="Learning Machines LLC" />
+  <Package Name="Docufy" Manufacturer="TripleTheP" Version="$(var.Version)" UpgradeCode="C6C4C1C2-5D0B-4711-AE1F-2E4ADEC19DDD" Scope="perUserOrMachine" Compressed="yes" Language="1033">
+    <SummaryInformation Description="Docufy word processor" Manufacturer="TripleTheP" />
     <?include $(sys.SOURCEFILEDIR)install-policy.wxi?>
     <!-- Same-version upgrades let successive pre-releases of one X.Y.Z replace each other
          (MSI versions are numeric, so 1.2.3-rc.1 and 1.2.3-rc.2 are both 1.2.3). -->
@@ -33,9 +33,7 @@
     </UI>
 
     <StandardDirectory Id="ProgramFiles6432Folder">
-      <Directory Id="CraftSuiteFolder" Name="ArtCraft">
-        <Directory Id="INSTALLFOLDER" Name="Docufy" />
-      </Directory>
+      <Directory Id="INSTALLFOLDER" Name="Docufy" />
     </StandardDirectory>
     <StandardDirectory Id="ProgramMenuFolder" />
 
@@ -58,7 +56,7 @@
     </ComponentGroup>
     <?endif?>
     <ComponentGroup Id="DocufyFiles" Directory="INSTALLFOLDER">
-      <Component Id="DocufyApp" Guid="855DCEC6-9285-444F-9382-9654B83B34F6">
+      <Component Id="DocufyApp" Guid="F786D1A7-E871-4891-BB85-754621954386">
         <File Id="DocufyExe" Source="$(var.BinDir)\docufy.exe" KeyPath="yes">
           <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="Docufy" Description="Docufy word processor" WorkingDirectory="INSTALLFOLDER" Advertise="yes" Icon="DocufyIcon.ico" IconIndex="0" />
         </File>
@@ -74,7 +72,7 @@
            makes it the default (File › Options › General opens that page). Nothing here sets an
            extension's default: the installer never takes over .docx from another app. Markdown and
            plain text are only "Open with" candidates. Removed again on uninstall. -->
-      <Component Id="DocufyFileTypes" Guid="EFF89E6A-F9B8-49F9-B3AE-E243347484B4">
+      <Component Id="DocufyFileTypes" Guid="9D80C445-9634-47F1-97AE-C2881CE3F1BC">
         <RegistryValue Root="HKMU" Key="Software\RegisteredApplications" Name="Docufy" Value="Software\Docufy\Capabilities" Type="string" KeyPath="yes" />
         <RegistryValue Root="HKMU" Key="Software\Docufy\Capabilities" Name="ApplicationName" Value="Docufy" Type="string" />
         <RegistryValue Root="HKMU" Key="Software\Docufy\Capabilities" Name="ApplicationDescription" Value="Write and design documents; open and save Word files." Type="string" />

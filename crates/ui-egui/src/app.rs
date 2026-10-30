@@ -111,6 +111,7 @@ impl WordApp {
             synthetic_injected: 0,
             pdf_requests: Vec::new(),
             switch_to_pdf: false,
+            leave_pdf: false,
             styled: false,
             fonts_hans: false,
             fonts_korean: false,
@@ -119,6 +120,7 @@ impl WordApp {
             recover_fonts_for: None,
             recent_fonts_for: Vec::new(),
             fonts_frames: 0,
+            fonts_lent: false,
             applied_theme: None,
             native_scale: 1.0,
             legacy_interface_size: None,
@@ -319,18 +321,7 @@ impl WordApp {
         if let Some(answer) = self.desktop_theme.take_change() {
             self.desktop_dark = Some(answer);
         }
-        // Both palettes are installed and egui picks one: with `System` it follows an OS appearance
-        // change live (winit reports it and repaints, #311). Where winit is silent (Linux) the
-        // desktop portal's answer fills in instead. The interface follows the Interface theme
-        // setting alone; Dark page only changes how pages are drawn (#312).
-        let effective = match self.ui.theme {
-            theme::Appearance::System if ctx.system_theme().is_none() => match self.desktop_dark {
-                Some(true) => theme::Appearance::Dark,
-                Some(false) => theme::Appearance::Light,
-                None => theme::Appearance::System,
-            },
-            other => other,
-        };
+        let effective = self.effective_appearance(ctx);
         if self.applied_theme != Some(effective) {
             theme::apply(ctx, effective);
             self.applied_theme = Some(effective);
@@ -359,6 +350,29 @@ impl WordApp {
             theme::apply_animations(ctx, animate);
             self.applied_animations = Some(animate);
         }
+    }
+
+    /// The interface theme in effect. Both palettes are installed and egui picks one: with
+    /// `System` it follows an OS appearance change live (winit reports it and repaints, #311).
+    /// Where winit is silent (Linux) the desktop portal's answer fills in instead. The interface
+    /// follows the Interface theme setting alone; Dark page only changes how pages are drawn (#312).
+    fn effective_appearance(&self, ctx: &egui::Context) -> theme::Appearance {
+        match self.ui.theme {
+            theme::Appearance::System if ctx.system_theme().is_none() => match self.desktop_dark {
+                Some(true) => theme::Appearance::Dark,
+                Some(false) => theme::Appearance::Light,
+                None => theme::Appearance::System,
+            },
+            other => other,
+        }
+    }
+
+    /// Install this interface's theme and animation setting in the shared context now, to draw
+    /// its windows while another interface owns the context's look (the desktop app's PDF mode,
+    /// [`Self::other_windows_ui`]). The caller puts the other interface's look back afterwards.
+    pub fn install_theme(&self, ctx: &egui::Context) {
+        theme::apply(ctx, self.effective_appearance(ctx));
+        theme::apply_animations(ctx, self.animations_on());
     }
 
     /// The end of a shown frame's logic: the window's input, input and screenshots the control

@@ -7,8 +7,8 @@
   <project_license>MIT OR Apache-2.0</project_license>
   <name>Docufy</name>
   <summary>Write and design documents; open and save Word files</summary>
-  <developer id="ai.storyteller">
-    <name>Learning Machines LLC</name>
+  <developer id="io.github.triplethep">
+    <name>TripleTheP</name>
   </developer>
   <description>
     <p>

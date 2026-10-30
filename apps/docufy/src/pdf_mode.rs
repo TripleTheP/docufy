@@ -5,12 +5,45 @@
 //! documents opened here go to the word processor.
 
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use docufy_ui_egui::WordApp;
 use pdfcraft_ui_egui::{PdfCraftApp, RecoveryStore};
 
 /// The PDF interface's settings file, in Docufy's settings folder.
 const SETTINGS_FILE: &str = "pdf-mode.json";
+
+/// The shared context's look: both themes' styles and which of them shows.
+struct Look {
+    light: Arc<egui::Style>,
+    dark: Arc<egui::Style>,
+    preference: egui::ThemePreference,
+    fallback: egui::Theme,
+}
+
+impl Look {
+    fn of(ctx: &egui::Context) -> Look {
+        let (preference, fallback) = ctx.options(|o| (o.theme_preference, o.fallback_theme));
+        Look { light: ctx.style_of(egui::Theme::Light), dark: ctx.style_of(egui::Theme::Dark), preference, fallback }
+    }
+
+    /// Keep this look's text options under another theme: egui rebuilds the shared glyph atlas
+    /// when they change, and text the main window already laid out this frame would then point
+    /// into the new one.
+    fn lend_text_options(&self, ctx: &egui::Context) {
+        ctx.style_mut_of(egui::Theme::Light, |s| s.visuals.text_options = self.light.visuals.text_options);
+        ctx.style_mut_of(egui::Theme::Dark, |s| s.visuals.text_options = self.dark.visuals.text_options);
+    }
+
+    fn put_back(self, ctx: &egui::Context) {
+        ctx.set_style_of(egui::Theme::Light, self.light);
+        ctx.set_style_of(egui::Theme::Dark, self.dark);
+        ctx.options_mut(|o| {
+            o.theme_preference = self.preference;
+            o.fallback_theme = self.fallback;
+        });
+    }
+}
 
 pub struct PdfMode {
     pub app: PdfCraftApp,
@@ -47,7 +80,7 @@ impl PdfMode {
                 log::warn!("{path}: {e}");
             }
         }
-        if std::mem::take(&mut self.app.switch_to_documents) {
+        if std::mem::take(&mut self.app.switch_to_documents) | std::mem::take(&mut word.leave_pdf) {
             self.show(word, ctx, false);
         }
     }
@@ -64,6 +97,23 @@ impl PdfMode {
             word.restyle();
         }
         ctx.request_repaint();
+    }
+
+    /// The word processor's other windows while the PDF interface has the main one: they stay
+    /// open and work. The fonts and text options are the PDF interface's (both name their
+    /// families alike); the word processor's theme is put in for them and the PDF interface's
+    /// back afterwards.
+    pub fn word_windows(&self, word: &mut WordApp, ui: &mut egui::Ui) {
+        if !word.has_other_windows() {
+            word.other_windows_ui(ui);
+            return;
+        }
+        let ctx = ui.ctx().clone();
+        let pdf_look = Look::of(&ctx);
+        word.install_theme(&ctx);
+        pdf_look.lend_text_options(&ctx);
+        word.other_windows_ui(ui);
+        pdf_look.put_back(&ctx);
     }
 
     /// Write the PDF interface's settings for the next start.

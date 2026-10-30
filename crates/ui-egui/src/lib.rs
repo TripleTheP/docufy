@@ -191,7 +191,6 @@ pub struct UiState {
     /// Headings whose sub-headings the Navigation pane hides (#1997); per session, not saved.
     #[serde(skip)]
     pub nav_collapsed: std::collections::HashSet<docufy_doc::Path>,
-    pub show_discord: bool,
     /// User name (File › Options) for comments and tracked changes; empty keeps the default.
     pub author: String,
     /// Desktop: the main window's size and position, restored at the next launch.
@@ -314,7 +313,6 @@ impl Default for UiState {
             pane_places: Default::default(),
             pane_order: Vec::new(),
             nav_collapsed: Default::default(),
-            show_discord: false,
             author: String::new(),
             window: None,
             language: i18n::AUTO.into(),
@@ -512,6 +510,8 @@ pub struct WordApp {
     pub pdf_requests: Vec<String>,
     /// The user asked to show the PDF interface (the title bar's PDF button).
     pub switch_to_pdf: bool,
+    /// The control channel asked to show the word processor again (`ui.pdfMode` false).
+    pub leave_pdf: bool,
     styled: bool,
     /// The CJK face order the installed UI fonts use (Chinese first, or Japanese first).
     fonts_hans: bool,
@@ -532,6 +532,9 @@ pub struct WordApp {
     /// The Find query and result count [`WordApp::ensure_find_fonts`] last looked at.
     find_fonts_for: Option<(String, usize, u64)>,
     fonts_frames: u32,
+    /// Another interface's fonts are installed and stay while this one draws its other windows
+    /// beside it ([`WordApp::other_windows_ui`]): both name their families alike.
+    fonts_lent: bool,
     /// The effective interface theme last installed in egui ([`theme::apply`]).
     applied_theme: Option<theme::Appearance>,
     /// The display scale (native pixels per point) seen in the last frame, 1.0 before the first;

@@ -16,7 +16,7 @@ fn main() {
     res.set_icon("../../assets/app-icon/docufy.ico")
         .set("ProductName", "Docufy")
         .set("FileDescription", "Docufy word processor")
-        .set("CompanyName", "Learning Machines LLC")
+        .set("CompanyName", "TripleTheP")
         .set("LegalCopyright", "Copyright (c) the Docufy authors. MIT OR Apache-2.0.")
         .set("OriginalFilename", "docufy.exe")
         .set("InternalName", "docufy");

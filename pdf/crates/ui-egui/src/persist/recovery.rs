@@ -173,11 +173,11 @@ impl RecoveryStore {
         }
         let env = |k: &str| std::env::var_os(k).filter(|v| !v.is_empty()).map(PathBuf::from);
         if cfg!(target_os = "macos") {
-            env("HOME").map(|h| h.join("Library/Application Support/PdfCraft/Recovery"))
+            env("HOME").map(|h| h.join("Library/Application Support/Docufy/PDF Recovery"))
         } else if cfg!(windows) {
-            env("LOCALAPPDATA").map(|d| d.join("PdfCraft").join("Recovery"))
+            env("LOCALAPPDATA").map(|d| d.join("Docufy").join("PDF Recovery"))
         } else {
-            env("XDG_DATA_HOME").or_else(|| env("HOME").map(|h| h.join(".local/share"))).map(|d| d.join("pdfcraft/recovery"))
+            env("XDG_DATA_HOME").or_else(|| env("HOME").map(|h| h.join(".local/share"))).map(|d| d.join("docufy/pdf-recovery"))
         }
     }
 
@@ -486,6 +486,25 @@ mod idle_tests {
         // Headless timer test: acknowledge texture uploads without a GPU backend.
         out.textures_delta.clear();
         out.viewport_output[&egui::ViewportId::ROOT].repaint_delay
+    }
+
+    /// Docufy: while the word processor is shown, the PDF interface's background logic still
+    /// writes the recovery copy of an edited PDF when it is due.
+    #[test]
+    fn background_logic_writes_the_recovery_copy_when_due() {
+        let dir = TestDir::new();
+        let store = RecoveryStore::new(dir.path());
+        let mut app = PdfCraftApp::new();
+        app.enable_recovery(store.clone());
+        let bytes = app.session.create_blank(200.0, 300.0, 1).unwrap();
+        let id = app.session.open_new("Untitled.pdf", bytes).unwrap();
+        let ctx = egui::Context::default();
+        app.background_logic(&ctx);
+        assert!(store.list().is_empty(), "the first tick only starts the interval");
+        app.last_autosave = web_time::Instant::now().checked_sub(Duration::from_secs_f64(AUTOSAVE_SECS + 1.0));
+        app.background_logic(&ctx);
+        assert_eq!(store.list().len(), 1, "the recovery copy is written out of sight");
+        assert!(app.session.get(id).unwrap().dirty, "and the PDF still counts as unsaved");
     }
 
     /// Check that an idle dirty document schedules a bounded write and autosaves without input, then stops

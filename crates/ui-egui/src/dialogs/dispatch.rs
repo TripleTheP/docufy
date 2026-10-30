@@ -1086,7 +1086,7 @@ fn about_dialog(ui: &mut Ui, d: &mut Dialog) -> bool {
             ui.label(egui::RichText::new(tl!("Docufy")).font(semibold(22.0)));
             let build = option_env!("DOCUFY_BUILD_SHA").map(|s| s.get(..8).unwrap_or(s)).unwrap_or(tl!("development build"));
             ui.label(crate::i18n::fmt(tl!("Version {version} ({build})"), &[("version", env!("CARGO_PKG_VERSION")), ("build", build)]));
-            ui.label(tl!("A free, open-source word processor and PDF workbench written in Rust.\nBased on WordCraft by the ArtCraft team."));
+            ui.label(tl!("A free, open-source word processor and PDF workbench written in Rust.\nBased on WordCraft and PdfCraft."));
             ui.add_space(6.0);
             ui.hyperlink_to(tl!("Source code: github.com/TripleTheP/docufy"), "https://github.com/TripleTheP/docufy");
             ui.add_space(6.0);

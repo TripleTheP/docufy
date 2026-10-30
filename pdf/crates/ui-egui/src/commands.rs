@@ -210,11 +210,6 @@ impl PdfCraftApp {
                     self.notify_tr("Security will be removed when you save");
                 }
             }
-            link if pdfcraft_engine::links::for_command(link).is_some() => {
-                if let Some(l) = pdfcraft_engine::links::for_command(link) {
-                    self.open_url(l.url);
-                }
-            }
             "app.preferences" => self.dialog = Some(Dialog::Preferences),
             "protect.remove_hidden" => self.open_remove_hidden(),
             "print.dialog" => self.open_print(),

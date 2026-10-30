@@ -263,7 +263,7 @@ fn shaped_width(t: &AddedText, s: &str, rtl: bool) -> f64 {
 
 pub(super) fn arabic_error(e: GlyphError, text: &str) -> EditError {
     EditError::Invalid(match e {
-        GlyphError::NoFont => "Arabic text needs PdfCraft's Arabic font, which this build doesn't include \
+        GlyphError::NoFont => "Arabic text needs Docufy's Arabic font, which this build doesn't include \
                                (to build it in, set CRAFT_FONTS_DIR to a craft-fonts checkout that has an Arab face)"
             .into(),
         GlyphError::Missing => format!("the Arabic font can't show \"{text}\""),
@@ -273,7 +273,7 @@ pub(super) fn arabic_error(e: GlyphError, text: &str) -> EditError {
 
 pub(super) fn hebrew_error(e: GlyphError, text: &str) -> EditError {
     EditError::Invalid(match e {
-        GlyphError::NoFont => "Hebrew text needs PdfCraft's Hebrew font, which this build doesn't include \
+        GlyphError::NoFont => "Hebrew text needs Docufy's Hebrew font, which this build doesn't include \
                                (to build it in, set CRAFT_FONTS_DIR to a craft-fonts checkout that has a Hebr face)"
             .into(),
         GlyphError::Missing => format!("the Hebrew font can't show \"{text}\""),

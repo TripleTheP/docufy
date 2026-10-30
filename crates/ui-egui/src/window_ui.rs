@@ -158,6 +158,7 @@ impl WordApp {
             services: _,
             pdf_requests: _,
             switch_to_pdf: _,
+            leave_pdf: _,
             printing: _,
             print_feedback_seen: _,
             font_generation: _,
@@ -184,6 +185,7 @@ impl WordApp {
             // File › Recover lists the copies of every window's documents.
             recover_fonts_for: _,
             fonts_frames: _,
+            fonts_lent: _,
             applied_theme: _,
             native_scale: _,
             legacy_interface_size: _,
@@ -260,7 +262,6 @@ impl WordApp {
             legacy_dark: _,
             nav_tab: _,
             nav_pane: _,
-            show_discord: _,
             author: _,
             window: _,
             language: _,

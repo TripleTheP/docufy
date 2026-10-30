@@ -145,7 +145,7 @@ $rtf = '{\rtf1\ansi\ansicpg1252\deff0{\fonttbl{\f0\fswiss\fcharset0 Tahoma;}}\vi
 [System.IO.File]::WriteAllText($LicenseRtf, $rtf, [System.Text.Encoding]::ASCII)
 
 # One MSI from one dual-scope source (see docufy.wxs and install-policy.wxi): per user by default into
-# %LOCALAPPDATA%\Programs\ArtCraft\Docufy (#39), per machine into Program Files\ArtCraft on request.
+# %LOCALAPPDATA%\Programs\Docufy (#39), per machine into Program Files\Docufy on request.
 # The plain name is the one every sibling app, the launcher and the shared windows-arm64 workflow expect.
 $Msi = Join-Path $Dist "docufy-$Version-windows-$Arch.msi"
 Invoke-Native "wix build" {

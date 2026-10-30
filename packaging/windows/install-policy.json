@@ -1,7 +1,7 @@
 {
   "id": "docufy",
   "name": "Docufy",
-  "upgradeCode": "075497F9-E861-45D0-9C7F-A74F8C34E6BA",
+  "upgradeCode": "C6C4C1C2-5D0B-4711-AE1F-2E4ADEC19DDD",
   "sources": [
     "docufy.wxs"
   ],

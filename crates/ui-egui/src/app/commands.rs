@@ -730,9 +730,19 @@ impl WordApp {
                     "making Docufy the default app needs a click in File › Options › General; scripts and agents can't change system defaults".into(),
                 ));
             }
-            "ui.discord" => {
-                self.canvas.open_url = Some("https://github.com/TripleTheP/docufy".into());
-                json!({})
+            "ui.pdfMode" => {
+                // Docufy's PDF mode (desktop): `value` true shows the PDF interface in the main
+                // window, false the word processor again. The desktop app switches before the
+                // next frame; the word processor keeps saving and serving the control channel.
+                if cfg!(target_arch = "wasm32") {
+                    return Some(Err("the web app has no PDF mode".into()));
+                }
+                match p.get("value") {
+                    Some(Value::Bool(true)) => self.switch_to_pdf = true,
+                    Some(Value::Bool(false)) => self.leave_pdf = true,
+                    _ => return Some(Err("`value` must be true (PDF mode) or false (word processor)".into())),
+                }
+                json!({"pdfMode": p["value"]})
             }
             "ui.caretAnimation" => {
                 // File › Options › Advanced › Animation: `value` true or false turns the caret's
@@ -1014,7 +1024,7 @@ pub(crate) fn works_without_document(id: &str) -> bool {
             | "ui.openFileDialog"
             | "ui.fileBrowser"
             | "ui.makeDefaultApp"
-            | "ui.discord"
+            | "ui.pdfMode"
             | "ui.caretAnimation"
             | "ui.startScreen"
             | "ui.checkForUpdates"

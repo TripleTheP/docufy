@@ -37,7 +37,7 @@ case "$ARCH" in
   aarch64 | arm64) ARCH=aarch64; DEB_ARCH=arm64 ;;
   *) echo "unsupported architecture $ARCH" >&2; exit 2 ;;
 esac
-export DOCUFY_MAINTAINER="${DOCUFY_MAINTAINER:-Docufy maintainers <docufy@storyteller.ai>}"
+export DOCUFY_MAINTAINER="${DOCUFY_MAINTAINER:-TripleTheP <TripleTheP@users.noreply.github.com>}"
 BASENAME="docufy-$VERSION-linux-$ARCH"
 
 echo "==> Docufy $VERSION for Linux $ARCH ($FORMATS)"

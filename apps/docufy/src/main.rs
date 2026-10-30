@@ -148,6 +148,8 @@ impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
         if self.5.shown {
             eframe::App::ui(&mut self.5.app, ui, frame);
+            // The other documents' windows stay open beside it.
+            self.5.word_windows(&mut self.0, ui);
         } else {
             self.0.ui(ui);
         }

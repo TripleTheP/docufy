@@ -13,7 +13,7 @@ release: 1
 section: graphics
 priority: optional
 maintainer: ${DOCUFY_MAINTAINER}
-vendor: Learning Machines LLC
+vendor: TripleTheP
 homepage: https://github.com/TripleTheP/docufy
 license: MIT OR Apache-2.0
 description: |-

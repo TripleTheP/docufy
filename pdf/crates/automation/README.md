@@ -106,22 +106,10 @@ or fill colour. Names, rectangles, rotations and captions require the single-fie
 
 Implemented: `initialize` (protocol 2025-06-18, 2025-03-26, 2024-11-05), `ping`, `tools/list` (with `readOnlyHint`/`destructiveHint` annotations), `tools/call` (JSON results also returned as `structuredContent`; images as `image/png`), and `resources/list`, `resources/templates/list` and `resources/read`. The resources expose the open documents read-only: `pdfcraft://doc/{doc}/info` (JSON), `…/text`, `…/page/{page}/text` and `…/page/{page}/image{?dpi}` (PNG, 1–600 dpi). Tool failures come back as `isError: true` results, so the agent can read and recover from them.
 
-### From an installed release
+### In Docufy
 
-The release packages ship `pdfcraft-cli` alongside the desktop app, so no build is needed:
-
-| Install | CLI |
-|---|---|
-| Windows (MSI) | `%LOCALAPPDATA%\Programs\ArtCraft\PdfCraft\pdfcraft-cli.exe` by default (`C:\Program Files\ArtCraft\PdfCraft\pdfcraft-cli.exe` for an all-users install, under `Program Files (x86)` instead for the 32-bit build, or wherever you installed it otherwise), not on `PATH` |
-| Linux (deb, rpm) | `/usr/bin/pdfcraft-cli` |
-| macOS | the separate `pdfcraft-cli-<version>-macos-<arch>.zip` release asset (the `.app` holds only the desktop app) |
-
-```sh
-# Windows (PowerShell), default install folder
-claude mcp add pdfcraft -- "$env:LOCALAPPDATA\Programs\ArtCraft\PdfCraft\pdfcraft-cli.exe" mcp --root <dir>
-# Linux, or macOS with the CLI unzipped onto PATH
-claude mcp add pdfcraft -- pdfcraft-cli mcp --root <dir>
-```
+Docufy does not ship a separate PDF command-line tool yet; the server is available as this library
+(`pdfcraft_automation::mcp::McpServer`). Docufy's own MCP server (`docufy-cli mcp`) covers the word processor.
 
 ## Adding a tool
 

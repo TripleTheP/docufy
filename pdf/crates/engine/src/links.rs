@@ -1,38 +1,8 @@
-//! Where Docufy and its upstream projects live on the web. One table, so the Help menu, the
-//! About dialog, the home screen, the CLI and the README agree.
+//! Addresses documents ask to open: which ones may be opened, and remote documents (GoToR).
+//! Docufy has no community links (PdfCraft's Discord and web page links are gone).
 
 use icu_properties::props::Script;
 use std::path::{Path, PathBuf};
-
-/// The app's name in ArtCraft URLs (`getartcraft.com/apps/{APP}`, `github.com/storytold/{APP}`).
-pub const APP: &str = "pdfcraft";
-
-pub const DISCORD: &str = "https://github.com/TripleTheP/docufy/issues";
-pub const WEBSITE: &str = "https://github.com/storytold/wordcraft";
-pub const APP_PAGE: &str = "https://github.com/TripleTheP/docufy";
-pub const GITHUB: &str = "https://github.com/storytold/pdfcraft";
-
-/// A link and the registry command that opens it.
-#[derive(Clone, Copy, Debug)]
-pub struct Link {
-    pub command: &'static str,
-    pub label: &'static str,
-    pub url: &'static str,
-    /// Lucide icon name.
-    pub icon: &'static str,
-}
-
-/// In the order they are shown. The `help.discord` command id is kept from PdfCraft; in Docufy it reports a problem.
-pub const LINKS: &[Link] = &[
-    Link { command: "help.discord", label: "Report a problem", url: DISCORD, icon: "messages-square" },
-    Link { command: "help.app_page", label: "Docufy on GitHub", url: APP_PAGE, icon: "globe" },
-    Link { command: "help.github", label: "PdfCraft (upstream)", url: GITHUB, icon: "code-xml" },
-    Link { command: "help.website", label: "WordCraft (upstream)", url: WEBSITE, icon: "external-link" },
-];
-
-pub fn for_command(id: &str) -> Option<&'static Link> {
-    LINKS.iter().find(|l| l.command == id)
-}
 
 /// The kinds of address a document may ask PdfCraft to open: web pages and email. Anything
 /// else (`file:`, `javascript:`, `data:`, `smb:`, app handlers such as `ms-settings:`) is refused,

@@ -282,6 +282,18 @@ mod tests {
         assert!(a.styled && a.applied_theme.is_some(), "shown again, it installs them");
     }
 
+    /// `ui.pdfMode` asks the desktop app to show the PDF interface or the word processor.
+    #[test]
+    fn ui_pdf_mode_asks_the_desktop_app_to_switch() {
+        let mut a = app();
+        assert_eq!(a.run("ui.pdfMode", json!({"value": true})).unwrap()["pdfMode"], true);
+        assert!(a.switch_to_pdf && !a.leave_pdf);
+        assert_eq!(a.run("ui.pdfMode", json!({"value": false})).unwrap()["pdfMode"], false);
+        assert!(a.leave_pdf);
+        assert!(a.run("ui.pdfMode", json!({})).is_err(), "a value is needed");
+        assert!(a.run("ui.pdfMode", json!({"value": "pdf"})).is_err());
+    }
+
     /// A PDF never reaches the word processor's open: it waits for the PDF mode, which shows.
     #[test]
     fn a_pdf_goes_to_the_pdf_mode() {

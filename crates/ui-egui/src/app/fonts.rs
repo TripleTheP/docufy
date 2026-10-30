@@ -154,6 +154,9 @@ impl WordApp {
     /// Install the interface fonts when the language, the CJK fallback, or a caption fallback
     /// face has changed since the last install.
     pub(super) fn install_ui_fonts(&mut self, ctx: &egui::Context, lang: i18n::Lang) {
+        if self.fonts_lent {
+            return;
+        }
         let system_cjk = self.fonts_system_cjk || self.want_system_cjk || lang.uses_cjk();
         if !self.styled || lang.prefers_hans() != self.fonts_hans || lang.prefers_korean() != self.fonts_korean || system_cjk != self.fonts_system_cjk
         {

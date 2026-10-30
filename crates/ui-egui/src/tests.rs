@@ -602,7 +602,7 @@ fn start_screen_shows_file_home_and_esc_leaves_no_document() {
     for id in ["format.bold", "text.insert", "file.save", "file.saveAs", "file.print", "edit.paste", "insert.table", "ui.print"] {
         assert!(!widgets::enabled(a, id), "{id} is off with no document");
     }
-    for id in ["file.new", "file.open", "ui.backstage", "ui.tab", "ui.discord", "file.options", "ui.theme"] {
+    for id in ["file.new", "file.open", "ui.backstage", "ui.tab", "file.options", "ui.theme"] {
         assert!(widgets::enabled(a, id), "{id} works with no document");
     }
     assert!(!chrome::qat_enabled(a, "file.save"));
@@ -3378,7 +3378,7 @@ fn the_default_app_button_shows_only_with_the_hosts_hook() {
             a,
         );
         h.run_steps(4);
-        assert!(h.query_by_label("Show the community button in the title bar").is_some(), "hook {hook}: the Options page rendered");
+        assert!(h.query_by_label("Show the mini toolbar when text is selected").is_some(), "hook {hook}: the Options page rendered");
         assert_eq!(h.query_by_label(LABEL).is_some(), hook, "hook {hook}: the button");
         if hook {
             h.get_by_label(LABEL).click();
