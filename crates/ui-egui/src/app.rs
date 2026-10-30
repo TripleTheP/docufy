@@ -217,7 +217,23 @@ impl WordApp {
 
     /// Per-frame logic before layout: control requests, screenshots, shortcuts, file drops.
     pub fn logic(&mut self, ctx: &egui::Context) {
-        updates_ui::tick(self, ctx);
+        self.run_logic(ctx, true);
+    }
+
+    /// Per-frame logic while another interface is shown in the window (the desktop app's PDF
+    /// mode): saves, AutoSave, recovery, printing and the control channel go on, so nothing waits
+    /// or is lost while the word processor is out of sight. Fonts, theme, interface size, input
+    /// and screenshots wait until it is shown again ([`WordApp::restyle`]): the other interface
+    /// owns the shared egui context meanwhile.
+    pub fn background_logic(&mut self, ctx: &egui::Context) {
+        self.run_logic(ctx, false);
+    }
+
+    /// [`Self::logic`], or with `shown` false [`Self::background_logic`].
+    fn run_logic(&mut self, ctx: &egui::Context, shown: bool) {
+        if shown {
+            updates_ui::tick(self, ctx);
+        }
         let lang = i18n::Lang::from_pref(&self.ui.language);
         i18n::set_current(lang);
         // New documents are written in the interface's language when Docufy can proof it
@@ -237,6 +253,59 @@ impl WordApp {
         }
         options::sync(self);
         self.settle_async_saves();
+        if shown {
+            self.apply_interface(ctx, lang);
+        }
+        if self.ctx.is_none() {
+            self.ctx = Some(ctx.clone());
+        }
+        if shown {
+            // Capture geometry/window/document identity is current before control admission
+            // and completion.
+            self.refresh_capture_geometry(ctx);
+        }
+        let native = self.windows.native();
+        if native {
+            self.printing.poll(ctx);
+        } else {
+            self.poll_printing(ctx);
+        }
+        self.drain_control(ctx);
+        // The active window's own work; with native windows each window does it again as it
+        // draws, for itself.
+        self.window_work(ctx);
+        self.drain_inbox();
+        self.drain_pasted();
+        if shown {
+            self.watch_fonts(ctx);
+        }
+        // A script, an agent or a later result may have made another document the active one.
+        self.sync_document();
+        let document = self.session.document_id();
+        self.session.recovery_tick();
+        if self.session.document_id() != document {
+            self.ui.backstage = false;
+            self.sync_document();
+        }
+        if !self.recovery_seen && self.session.recovery_ready() {
+            self.recovery_seen = true;
+            if !self.session.recovery_documents().is_empty() && !self.session.dirty {
+                self.ui.backstage = true;
+                self.ui.backstage_page = "recover".into();
+            }
+        }
+        if let Some(wait) = self.session.recovery_wait() {
+            ctx.request_repaint_after(wait);
+        }
+        if shown {
+            self.shown_input(ctx, native, lang);
+        }
+        self.report_dirty();
+    }
+
+    /// The interface's look, installed in the shared egui context: fonts, theme, interface size
+    /// and animation effects. Only while this interface is shown ([`Self::background_logic`]).
+    fn apply_interface(&mut self, ctx: &egui::Context, lang: i18n::Lang) {
         // Chinese text wants the Chinese face before the Japanese one (one glyph style per line).
         // An installed CJK font is read only once CJK text is shown (#241): a CJK interface, the
         // language names in Options, or a file name the caption is drawing. A file opened later
@@ -290,43 +359,11 @@ impl WordApp {
             theme::apply_animations(ctx, animate);
             self.applied_animations = Some(animate);
         }
-        if self.ctx.is_none() {
-            self.ctx = Some(ctx.clone());
-        }
-        // Capture geometry/window/document identity is current before control admission and
-        // completion.
-        self.refresh_capture_geometry(ctx);
-        let native = self.windows.native();
-        if native {
-            self.printing.poll(ctx);
-        } else {
-            self.poll_printing(ctx);
-        }
-        self.drain_control(ctx);
-        // The active window's own work; with native windows each window does it again as it
-        // draws, for itself.
-        self.window_work(ctx);
-        self.drain_inbox();
-        self.drain_pasted();
-        self.watch_fonts(ctx);
-        // A script, an agent or a later result may have made another document the active one.
-        self.sync_document();
-        let document = self.session.document_id();
-        self.session.recovery_tick();
-        if self.session.document_id() != document {
-            self.ui.backstage = false;
-            self.sync_document();
-        }
-        if !self.recovery_seen && self.session.recovery_ready() {
-            self.recovery_seen = true;
-            if !self.session.recovery_documents().is_empty() && !self.session.dirty {
-                self.ui.backstage = true;
-                self.ui.backstage_page = "recover".into();
-            }
-        }
-        if let Some(wait) = self.session.recovery_wait() {
-            ctx.request_repaint_after(wait);
-        }
+    }
+
+    /// The end of a shown frame's logic: the window's input, input and screenshots the control
+    /// channel injected, and the fonts files opened this frame need.
+    fn shown_input(&mut self, ctx: &egui::Context, native: bool, lang: i18n::Lang) {
         if !native {
             self.window_input(ctx);
         }

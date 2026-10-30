@@ -264,6 +264,24 @@ mod tests {
         a.session.doc.plain_text(StoryRef::Body).trim().to_string()
     }
 
+    /// While the PDF mode is shown the word processor works on out of sight: the control
+    /// channel is served, while the shared context keeps the other interface's fonts and theme.
+    #[test]
+    fn background_logic_works_without_touching_the_interface() {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let mut a = app().with_control(rx);
+        let ctx = egui::Context::default();
+        let (req, reply) = crate::ControlRequest::new("engine.execute", json!({"command": "text.insert", "params": {"text": "Hallo"}}));
+        tx.send(req).unwrap();
+        a.background_logic(&ctx);
+        let answer = reply.recv_timeout(std::time::Duration::from_secs(5)).unwrap();
+        assert_eq!(answer["ok"], true, "{answer}");
+        assert_eq!(text(&a), "Hallo");
+        assert!(!a.styled && a.applied_theme.is_none(), "fonts and theme wait until the word processor shows");
+        a.logic(&ctx);
+        assert!(a.styled && a.applied_theme.is_some(), "shown again, it installs them");
+    }
+
     /// A PDF never reaches the word processor's open: it waits for the PDF mode, which shows.
     #[test]
     fn a_pdf_goes_to_the_pdf_mode() {

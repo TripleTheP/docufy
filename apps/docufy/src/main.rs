@@ -64,6 +64,9 @@ impl eframe::App for App {
                 ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
                 self.5.show(&mut self.0, ctx, false);
             } else {
+                // The word processor keeps saving, autosaving, recovering, printing and serving
+                // the control channel out of sight.
+                self.0.background_logic(ctx);
                 eframe::App::logic(&mut self.5.app, ctx, frame);
             }
             self.3.show(frame);
@@ -76,6 +79,8 @@ impl eframe::App for App {
             self.5.app.begin_quit(ctx);
             return;
         }
+        // The PDF interface keeps opening, recovering and finishing its jobs out of sight.
+        self.5.app.background_logic(ctx);
         self.0.logic(ctx);
         self.3.show(frame);
         let window = self.4;
