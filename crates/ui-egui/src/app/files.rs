@@ -82,7 +82,7 @@ impl WordApp {
     }
 
     /// The document's name as the Save Changes prompt shows it: its file's name, else its title.
-    pub(super) fn prompt_name(&self) -> String {
+    pub(crate) fn prompt_name(&self) -> String {
         self.session.path.as_ref().and_then(|p| p.file_name()).map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| self.title_stem())
     }
 

@@ -32,6 +32,8 @@ pub struct AiState {
     job: Option<std::sync::mpsc::Receiver<Done>>,
     /// The last outcome to show: (succeeded, text).
     outcome: Option<(bool, String)>,
+    /// The AI features: the AI Assistant pane, its suggestion and chat.
+    pub assist: crate::ai_assist::Assist,
 }
 
 /// A finished worker job.
@@ -161,18 +163,18 @@ fn set(app: &mut WordApp, params: Value) {
     }
 }
 
-fn section(ui: &mut Ui, title: &str) {
+pub(crate) fn section(ui: &mut Ui, title: &str) {
     ui.add_space(8.0);
     ui.label(RichText::new(tl!(title)).font(semibold(15.0)));
     ui.add_space(2.0);
 }
 
-fn note(ui: &mut Ui, text: &str) {
+pub(crate) fn note(ui: &mut Ui, text: &str) {
     ui.label(RichText::new(text).small().weak());
 }
 
 /// `template` with each `{name}` replaced by its value.
-fn fill(template: &str, args: &[(&str, &str)]) -> String {
+pub(crate) fn fill(template: &str, args: &[(&str, &str)]) -> String {
     args.iter().fold(template.to_string(), |text, (name, value)| text.replace(&format!("{{{name}}}"), value))
 }
 
@@ -553,8 +555,7 @@ fn poll(app: &mut WordApp, ctx: &egui::Context) {
 }
 
 /// What went wrong, in words the user can act on.
-#[cfg(not(target_arch = "wasm32"))]
-fn error_text(e: &docufy_ai::AiError) -> String {
+pub(crate) fn error_text(e: &docufy_ai::AiError) -> String {
     use docufy_ai::AiError;
     let (template, detail) = match e {
         AiError::Auth(d) => ("The provider did not accept the key. Check it, or create a new one. ({detail})", d.as_str()),

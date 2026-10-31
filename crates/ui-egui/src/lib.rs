@@ -15,6 +15,7 @@ macro_rules! tl {
 
 pub mod a11y;
 pub mod a11y_pane;
+pub mod ai_assist;
 pub mod ai_ui;
 pub mod async_saves;
 pub mod autoscroll;

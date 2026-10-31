@@ -215,6 +215,8 @@ impl PdfCraftApp {
             styled: false,
             fonts_ready: false,
             switch_to_documents: false,
+            ai_available: false,
+            summarize_requested: false,
             document_requests: Vec::new(),
             fonts_cjk: theme::CjkPreference::Default,
             control: None,

@@ -352,4 +352,11 @@ pub(super) fn home(app: &mut WordApp, ui: &mut Ui) {
     group(ui, "Editor", None, app, |ui, app| {
         big(ui, app, "editor", "Editor", "review.spelling", json!({}), false);
     });
+    // Docufy: the AI Assistant pane, once AI is turned on (File › Options › AI).
+    if app.ui.ai.enabled {
+        let open = app.ai.assist.open;
+        group(ui, "AI", None, app, |ui, app| {
+            crate::widgets::big_toggle(ui, app, "ai", "AI Assistant", "ai.pane", open);
+        });
+    }
 }

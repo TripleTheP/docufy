@@ -2116,3 +2116,54 @@
 	Cancelled.	Abgebrochen.
 	the region of your Azure resource	Region Ihrer Azure-Ressource
 	this computer	dieser Computer
+# Docufy: the AI Assistant pane.
+	AI Assistant	KI-Assistent
+	AI is off. Docufy sends nothing to an AI provider until you turn it on.	Die KI ist ausgeschaltet. Docufy sendet nichts an einen KI-Anbieter, bis Sie sie einschalten.
+	AI is off. Turn it on in File › Options › AI.	Die KI ist ausgeschaltet. Schalten Sie sie unter Datei › Optionen › KI ein.
+	Ask the AI… (Ctrl+Enter sends)	Fragen Sie die KI… (Strg+Eingabe sendet)
+	Chat	Chat
+	Continue writing	Weiterschreiben
+	Fix mistakes	Fehler korrigieren
+	Improve	Verbessern
+	Insert at cursor	An der Cursorposition einfügen
+	Longer	Länger
+	Models that run on this computer come in a later version. Choose a provider in File › Options › AI.	Modelle, die auf diesem Computer laufen, kommen in einer späteren Version. Wählen Sie unter Datei › Optionen › KI einen Anbieter.
+	More formal	Förmlicher
+	New chat	Neuer Chat
+	Open as new document	Als neues Dokument öffnen
+	Reading the document's text…	Der Text des Dokuments wird gelesen…
+	Replace selection	Auswahl ersetzen
+	Rewrite	Umschreiben
+	Select text in the document to rewrite it.	Markieren Sie Text im Dokument, um ihn umzuschreiben.
+	Select the text to rewrite first.	Markieren Sie zuerst den Text, der umgeschrieben werden soll.
+	Select the text to send first, or choose to send no document text.	Markieren Sie zuerst den Text, der gesendet werden soll, oder wählen Sie, keinen Dokumenttext zu senden.
+	Send	Senden
+	Send no document text	Keinen Dokumenttext senden
+	Send the selected text	Markierten Text mitsenden
+	Send the whole document	Ganzes Dokument mitsenden
+	Shorter	Kürzer
+	Simpler	Einfacher
+	Suggestion: continued text	Vorschlag: Fortsetzung
+	Suggestion: {kind}	Vorschlag: {kind}
+	Summarise the document	Dokument zusammenfassen
+	Summarise the selection	Auswahl zusammenfassen
+	Summary of {name}	Zusammenfassung von {name}
+	The AI gave no answer.	Die KI hat keine Antwort gegeben.
+	The AI is still answering. Wait for it, or cancel it.	Die KI antwortet noch. Warten Sie oder brechen Sie ab.
+	The AI writes on from the cursor.	Die KI schreibt ab der Cursorposition weiter.
+	The answer ended early ({reason}).	Die Antwort endete vorzeitig ({reason}).
+	The answer reached the length limit and may be cut off (File › Options › AI).	Die Antwort hat die Längengrenze erreicht und ist eventuell abgeschnitten (Datei › Optionen › KI).
+	The document has no text to summarise.	Das Dokument enthält keinen Text zum Zusammenfassen.
+	The document has no text to summarise. If it is a scan, recognise its text first (OCR).	Das Dokument enthält keinen Text zum Zusammenfassen. Wenn es ein Scan ist, lassen Sie zuerst den Text erkennen (OCR).
+	The document's text could not be read: {error}	Der Text des Dokuments konnte nicht gelesen werden: {error}
+	The provider declined to answer this request. {reason}	Der Anbieter hat die Antwort auf diese Anfrage abgelehnt. {reason}
+	The suggestion isn't complete yet.	Der Vorschlag ist noch nicht vollständig.
+	The text changed after the suggestion was made. Ask again.	Der Text hat sich geändert, nachdem der Vorschlag erstellt wurde. Fragen Sie erneut.
+	Try again	Erneut versuchen
+	Turn on AI…	KI einschalten…
+	Write a few sentences first: the AI continues the text before the cursor.	Schreiben Sie zuerst ein paar Sätze: Die KI setzt den Text vor dem Cursor fort.
+	Write and summarise	Schreiben und zusammenfassen
+	You	Sie
+	Your own instruction, e.g. “as a bulleted list”	Eigene Anweisung, z. B. „als Aufzählung“
+	Open a PDF in PDF mode to summarise it.	Öffnen Sie eine PDF im PDF-Modus, um sie zusammenzufassen.
+	{provider} · {model}	{provider} · {model}

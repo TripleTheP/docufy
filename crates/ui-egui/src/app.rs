@@ -256,6 +256,7 @@ impl WordApp {
         }
         options::sync(self);
         self.settle_async_saves();
+        crate::ai_assist::poll(self);
         if shown {
             self.apply_interface(ctx, lang);
         }

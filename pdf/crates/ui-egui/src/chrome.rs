@@ -309,6 +309,15 @@ pub fn tab_strip(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                     if icons::button(ui, "circle-help", button, false, tl!("Keyboard shortcuts")).clicked() {
                         app.dialog = Some(Dialog::Shortcuts);
                     }
+                    // Docufy: an AI summary of this PDF, once AI is turned on in the word processor.
+                    if app.ai_available
+                        && app.active.is_some()
+                        && widgets::ghost_button_sized(ui, "sparkles", tl!("Summarise"), tab_h)
+                            .on_hover_text(tl!("Summarise this PDF with AI (in the AI Assistant of your documents)"))
+                            .clicked()
+                    {
+                        app.summarize_requested = true;
+                    }
                     // Docufy: back to the word processor, from anywhere in the PDF interface.
                     if widgets::ghost_button_sized(ui, "file-text", tl!("Documents"), tab_h)
                         .on_hover_text(tl!("Back to your Word documents"))

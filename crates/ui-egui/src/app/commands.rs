@@ -734,6 +734,11 @@ impl WordApp {
                 Ok(v) => v,
                 Err(e) => return Some(Err(e)),
             },
+            id if id.starts_with("ai.") => return crate::ai_assist::command(self, id, p),
+            // A PDF opens in the desktop app's PDF mode, as it does from the Open dialog or a drop.
+            "file.open" if s("path").is_some_and(crate::documents::is_pdf) && !cfg!(target_arch = "wasm32") => {
+                return Some(self.open_file(s("path").unwrap_or_default(), None));
+            }
             "ui.pdfMode" => {
                 // Docufy's PDF mode (desktop): `value` true shows the PDF interface in the main
                 // window, false the word processor again. The desktop app switches before the
@@ -1029,6 +1034,10 @@ pub(crate) fn works_without_document(id: &str) -> bool {
             | "ui.fileBrowser"
             | "ui.makeDefaultApp"
             | "ai.settings"
+            | "ai.pane"
+            | "ai.status"
+            | "ai.cancel"
+            | "ai.summarizePdf"
             | "ui.pdfMode"
             | "ui.caretAnimation"
             | "ui.startScreen"

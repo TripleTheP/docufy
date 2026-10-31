@@ -324,6 +324,16 @@ fn untranslated_interface_text() {
     let drawn = frame(&ctx, &mut app);
     record(&app, "tab SmartArt Design", drawn);
     let _ = app.run("smartArt.textPane", json!({"value": false}));
+    // The AI Assistant, with AI off and on (its Home tab group shows only then).
+    let _ = app.run("ai.pane", json!({"value": true}));
+    let drawn = frame(&ctx, &mut app);
+    record(&app, "pane AI Assistant (off)", drawn);
+    let _ = app.run("ai.settings", json!({"enabled": true}));
+    let _ = app.run("ui.tab", json!({"tab": "Home"}));
+    let drawn = frame(&ctx, &mut app);
+    record(&app, "pane AI Assistant", drawn);
+    let _ = app.run("ai.settings", json!({"enabled": false}));
+    let _ = app.run("ai.pane", json!({"value": false}));
     let _ = app.run("ui.dialog", json!({"name": "insertSmartArt"}));
     let drawn = frame(&ctx, &mut app);
     record(&app, "dialog insertSmartArt", drawn);

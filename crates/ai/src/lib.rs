@@ -8,6 +8,7 @@
 //! The pure parts (settings, warnings, request bodies, stream parsing) build for every target; the
 //! network, credential store and hardware probe only on the desktop.
 
+pub mod assist;
 pub mod chat;
 pub mod hardware;
 pub mod provider;

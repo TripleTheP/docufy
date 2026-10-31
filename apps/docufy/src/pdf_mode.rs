@@ -80,6 +80,20 @@ impl PdfMode {
                 log::warn!("{path}: {e}");
             }
         }
+        // AI: the PDF interface offers a summary while AI is on in the word processor. The
+        // summary streams into the word processor's AI Assistant, which is shown for it.
+        self.app.ai_available = word.ui.ai.enabled;
+        if std::mem::take(&mut self.app.summarize_requested) | word.take_pdf_summary_request() {
+            match self.app.active_pdf_text() {
+                Some((name, read)) => match docufy_ui_egui::ai_assist::summarize_source(word, name, read) {
+                    Ok(_) => self.show(word, ctx, false),
+                    Err(e) if self.shown => self.app.notify(e),
+                    Err(e) => word.status(e),
+                },
+                None if self.shown => self.app.notify(pdfcraft_ui_egui::i18n::t("Open a PDF to summarise first.")),
+                None => word.status(docufy_ui_egui::i18n::t("Open a PDF in PDF mode to summarise it.")),
+            }
+        }
         if std::mem::take(&mut self.app.switch_to_documents) | std::mem::take(&mut word.leave_pdf) {
             self.show(word, ctx, false);
         }

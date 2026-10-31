@@ -57,6 +57,8 @@ pub enum Pane {
     FormatShape,
     RestrictEditing,
     Comments,
+    /// The AI Assistant (`ai.pane`).
+    Ai,
 }
 
 impl Pane {
@@ -72,6 +74,7 @@ impl Pane {
             Self::FormatShape => "Format Shape",
             Self::RestrictEditing => "Restrict Editing",
             Self::Comments => "Comments",
+            Self::Ai => "AI Assistant",
         }
     }
 
@@ -87,6 +90,7 @@ impl Pane {
             Self::FormatShape => (Edge::End, 280.0),
             Self::RestrictEditing => (Edge::End, 270.0),
             Self::Comments => (Edge::End, 290.0),
+            Self::Ai => (Edge::End, 300.0),
         };
         PaneState::docked(edge, width)
     }
@@ -104,10 +108,11 @@ impl Pane {
             Self::FormatShape => "formatShape",
             Self::RestrictEditing => "restrictEditing",
             Self::Comments => "comments",
+            Self::Ai => "ai",
         }
     }
 
-    const ALL: [Self; 10] = [
+    const ALL: [Self; 11] = [
         Self::SmartArtText,
         Self::Navigation,
         Self::Clipboard,
@@ -118,6 +123,7 @@ impl Pane {
         Self::FormatShape,
         Self::RestrictEditing,
         Self::Comments,
+        Self::Ai,
     ];
 
     fn from_key(key: &str) -> Option<Self> {
@@ -136,6 +142,7 @@ impl Pane {
             Self::AltText => Some("view.altTextPane"),
             Self::FormatShape => Some("view.formatShapePane"),
             Self::Comments => Some("view.commentsPane"),
+            Self::Ai => Some("ai.pane"),
             Self::RestrictEditing => None,
         }
     }
@@ -161,6 +168,7 @@ impl PaneContent<Pane> for Content<'_> {
             }
             Pane::RestrictEditing => crate::dialogs_review::restrict_pane(app, ui),
             Pane::Comments => comments(app, ui),
+            Pane::Ai => crate::ai_assist::pane(app, ui),
         }
     }
 

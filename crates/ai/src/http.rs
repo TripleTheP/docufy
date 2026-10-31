@@ -76,7 +76,10 @@ pub fn stream_chat(
     cancel: &AtomicBool,
     mut on_event: impl FnMut(StreamEvent),
 ) -> Result<(), AiError> {
-    let call = chat_call(settings, key, req)?;
+    let mut call = chat_call(settings, key, req)?;
+    if let Some(url) = test_endpoint() {
+        call.url = url;
+    }
     let agent = agent(true);
     let mut attempt = 0;
     let resp = loop {
@@ -121,6 +124,12 @@ pub fn stream_chat(
         on_event(StreamEvent::Stop(StopReason::Other("connection closed".into())));
     }
     Ok(())
+}
+
+/// Debug builds only: `DOCUFY_AI_TEST_URL` sends chat requests to a local test server instead of
+/// the provider (end-to-end tests without a real key). Release builds always ask the provider.
+pub fn test_endpoint() -> Option<String> {
+    if cfg!(debug_assertions) { std::env::var("DOCUFY_AI_TEST_URL").ok().filter(|u| u.starts_with("http://127.0.0.1:")) } else { None }
 }
 
 /// The chat models the provider offers the key's account; empty where it has no list.
