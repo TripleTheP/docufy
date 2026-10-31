@@ -730,6 +730,10 @@ impl WordApp {
                     "making Docufy the default app needs a click in File › Options › General; scripts and agents can't change system defaults".into(),
                 ));
             }
+            "ai.settings" => match crate::ai_ui::settings_command(self, p) {
+                Ok(v) => v,
+                Err(e) => return Some(Err(e)),
+            },
             "ui.pdfMode" => {
                 // Docufy's PDF mode (desktop): `value` true shows the PDF interface in the main
                 // window, false the word processor again. The desktop app switches before the
@@ -1024,6 +1028,7 @@ pub(crate) fn works_without_document(id: &str) -> bool {
             | "ui.openFileDialog"
             | "ui.fileBrowser"
             | "ui.makeDefaultApp"
+            | "ai.settings"
             | "ui.pdfMode"
             | "ui.caretAnimation"
             | "ui.startScreen"

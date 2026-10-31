@@ -9,11 +9,12 @@
 //!
 //! A missing or malformed file gives empty tables (or no names) and a warning.
 //!
-//! - `CRAFT_I18N_DIR`, a craft-i18n checkout (storytold/craft-i18n, at the SHA in
-//!   `craft-i18n.rev`): `craft_i18n.rs` holds `CRAFT_I18N`, one (locale, shared catalog, Docufy
-//!   catalog) entry per locale that has a `docufy.tsv`. Unset, or not a checkout (a warning),
-//!   it is empty and the interface is English only; with `CRAFT_I18N_REQUIRED=1` (releases) that
-//!   is an error instead. Recipe: craft-i18n's `docs/integration.md`.
+//! - The interface catalogs in `i18n/locales/<locale>/` (taken over from craft-i18n at the SHA in
+//!   `craft-i18n.rev`; `docufy.tsv` was its `wordcraft.tsv`): `craft_i18n.rs` holds `CRAFT_I18N`,
+//!   one (locale, shared catalog, Docufy catalog) entry per locale that has a `docufy.tsv`.
+//!   `CRAFT_I18N_DIR` points at another checkout with the same `locales/` layout instead. A
+//!   directory that can't be read gives a warning and an English-only interface; with
+//!   `CRAFT_I18N_REQUIRED=1` (releases) that is an error instead.
 
 use std::fmt::Write as _;
 
@@ -40,25 +41,20 @@ fn main() {
 /// The catalog this app reads in each locale: `locales/<locale>/docufy.tsv`.
 const APP_CATALOG: &str = "docufy.tsv";
 
-/// `CRAFT_I18N` from `CRAFT_I18N_DIR`: the `Embedded` list the craft-i18n crate reads.
+/// `CRAFT_I18N` from `i18n/` (or `CRAFT_I18N_DIR`): the `Embedded` list the craft-i18n crate reads.
 fn craft_i18n() -> String {
     println!("cargo::rerun-if-env-changed=CRAFT_I18N_DIR");
     println!("cargo::rerun-if-env-changed=CRAFT_I18N_REQUIRED");
     let required = std::env::var("CRAFT_I18N_REQUIRED").is_ok_and(|v| v.trim() == "1");
-    let entries = match std::env::var_os("CRAFT_I18N_DIR").filter(|d| !d.is_empty()) {
-        // Not canonicalized: on Windows that gives `\\?\C:\…`, which `include_str!` can't read.
-        Some(dir) => match locales(&std::path::PathBuf::from(dir).join("locales")) {
-            Ok(entries) => entries,
-            Err(e) => {
-                let level = if required { "error" } else { "warning" };
-                println!("cargo::{level}=CRAFT_I18N_DIR: {e}; the interface is English only");
-                Vec::new()
-            }
-        },
-        None => {
-            if required {
-                println!("cargo::error=CRAFT_I18N_REQUIRED=1 but CRAFT_I18N_DIR is unset: a release must embed the translations");
-            }
+    // Not canonicalized: on Windows that gives `\\?\C:\…`, which `include_str!` can't read.
+    let dir = std::env::var_os("CRAFT_I18N_DIR")
+        .filter(|d| !d.is_empty())
+        .map_or_else(|| std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("i18n"), std::path::PathBuf::from);
+    let entries = match locales(&dir.join("locales")) {
+        Ok(entries) => entries,
+        Err(e) => {
+            let level = if required { "error" } else { "warning" };
+            println!("cargo::{level}={e}; the interface is English only");
             Vec::new()
         }
     };

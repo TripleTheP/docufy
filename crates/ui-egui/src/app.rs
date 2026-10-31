@@ -121,6 +121,7 @@ impl WordApp {
             recent_fonts_for: Vec::new(),
             fonts_frames: 0,
             fonts_lent: false,
+            ai: Default::default(),
             applied_theme: None,
             native_scale: 1.0,
             legacy_interface_size: None,

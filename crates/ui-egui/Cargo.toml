@@ -24,6 +24,7 @@ docufy-layout = { workspace = true }
 docufy-render = { workspace = true }
 docufy-engine = { workspace = true }
 docufy-zotero = { workspace = true }
+docufy-ai = { workspace = true }
 egui = { workspace = true, features = ["default_fonts", "monochrome_emoji_fonts"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -45,6 +46,7 @@ zbus = "=5.19.0"
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
 craft-update = { workspace = true }
+docufy-control-key = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 # The browser clock (`SystemTime::now()`/`Instant::now()` panic on wasm32).

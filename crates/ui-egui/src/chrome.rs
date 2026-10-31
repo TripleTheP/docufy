@@ -4,7 +4,7 @@ use docufy_doc::{PartKind, StoryRef};
 use egui::{Align2, Rect, Sense, Stroke, Ui, pos2, vec2};
 use serde_json::json;
 
-use crate::theme::{Tokens, TypeRung, fit_text, medium, paint_text, regular, semibold, text_width};
+use crate::theme::{Tokens, TypeRung, fit_text, paint_text, regular, semibold, text_width};
 use crate::{WordApp, icons};
 
 /// Why the caret's language isn't spell-checked (dictionary unreadable or missing), if it isn't.
@@ -361,7 +361,7 @@ pub fn title_bar(app: &mut WordApp, ui: &mut Ui) {
                     {
                         let (r, resp) = ui.allocate_exact_size(vec2(52.0, 22.0), Sense::click());
                         ui.painter().rect_filled(r, 11.0, if resp.hovered() { t.accent_text } else { t.accent });
-                        ui.painter().text(r.center(), Align2::CENTER_CENTER, tl!("PDF"), medium(11.5), t.on_accent);
+                        ui.painter().text(r.center(), Align2::CENTER_CENTER, tl!("PDF"), crate::theme::medium(11.5), t.on_accent);
                         resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, tl!("PDF")));
                         if resp.on_hover_text(tl!("Read and edit PDFs")).clicked() {
                             app.switch_to_pdf = true;

@@ -186,6 +186,7 @@ impl WordApp {
             recover_fonts_for: _,
             fonts_frames: _,
             fonts_lent: _,
+            ai: _,
             applied_theme: _,
             native_scale: _,
             legacy_interface_size: _,
@@ -286,6 +287,7 @@ impl WordApp {
             print_backgrounds: _,
             update_fields_before_print: _,
             dictionary: _,
+            ai: _,
             // Where each task pane sits, and their order.
             styles_pane_dock: _,
             styles_pane_float: _,

@@ -1,5 +1,5 @@
 //! File › Options (#485): a list of panes on the left (General, Display, Proofing, Save,
-//! Language, Accessibility, Advanced, Agents), the chosen pane's settings on the right. Only
+//! Language, Accessibility, Advanced, AI, Agents), the chosen pane's settings on the right. Only
 //! settings Docufy carries out are shown. Each pane is one function below, so a new setting
 //! goes into its pane's function. Settings agents can change too go through `file.options`; the
 //! rest live in [`crate::UiState`] (saved in `ui.json`).
@@ -129,6 +129,7 @@ fn pane_label(id: &str) -> &'static str {
         "language" => "Language",
         "accessibility" => "Accessibility",
         "advanced" => "Advanced",
+        "ai" => "AI",
         "agents" => "Agents",
         _ => "General",
     }
@@ -174,6 +175,7 @@ pub fn page(app: &mut WordApp, ui: &mut Ui) {
                 "language" => language(app, ui),
                 "accessibility" => accessibility(app, ui),
                 "advanced" => advanced(app, ui),
+                "ai" => crate::ai_ui::pane(app, ui),
                 "agents" => agents(ui),
                 _ => general(app, ui),
             }

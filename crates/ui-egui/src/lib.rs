@@ -15,6 +15,7 @@ macro_rules! tl {
 
 pub mod a11y;
 pub mod a11y_pane;
+pub mod ai_ui;
 pub mod async_saves;
 pub mod autoscroll;
 pub mod backstage;
@@ -269,6 +270,10 @@ pub struct UiState {
     pub update_fields_before_print: bool,
     /// The custom dictionary (File › Options › Proofing, Add to Dictionary), kept between runs.
     pub dictionary: Vec<String>,
+    /// File › Options › AI: whether and how AI assists (off until turned on). API keys are kept
+    /// in the system's credential store, not here. A broken section reads as AI off.
+    #[serde(deserialize_with = "docufy_ai::settings::lenient")]
+    pub ai: docufy_ai::AiSettings,
 }
 
 /// The ribbon tab the app opens on, and the one it falls back to when the tab that was showing
@@ -343,6 +348,7 @@ impl Default for UiState {
             print_backgrounds: false,
             update_fields_before_print: false,
             dictionary: Vec::new(),
+            ai: docufy_ai::AiSettings::default(),
         }
     }
 }
@@ -535,6 +541,8 @@ pub struct WordApp {
     /// Another interface's fonts are installed and stay while this one draws its other windows
     /// beside it ([`WordApp::other_windows_ui`]): both name their families alike.
     fonts_lent: bool,
+    /// File › Options › AI while the app runs: stored-key status, hardware, loaded models.
+    pub(crate) ai: ai_ui::AiState,
     /// The effective interface theme last installed in egui ([`theme::apply`]).
     applied_theme: Option<theme::Appearance>,
     /// The display scale (native pixels per point) seen in the last frame, 1.0 before the first;
