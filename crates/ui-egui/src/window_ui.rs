@@ -187,6 +187,7 @@ impl WordApp {
             fonts_frames: _,
             fonts_lent: _,
             ai: _,
+            diagnostics: _,
             applied_theme: _,
             native_scale: _,
             legacy_interface_size: _,

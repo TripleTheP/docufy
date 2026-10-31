@@ -397,6 +397,8 @@ pub const COMMANDS: &[CommandSpec] = &[
     c("page.properties", "Page properties…", PAGES, None, Modification, "info"),
     c("help.shortcuts", "Keyboard shortcuts", HELP, None, Nothing, "circle-help"),
     c("help.check_updates", "Check for updates…", HELP, None, Nothing, "cloud"),
+    // Docufy: Help › Diagnostics, shown in the word processor beside its documents.
+    c("help.diagnostics", "Diagnostics…", HELP, None, Nothing, "gauge"),
     c("help.about", "About Docufy", HELP, None, Nothing, "info"),
 ];
 

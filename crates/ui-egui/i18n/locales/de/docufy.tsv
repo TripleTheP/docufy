@@ -2167,3 +2167,86 @@
 	Your own instruction, e.g. “as a bulleted list”	Eigene Anweisung, z. B. „als Aufzählung“
 	Open a PDF in PDF mode to summarise it.	Öffnen Sie eine PDF im PDF-Modus, um sie zusammenzufassen.
 	{provider} · {model}	{provider} · {model}
+# Docufy: Help › Diagnostics.
+	Diagnostics	Diagnose
+	Troubleshooting	Problembehandlung
+	Resources	Ressourcen
+	Measuring…	Wird gemessen…
+	Docufy processor: {value} %	Docufy-Prozessorlast: {value} %
+	Docufy memory: {value} (peak {peak})	Docufy-Arbeitsspeicher: {value} (Spitze {peak})
+	Docufy graphics: {value} %, {memory} graphics memory	Docufy-Grafik: {value} %, {memory} Grafikspeicher
+	Computer processor:	Prozessor gesamt:
+	Computer memory:	Arbeitsspeicher gesamt:
+	{used} of {total}	{used} von {total}
+	{used} of {total} graphics memory	{used} von {total} Grafikspeicher
+	uses the computer's memory	nutzt den Arbeitsspeicher des Computers
+	Frame time:	Bildzeit:
+	{median} ms (95 % under {p95} ms), {fps} frames/s	{median} ms (95 % unter {p95} ms), {fps} Bilder/s
+	Docufy draws only when something changes, so a still window shows few frames per second.	Docufy zeichnet nur, wenn sich etwas ändert; ein ruhendes Fenster zeigt daher wenige Bilder pro Sekunde.
+	Version:	Version:
+	Drawing with:	Grafikausgabe:
+	{name} ({backend}, on the processor)	{name} ({backend}, auf dem Prozessor)
+	Open:	Geöffnet:
+	{documents} documents in {windows} windows, {pdfs} PDFs	{documents} Dokumente in {windows} Fenstern, {pdfs} PDFs
+	In the background:	Im Hintergrund:
+	nothing	nichts
+	printing	Drucken
+	saving	Speichern
+	AI request	KI-Anfrage
+	AI:	KI:
+	off	aus
+	off in safe mode	im abgesicherten Modus aus
+	Self-test	Selbsttest
+	Run self-test	Selbsttest starten
+	Checks the settings folder, disk space, memory, graphics, fonts, the log and AI.	Prüft Einstellungsordner, Speicherplatz, Arbeitsspeicher, Grafik, Schriftarten, Protokoll und KI.
+	Copy system information	Systeminformationen kopieren
+	For a bug report: without your name or personal folders.	Für einen Fehlerbericht: ohne Ihren Namen und Ihre persönlichen Ordner.
+	The system information is on the clipboard.	Die Systeminformationen sind in der Zwischenablage.
+	Open log	Protokoll öffnen
+	Open log folder	Protokollordner öffnen
+	This run keeps no settings: safe mode and resetting aren't available.	Diese Sitzung speichert keine Einstellungen: Abgesicherter Modus und Zurücksetzen sind nicht verfügbar.
+	Start in safe mode next time	Beim nächsten Start im abgesicherten Modus starten
+	For one start: drawn by the processor instead of the graphics chip, and without AI. Helps when Docufy shows garbled graphics or closes at start.	Für einen Start: Darstellung über den Prozessor statt den Grafikchip, und ohne KI. Hilft, wenn Docufy verzerrte Grafik zeigt oder sich beim Start schließt.
+	The settings will be reset at the next start.	Die Einstellungen werden beim nächsten Start zurückgesetzt.
+	Keep the settings	Einstellungen behalten
+	Reset all settings at the next start? Documents, AutoRecover copies, your dictionary and API keys stay. The old settings are kept as a backup (.bak).	Alle Einstellungen beim nächsten Start zurücksetzen? Dokumente, AutoWiederherstellen-Kopien, Ihr Wörterbuch und API-Schlüssel bleiben erhalten. Die alten Einstellungen werden als Sicherung (.bak) aufbewahrt.
+	Reset at next start	Beim nächsten Start zurücksetzen
+	Reset settings…	Einstellungen zurücksetzen…
+	Docufy runs in safe mode: AI is off until the next normal start.	Docufy läuft im abgesicherten Modus: Die KI ist bis zum nächsten normalen Start aus.
+	Docufy runs in safe mode: without graphics acceleration and without AI.	Docufy läuft im abgesicherten Modus: ohne Grafikbeschleunigung und ohne KI.
+	Safe mode	Abgesicherter Modus
+	Restart Docufy normally once the problem is solved.	Starten Sie Docufy normal neu, sobald das Problem behoben ist.
+	Settings folder	Einstellungsordner
+	Docufy keeps no settings in this run: preferences, AutoRecover copies and the log aren't saved.	Docufy speichert in dieser Sitzung keine Einstellungen: Einstellungen, AutoWiederherstellen-Kopien und Protokoll werden nicht gesichert.
+	Start Docufy without DOCUFY_NO_PREFS.	Starten Sie Docufy ohne DOCUFY_NO_PREFS.
+	{path} can be written.	{path} ist beschreibbar.
+	{path} can't be written ({error}): preferences and AutoRecover copies are lost.	{path} ist nicht beschreibbar ({error}): Einstellungen und AutoWiederherstellen-Kopien gehen verloren.
+	Check the folder's permissions and that the drive isn't full or read-only; antivirus software can block it too.	Prüfen Sie die Berechtigungen des Ordners und ob das Laufwerk voll oder schreibgeschützt ist; auch Virenschutz kann ihn blockieren.
+	Disk space	Speicherplatz
+	Not checked.	Nicht geprüft.
+	Only {free} free: saving and AutoRecover can fail.	Nur {free} frei: Speichern und AutoWiederherstellen können fehlschlagen.
+	Free up space on the drive.	Geben Sie Speicherplatz auf dem Laufwerk frei.
+	{free} free: little room for large documents and AutoRecover copies.	{free} frei: wenig Platz für große Dokumente und AutoWiederherstellen-Kopien.
+	{free} free.	{free} frei.
+	Memory	Arbeitsspeicher
+	{free} of {total} free: Docufy and other programs can slow down.	{free} von {total} frei: Docufy und andere Programme können langsamer werden.
+	Close programs or documents you don't need.	Schließen Sie Programme oder Dokumente, die Sie nicht brauchen.
+	{free} of {total} free.	{free} von {total} frei.
+	{name} ({backend}): drawn by the processor, as safe mode asks.	{name} ({backend}): Darstellung über den Prozessor, wie im abgesicherten Modus vorgesehen.
+	{name} ({backend}) draws on the processor: scrolling and zooming can lag.	{name} ({backend}) zeichnet auf dem Prozessor: Scrollen und Zoomen können ruckeln.
+	Install the current driver for your graphics chip from its maker (Intel, AMD, NVIDIA).	Installieren Sie den aktuellen Treiber für Ihren Grafikchip vom Hersteller (Intel, AMD, NVIDIA).
+	{name} ({backend}).	{name} ({backend}).
+	No fonts were found: documents show in a substitute font.	Es wurden keine Schriftarten gefunden: Dokumente erscheinen in einer Ersatzschrift.
+	Check that the system's fonts folder can be read.	Prüfen Sie, ob der Schriftartenordner des Systems lesbar ist.
+	{count} font families.	{count} Schriftfamilien.
+	Log file	Protokolldatei
+	Docufy writes no log file in this run: a problem leaves no record.	Docufy schreibt in dieser Sitzung keine Protokolldatei: Ein Problem hinterlässt keine Spur.
+	Check that the settings folder can be written.	Prüfen Sie, ob der Einstellungsordner beschreibbar ist.
+	Off.	Aus.
+	Off in safe mode.	Im abgesicherten Modus aus.
+	Models on this computer come in a later version.	Modelle auf diesem Computer kommen in einer späteren Version.
+	Choose a provider in File › Options › AI.	Wählen Sie unter Datei › Optionen › KI einen Anbieter.
+	No API key is stored for {provider}.	Für {provider} ist kein API-Schlüssel gespeichert.
+	Store a key in File › Options › AI.	Speichern Sie unter Datei › Optionen › KI einen Schlüssel.
+	{provider}, key stored.	{provider}, Schlüssel gespeichert.
+	{name}:	{name}:

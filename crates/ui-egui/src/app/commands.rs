@@ -735,6 +735,7 @@ impl WordApp {
                 Err(e) => return Some(Err(e)),
             },
             id if id.starts_with("ai.") => return crate::ai_assist::command(self, id, p),
+            id if id.starts_with("help.") => return crate::diagnostics::command(self, id, p),
             // A PDF opens in the desktop app's PDF mode, as it does from the Open dialog or a drop.
             "file.open" if s("path").is_some_and(crate::documents::is_pdf) && !cfg!(target_arch = "wasm32") => {
                 return Some(self.open_file(s("path").unwrap_or_default(), None));

@@ -174,6 +174,44 @@ fn probe_dx12(options: &NativeOptions) -> Vec<Dx12Adapter> {
         .collect()
 }
 
+/// The adapter safe mode draws with: the software one (WARP on Windows, llvmpipe on Linux) when
+/// there is one, else the first that can show the window. `None` when none can.
+fn safe_mode_adapter<A>(adapters: &[A], software: impl Fn(&A) -> bool, fits: impl Fn(&A) -> bool) -> Option<&A> {
+    adapters.iter().filter(|a| fits(a)).find(|a| software(a)).or_else(|| adapters.iter().find(|a| fits(a)))
+}
+
+/// Safe mode (Help › Diagnostics): draw on the processor instead of the graphics chip, for when a
+/// graphics driver garbles the window or crashes Docufy at start. On Windows the software
+/// adapter is DirectX 12's WARP, so DirectX 12 is enabled for it.
+pub fn configure_safe_mode(options: &mut NativeOptions) {
+    if let WgpuSetup::CreateNew(create) = &mut options.wgpu_options.wgpu_setup {
+        if cfg!(target_os = "windows") {
+            create.instance_descriptor.backends |= Backends::DX12;
+        }
+        create.native_adapter_selector = Some(std::sync::Arc::new(|adapters: &[eframe::wgpu::Adapter], surface: Option<&eframe::wgpu::Surface<'_>>| {
+            let fits = |a: &eframe::wgpu::Adapter| surface.is_none_or(|s| a.is_surface_supported(s));
+            let chosen = safe_mode_adapter(adapters, |a| a.get_info().device_type == DeviceType::Cpu, fits).cloned();
+            if let Some(a) = &chosen {
+                log::info!("graphics: safe mode draws with {:?} ({:?})", a.get_info().name, a.get_info().device_type);
+            }
+            chosen.ok_or_else(|| "safe mode: no graphics adapter can show the window".to_string())
+        }));
+    }
+}
+
+#[cfg(test)]
+mod safe_mode_tests {
+    #[test]
+    fn safe_mode_prefers_the_software_adapter_that_can_show_the_window() {
+        // (name, software, can show the window)
+        let adapters = [("RTX", false, true), ("WARP", true, true), ("Broken WARP", true, false)];
+        let pick = |list: &[(&'static str, bool, bool)]| super::safe_mode_adapter(list, |a| a.1, |a| a.2).map(|a| a.0);
+        assert_eq!(pick(&adapters), Some("WARP"));
+        assert_eq!(pick(&adapters[..1]), Some("RTX"), "without a software adapter, the graphics chip");
+        assert_eq!(pick(&[("Broken WARP", true, false)]), None);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

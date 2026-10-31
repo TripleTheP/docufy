@@ -1,0 +1,15 @@
+[package]
+name = "docufy-diag"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Docufy diagnostics: resource monitor, self-test and system information for troubleshooting"
+
+[lints]
+workspace = true
+
+[dependencies]
+log = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+sysinfo = { version = "0.40", default-features = false, features = ["system", "disk", "gpu"] }

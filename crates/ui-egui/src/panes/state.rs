@@ -50,6 +50,7 @@ pub fn open(app: &WordApp) -> Vec<Pane> {
         (Pane::RestrictEditing, app.restrict.open),
         (Pane::Comments, v.comments_pane),
         (Pane::Ai, app.ai.assist.open),
+        (Pane::Diagnostics, app.diagnostics.open),
     ]
     .into_iter()
     .filter_map(|(pane, shown)| shown.then_some(pane))

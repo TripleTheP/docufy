@@ -31,6 +31,7 @@ docufy-control-key = { path = "crates/control-key" }
 docufy-ui-egui = { path = "crates/ui-egui" }
 docufy-metafile = { path = "crates/metafile" }
 docufy-ai = { path = "crates/ai" }
+docufy-diag = { path = "crates/diag" }
 
 # PDF mode: PdfCraft's crates, taken over into pdf/ (see pdf/README.md).
 pdfcraft-geom = { path = "pdf/crates/geom" }

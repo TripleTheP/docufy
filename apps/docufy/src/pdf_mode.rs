@@ -82,7 +82,11 @@ impl PdfMode {
         }
         // AI: the PDF interface offers a summary while AI is on in the word processor. The
         // summary streams into the word processor's AI Assistant, which is shown for it.
-        self.app.ai_available = word.ui.ai.enabled;
+        self.app.ai_available = word.ui.ai.enabled && !word.safe_mode();
+        // Help › Diagnostics in the PDF interface shows the word processor's Diagnostics pane.
+        if std::mem::take(&mut self.app.diagnostics_requested) {
+            word.open_diagnostics();
+        }
         if std::mem::take(&mut self.app.summarize_requested) | word.take_pdf_summary_request() {
             match self.app.active_pdf_text() {
                 Some((name, read)) => match docufy_ui_egui::ai_assist::summarize_source(word, name, read) {

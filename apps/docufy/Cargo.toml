@@ -17,6 +17,7 @@ docufy-proof = { workspace = true }
 # Fonts the user added (#582) load from the settings folder at start-up.
 docufy-fonts = { workspace = true }
 docufy-ui-egui = { workspace = true }
+docufy-diag = { workspace = true }
 # The PDF mode (pdf/, from PdfCraft).
 pdfcraft-ui-egui = { workspace = true }
 # The control key file's location (shared with the MCP bridge).

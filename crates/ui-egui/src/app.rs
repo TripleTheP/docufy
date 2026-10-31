@@ -122,6 +122,7 @@ impl WordApp {
             fonts_frames: 0,
             fonts_lent: false,
             ai: Default::default(),
+            diagnostics: Default::default(),
             applied_theme: None,
             native_scale: 1.0,
             legacy_interface_size: None,
@@ -257,6 +258,7 @@ impl WordApp {
         options::sync(self);
         self.settle_async_saves();
         crate::ai_assist::poll(self);
+        crate::diagnostics::poll(self);
         if shown {
             self.apply_interface(ctx, lang);
         }

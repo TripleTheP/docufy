@@ -334,6 +334,23 @@ fn untranslated_interface_text() {
     record(&app, "pane AI Assistant", drawn);
     let _ = app.run("ai.settings", json!({"enabled": false}));
     let _ = app.run("ai.pane", json!({"value": false}));
+    // Help › Diagnostics with a sample, frame times and the self-test.
+    let _ = app.run("help.diagnostics", json!({"value": true}));
+    app.push_resource_sample(docufy_diag::Sample {
+        app_cpu: 2.0,
+        app_ram: 300_000_000,
+        app_gpu: Some(1.0),
+        app_vram: Some(100_000_000),
+        cpu: 10.0,
+        ram_used: 8_000_000_000,
+        ram_total: 16_000_000_000,
+        gpus: vec![docufy_diag::GpuLoad { name: "GPU".into(), vram_used: Some(1), vram_total: Some(2) }],
+    });
+    app.record_frame(1.0, 0.004);
+    let _ = app.run("help.selfTest", json!({}));
+    let drawn = frame(&ctx, &mut app);
+    record(&app, "pane Diagnostics", drawn);
+    let _ = app.run("help.diagnostics", json!({"value": false}));
     let _ = app.run("ui.dialog", json!({"name": "insertSmartArt"}));
     let drawn = frame(&ctx, &mut app);
     record(&app, "dialog insertSmartArt", drawn);

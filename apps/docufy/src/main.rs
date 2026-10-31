@@ -55,6 +55,11 @@ impl eframe::App for App {
     fn logic(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         #[cfg(target_os = "macos")]
         apple_events::poll(&self.6, &mut self.0, ctx);
+        // Help › Diagnostics: the last frame's time and what the PDF mode holds.
+        if let Some(took) = frame.info().cpu_usage {
+            self.0.record_frame(ctx.input(|i| i.time), took);
+        }
+        self.0.set_pdf_diagnostics(self.5.app.views.len(), self.5.shown);
         self.5.route(&mut self.0, ctx);
         let closing = ctx.input(|i| i.viewport().close_requested());
         if self.5.shown {
@@ -335,10 +340,11 @@ const USAGE: &str = "\
 docufy — the Docufy desktop app
 
 USAGE:
-  docufy [--sample] [--control PORT] [FILE…]
+  docufy [--sample] [--safe-mode] [--control PORT] [FILE…]
 
 OPTIONS:
   --sample            open the sample document
+  --safe-mode         draw without graphics acceleration and leave AI off (troubleshooting)
   --control PORT      start the localhost control server on PORT, for agents and scripts
                       (or set DOCUFY_CONTROL_PORT); see docs/control-protocol.md
   --version           print the version
@@ -400,6 +406,7 @@ fn main() -> eframe::Result {
     let mut control_port: Option<u16> = std::env::var("DOCUFY_CONTROL_PORT").ok().and_then(|p| p.parse().ok());
     let mut files = Vec::new();
     let mut sample = false;
+    let mut safe_mode = false;
     let (args, other_files) = text_args();
     let mut bad_control: Option<Option<String>> = None;
     let mut args = args.into_iter().peekable();
@@ -414,6 +421,7 @@ fn main() -> eframe::Result {
                 }
             }
             "--sample" => sample = true,
+            "--safe-mode" => safe_mode = true,
             "--version" => {
                 println!("docufy {} ({})", env!("CARGO_PKG_VERSION"), build_sha());
                 return Ok(());
@@ -436,15 +444,32 @@ fn main() -> eframe::Result {
     // arguments, so `--version` leaves no file behind. Records logged until now are written to it
     // first. Runs without preferences (agents' test runs) log to standard error only, so they
     // don't rotate away the user's own logs.
+    let mut log_file = None;
     if let Some(logger) = logger {
         match log_dir().filter(|_| prefs_enabled()) {
             Some(dir) => match logger.attach_dir(&dir) {
-                Ok(path) => log::info!("Docufy {} ({}), log file {}", env!("CARGO_PKG_VERSION"), build_sha(), path.display()),
+                Ok(path) => {
+                    log::info!("Docufy {} ({}), log file {}", env!("CARGO_PKG_VERSION"), build_sha(), path.display());
+                    log_file = Some(path);
+                }
                 // Standard error only by now (`attach_dir` gave up on the file); unlike `eprintln!`, never panics.
                 Err(e) => log::warn!("no log file: {e}"),
             },
             None => logger.no_file(),
         }
+    }
+    // What Help › Diagnostics asked of this start: default settings (before anything reads them)
+    // and safe mode. Each applies once.
+    let settings_dir = docufy_control_key::settings_dir().filter(|_| prefs_enabled());
+    if let Some(dir) = &settings_dir {
+        if docufy_diag::startup::take(dir, docufy_diag::startup::RESET_SETTINGS) {
+            let kept = docufy_diag::startup::reset_settings(dir);
+            log::info!("settings reset to their defaults; the old ones are kept as {kept:?}");
+        }
+        safe_mode |= docufy_diag::startup::take(dir, docufy_diag::startup::SAFE_MODE);
+    }
+    if safe_mode {
+        log::warn!("safe mode: drawn by the processor, without AI");
     }
     let mut options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
@@ -469,6 +494,9 @@ fn main() -> eframe::Result {
     // Intel Macs: Metal's compiler aborts on wgpu's indirect-validation shaders (#2652).
     #[cfg(target_os = "macos")]
     graphics::configure_indirect_validation(&mut options, graphics::skips_indirect_validation(true, cfg!(target_arch = "x86_64")));
+    if safe_mode {
+        graphics::configure_safe_mode(&mut options);
+    }
     load_user_fonts();
     // Windows opened for further documents start like the first one, before its saved place.
     let window_builder = options.viewport.clone();
@@ -505,6 +533,21 @@ fn main() -> eframe::Result {
             session.system_region = region;
             let mut app = WordApp::new(session, services(file_dialog, &cc.egui_ctx));
             app.set_startup_update_check(true);
+            // Help › Diagnostics: what only the desktop app knows.
+            let graphics = cc.wgpu_render_state.as_ref().map(|rs| rs.adapter.get_info());
+            app.set_host_diagnostics(docufy_ui_egui::diagnostics::HostDiagnostics {
+                graphics: graphics.as_ref().map(|g| docufy_diag::selftest::Graphics {
+                    name: g.name.clone(),
+                    backend: format!("{:?}", g.backend),
+                    software: g.device_type == eframe::wgpu::DeviceType::Cpu,
+                }),
+                graphics_detail: graphics.as_ref().map(|g| format!("{:?}, driver {} {}", g.device_type, g.driver, g.driver_info).trim().to_string()).unwrap_or_default(),
+                build: build_sha().to_string(),
+                log_file: log_file.clone(),
+                settings_dir: settings_dir.clone(),
+                safe_mode,
+                ..Default::default()
+            });
             load_prefs(&mut app);
             load_user_dictionary(&mut app);
             // A region chosen in File › Options replaces the system's for the first blank

@@ -25,6 +25,7 @@ docufy-render = { workspace = true }
 docufy-engine = { workspace = true }
 docufy-zotero = { workspace = true }
 docufy-ai = { workspace = true }
+docufy-diag = { workspace = true }
 egui = { workspace = true, features = ["default_fonts", "monochrome_emoji_fonts"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -44,6 +45,7 @@ zbus = "=5.19.0"
 
 # Comment times in the user's own time zone (`local_time.rs`); the web app asks the browser.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+open = "5"
 chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
 craft-update = { workspace = true }
 docufy-control-key = { workspace = true }

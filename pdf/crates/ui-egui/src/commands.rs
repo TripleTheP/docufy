@@ -238,6 +238,10 @@ impl PdfCraftApp {
             "help.shortcuts" => self.dialog = Some(Dialog::Shortcuts),
             "help.about" => self.dialog = Some(Dialog::About),
             "help.check_updates" => self.check_for_updates(),
+            "help.diagnostics" => {
+                self.diagnostics_requested = true;
+                self.switch_to_documents = true;
+            }
             _ => return None,
         }
         Some(true)

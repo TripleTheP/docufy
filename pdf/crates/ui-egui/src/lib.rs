@@ -570,6 +570,8 @@ pub struct PdfCraftApp {
     pub ai_available: bool,
     /// Docufy: the user asked for an AI summary of the active PDF ([`Self::active_pdf_text`]).
     pub summarize_requested: bool,
+    /// Docufy: Help › Diagnostics, which the word processor shows.
+    pub diagnostics_requested: bool,
     /// The CJK fallback order the installed fonts follow (see `theme::installed_font_definitions`).
     fonts_cjk: theme::CjkPreference,
     /// The window title last sent to the platform.

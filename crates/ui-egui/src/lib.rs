@@ -29,6 +29,7 @@ pub mod control;
 pub mod credits;
 pub mod crop;
 pub mod desktop_theme;
+pub mod diagnostics;
 pub mod dialogs;
 pub mod documents;
 pub mod equation_tab;
@@ -544,6 +545,8 @@ pub struct WordApp {
     fonts_lent: bool,
     /// File › Options › AI while the app runs: stored-key status, hardware, loaded models.
     pub(crate) ai: ai_ui::AiState,
+    /// Help › Diagnostics: the resource monitor, self-test and troubleshooting.
+    pub(crate) diagnostics: diagnostics::Diagnostics,
     /// The effective interface theme last installed in egui ([`theme::apply`]).
     applied_theme: Option<theme::Appearance>,
     /// The display scale (native pixels per point) seen in the last frame, 1.0 before the first;

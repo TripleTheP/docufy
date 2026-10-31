@@ -1712,6 +1712,7 @@ dependencies = [
  "craft-update",
  "dispatch2",
  "docufy-control-key",
+ "docufy-diag",
  "docufy-doc",
  "docufy-engine",
  "docufy-fonts",
@@ -1768,6 +1769,14 @@ dependencies = [
 [[package]]
 name = "docufy-control-key"
 version = "0.12.0"
+
+[[package]]
+name = "docufy-diag"
+version = "0.12.0"
+dependencies = [
+ "log",
+ "sysinfo",
+]
 
 [[package]]
 name = "docufy-doc"
@@ -1992,6 +2001,7 @@ dependencies = [
  "craft-window",
  "docufy-ai",
  "docufy-control-key",
+ "docufy-diag",
  "docufy-doc",
  "docufy-engine",
  "docufy-fonts",
@@ -2004,6 +2014,7 @@ dependencies = [
  "image",
  "js-sys",
  "log",
+ "open",
  "serde",
  "serde_json",
  "sys-locale",

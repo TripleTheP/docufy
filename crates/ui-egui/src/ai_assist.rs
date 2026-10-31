@@ -230,6 +230,9 @@ fn status(app: &WordApp) -> Value {
 
 /// The key to send with, or why AI can't be used now (in words for the user).
 fn ready(app: &mut WordApp) -> Result<String, String> {
+    if app.safe_mode() {
+        return Err(tl!("Docufy runs in safe mode: AI is off until the next normal start.").into());
+    }
     let s = &app.ui.ai;
     if cfg!(target_arch = "wasm32") {
         return Err(tl!("AI is available in the desktop app.").into());
@@ -251,6 +254,11 @@ fn ready(app: &mut WordApp) -> Result<String, String> {
         return Err(fill(tl!(w.template), &args));
     }
     key.ok_or_else(|| tl!("Store an API key first.").to_string())
+}
+
+/// Whether a key is stored for `provider` (the self-test asks).
+pub(crate) fn key_stored(provider: Provider) -> bool {
+    matches!(stored_key(provider), Ok(Some(_)))
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -613,6 +621,10 @@ pub fn pane(app: &mut WordApp, ui: &mut Ui) {
 }
 
 fn body(app: &mut WordApp, ui: &mut Ui) {
+    if app.safe_mode() {
+        ui.label(tl!("Docufy runs in safe mode: AI is off until the next normal start."));
+        return;
+    }
     if !app.ui.ai.enabled || cfg!(target_arch = "wasm32") {
         ui.label(tl!("AI is off. Docufy sends nothing to an AI provider until you turn it on."));
         if !cfg!(target_arch = "wasm32") && ui.button(tl!("Turn on AI…")).clicked() {
