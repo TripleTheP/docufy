@@ -64,7 +64,13 @@ if (-not $SkipBuild) {
   # Static CRT: no VC++ redistributable needed. Scoped to the target so host build scripts and
   # proc-macros are unaffected.
   $flagVar = 'CARGO_TARGET_' + ($Target.ToUpper() -replace '-', '_') + '_RUSTFLAGS'
-  [Environment]::SetEnvironmentVariable($flagVar, '-C target-feature=+crt-static')
+  # No paths of the build machine in the binaries: source paths in panic messages are remapped
+  # (the checkout, Cargo's and rustup's folders under the user profile), and the PDB is named
+  # without its folder.
+  $remap = @("--remap-path-prefix=$Root=docufy")
+  foreach ($home_ in @($env:CARGO_HOME, $env:RUSTUP_HOME, $env:USERPROFILE) | Where-Object { $_ }) { $remap += "--remap-path-prefix=$home_=~" }
+  $flags = @('-C', 'target-feature=+crt-static', '-C', 'link-arg=/PDBALTPATH:%_PDB%') + $remap
+  [Environment]::SetEnvironmentVariable($flagVar, ($flags -join ' '))
   # Fail the build (rather than warn) if the icon/VERSIONINFO can't be embedded.
   $env:DOCUFY_REQUIRE_WINRES = '1'
   Invoke-Native "cargo build ($Target)" { cargo build --release --locked -p docufy -p docufy-cli -p docufy-ai-host --target $Target }
