@@ -1,0 +1,30 @@
+[package]
+name = "docufy-ai-host"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Runs local AI models for Docufy in a process of its own (ONNX Runtime GenAI)"
+
+[[bin]]
+name = "docufy-ai-host"
+path = "src/main.rs"
+
+# The workspace forbids `unsafe`; this helper is the one exception. Calling the ONNX Runtime GenAI
+# library needs FFI, which is kept to `ffi.rs` (`#[allow(unsafe_code)]` there). Everything else here
+# and in Docufy stays without `unsafe`, and a crash in the AI library ends this process, not Docufy.
+[lints.rust]
+unsafe_code = "deny"
+
+[lints.clippy]
+cognitive_complexity = "deny"
+wildcard_imports = "deny"
+dbg_macro = "warn"
+todo = "warn"
+too_many_arguments = "deny"
+type_complexity = "allow"
+undocumented_unsafe_blocks = "deny"
+
+[dependencies]
+libloading = "0.8"
+serde_json = { workspace = true }

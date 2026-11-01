@@ -19,6 +19,8 @@ ureq = { version = "3.4", default-features = false, features = ["rustls-no-provi
 sysinfo = { version = "0.40", default-features = false, features = ["system", "disk", "gpu"] }
 keyring = "4.2"
 starship-battery = "0.12"
+sha2 = { workspace = true }
+zip = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.56"

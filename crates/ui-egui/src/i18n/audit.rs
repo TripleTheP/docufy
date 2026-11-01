@@ -332,6 +332,13 @@ fn untranslated_interface_text() {
     let _ = app.run("ui.tab", json!({"tab": "Home"}));
     let drawn = frame(&ctx, &mut app);
     record(&app, "pane AI Assistant", drawn);
+    // File › Options › AI with models on this computer.
+    let _ = app.run("ai.settings", json!({"provider": "local"}));
+    let _ = app.run("ui.backstage", json!({"value": true, "page": "options", "pane": "ai"}));
+    let drawn = frame(&ctx, &mut app);
+    record(&app, "File › Options › AI (on this computer)", drawn);
+    let _ = app.run("ui.backstage", json!({"value": false}));
+    let _ = app.run("ai.settings", json!({"provider": "anthropic"}));
     let _ = app.run("ai.settings", json!({"enabled": false}));
     let _ = app.run("ai.pane", json!({"value": false}));
     // Help › Diagnostics with a sample, frame times and the self-test.

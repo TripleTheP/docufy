@@ -5,8 +5,9 @@
 //! What the AI writes is a suggestion: it streams into the pane and changes the document only
 //! when the user (or a command) accepts it, as one undo step. A suggestion remembers where it
 //! belongs; if that text changed meanwhile, accepting it is refused instead of overwriting the
-//! change. Answers come from a worker thread ([`docufy_ai::http::stream_chat`]); [`poll`] takes
-//! them in every frame, also while the pane is closed or PDF mode is shown.
+//! change. Answers come from a worker thread ([`docufy_ai::stream_chat`]: a provider, or the
+//! model on this computer); [`poll`] takes them in every frame, also while the pane is closed or
+//! PDF mode is shown.
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -200,6 +201,9 @@ pub fn command(app: &mut WordApp, id: &str, p: &Value) -> Option<Result<Value, S
             Ok(json!({"cancelled": was}))
         }
         "ai.status" => Ok(status(app)),
+        #[cfg(not(target_arch = "wasm32"))]
+        _ => return crate::ai_local::command(app, id, p),
+        #[cfg(target_arch = "wasm32")]
         _ => return None,
     })
 }
@@ -240,11 +244,11 @@ fn ready(app: &mut WordApp) -> Result<String, String> {
     if !s.enabled {
         return Err(tl!("AI is off. Turn it on in File › Options › AI.").into());
     }
-    if s.provider == Provider::Local {
-        return Err(tl!("Models that run on this computer come in a later version. Choose a provider in File › Options › AI.").into());
-    }
     if busy(app) {
         return Err(tl!("The AI is still answering. Wait for it, or cancel it.").into());
+    }
+    if s.provider == Provider::Local {
+        return local_ready(app).map(|()| String::new());
     }
     let key = stored_key(s.provider)?;
     let blocking = warnings::for_cloud(s, key.is_some()).into_iter().find(|w| w.severity == Severity::Blocking);
@@ -254,6 +258,41 @@ fn ready(app: &mut WordApp) -> Result<String, String> {
         return Err(fill(tl!(w.template), &args));
     }
     key.ok_or_else(|| tl!("Store an API key first.").to_string())
+}
+
+/// Whether a model on this computer can answer now: runtime and model downloaded, nothing
+/// blocking it (memory, disk), not paused on battery.
+#[cfg(not(target_arch = "wasm32"))]
+fn local_ready(app: &WordApp) -> Result<(), String> {
+    use docufy_ai::local::{self, catalog::Build};
+    let s = &app.ui.ai;
+    if !local::runtime::supported() {
+        return Err(tl!("Models on this computer need Windows (x64) for now.").into());
+    }
+    let Some(model) = local::chosen(s) else { return Err(tl!("Choose a model in File › Options › AI.").into()) };
+    if !local::runtime_ready() {
+        return Err(tl!("Download the runtime for local models first (File › Options › AI).").into());
+    }
+    if ![Build::Gpu, Build::Cpu].into_iter().any(|b| local::model_ready(model, b)) {
+        return Err(fill(tl!("Download {model} first (File › Options › AI)."), &[("model", model.name)]));
+    }
+    if let Some(hw) = &app.ai.hardware {
+        if s.pause_on_battery && hw.on_battery == Some(true) {
+            return Err(tl!("The computer runs on battery: local AI pauses until it is plugged in (Options › AI).").into());
+        }
+        let blocking = warnings::for_local(s, hw, &model.local_model()).into_iter().find(|w| w.severity == Severity::Blocking);
+        if let Some(w) = blocking {
+            let args: Vec<(&str, String)> = w.args.iter().map(|(n, v)| (*n, tl!(v).to_string())).collect();
+            let args: Vec<(&str, &str)> = args.iter().map(|(n, v)| (*n, v.as_str())).collect();
+            return Err(fill(tl!(w.template), &args));
+        }
+    }
+    Ok(())
+}
+
+#[cfg(target_arch = "wasm32")]
+fn local_ready(_: &WordApp) -> Result<(), String> {
+    Err(tl!("AI is available in the desktop app.").into())
 }
 
 /// Whether a key is stored for `provider` (the self-test asks).
@@ -275,6 +314,11 @@ fn stored_key(_: Provider) -> Result<Option<String>, String> {
     Ok(None)
 }
 
+/// The language `text` is written in, named for the model, when it is clear from the text.
+fn text_language(text: &str) -> Option<&'static str> {
+    assist::detect_language(text)
+}
+
 fn max_tokens(app: &WordApp) -> u32 {
     app.ui.ai.max_output_tokens
 }
@@ -291,7 +335,7 @@ fn rewrite(app: &mut WordApp, how: Rewrite) -> Result<Value, String> {
     if sel.is_collapsed() || original.trim().is_empty() {
         return Err(tl!("Select the text to rewrite first.").into());
     }
-    let req = assist::rewrite(&how, &original, max_tokens(app));
+    let req = assist::rewrite(&how, &original, text_language(&original), max_tokens(app));
     let target = Target::Replace { document: app.session.document_id(), sel, original };
     start_suggestion(app, Task::Rewrite(how), target, key, Prepared::Ready(req))
 }
@@ -305,7 +349,7 @@ fn continue_writing(app: &mut WordApp) -> Result<Value, String> {
     if before.trim().is_empty() {
         return Err(tl!("Write a few sentences first: the AI continues the text before the cursor.").into());
     }
-    let req = assist::continue_writing(&before, max_tokens(app));
+    let req = assist::continue_writing(&before, text_language(&before), max_tokens(app));
     let target = Target::Insert { document: app.session.document_id(), at };
     start_suggestion(app, Task::Continue, target, key, Prepared::Ready(req))
 }
@@ -321,7 +365,7 @@ fn summarize(app: &mut WordApp) -> Result<Value, String> {
     if text.trim().is_empty() {
         return Err(tl!("The document has no text to summarise.").into());
     }
-    let req = assist::summarize(&title, &text, max_tokens(app));
+    let req = assist::summarize(&title, &text, text_language(&text), max_tokens(app));
     start_suggestion(app, Task::Summary { title }, Target::Free, key, Prepared::Ready(req))
 }
 
@@ -397,6 +441,7 @@ fn start_job(app: &mut WordApp, key: String, prepared: Prepared, chat: bool) -> 
     let (tx, rx) = std::sync::mpsc::channel();
     let cancel = Arc::new(AtomicBool::new(false));
     let settings = app.ui.ai.clone();
+    let hw = app.ai.hardware.clone();
     let ctx = app.ctx.clone();
     let stop = cancel.clone();
     let max = max_tokens(app);
@@ -410,7 +455,7 @@ fn start_job(app: &mut WordApp, key: String, prepared: Prepared, chat: bool) -> 
             Prepared::Ready(req) => req,
             Prepared::Summary { title, source } => match source() {
                 Ok(text) if !text.trim().is_empty() => {
-                    let req = assist::summarize(&title, &text, max);
+                    let req = assist::summarize(&title, &text, assist::detect_language(&text), max);
                     let _ = tx.send(Msg::Request(req.clone()));
                     req
                 }
@@ -426,7 +471,7 @@ fn start_job(app: &mut WordApp, key: String, prepared: Prepared, chat: bool) -> 
                 }
             },
         };
-        let result = docufy_ai::http::stream_chat(&settings, &key, &req, &stop, |e| {
+        let result = docufy_ai::stream_chat(&settings, &key, hw.as_ref(), &req, &stop, |e| {
             let _ = tx.send(Msg::Event(e));
             repaint();
         });

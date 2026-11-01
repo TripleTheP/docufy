@@ -2250,3 +2250,43 @@
 	Store a key in File › Options › AI.	Speichern Sie unter Datei › Optionen › KI einen Schlüssel.
 	{provider}, key stored.	{provider}, Schlüssel gespeichert.
 	{name}:	{name}:
+	The AI on this computer could not answer: {detail}	Die KI auf diesem Computer konnte nicht antworten: {detail}
+# Docufy: AI models on this computer.
+	Models on this computer	Modelle auf diesem Computer
+	Models on this computer need Windows (x64) for now.	Modelle auf diesem Computer gibt es vorerst nur unter Windows (x64).
+	Your text stays on this computer. The runtime and the models are downloaded once, from Microsoft and from Hugging Face, and checked before they are used.	Ihr Text bleibt auf diesem Computer. Laufzeit und Modelle werden einmalig von Microsoft und Hugging Face heruntergeladen und vor der Verwendung geprüft.
+	Runtime:	Laufzeit:
+	{runtime}	{runtime}
+	Installed ✔	Installiert ✔
+	Download runtime ({size})	Laufzeit herunterladen ({size})
+	About 42 MB stay on the disk; the rest of the download is unpacked and removed.	Etwa 42 MB bleiben auf dem Datenträger; der Rest des Downloads wird entpackt und entfernt.
+	{model}	{model}
+	{maker} · {count} parameters	{maker} · {count} Parameter
+	{kind}, {size}	{kind}, {size}
+	Graphics build	Fassung für die Grafikkarte
+	Processor build	Fassung für den Prozessor
+	Licence: {licence}	Lizenz: {licence}
+	Downloaded ✔	Heruntergeladen ✔
+	Accept licence and download	Lizenz akzeptieren und herunterladen
+	By downloading you accept the model's licence (link above).	Mit dem Download akzeptieren Sie die Lizenz des Modells (Link oben).
+	The graphics build is downloaded.	Die Fassung für die Grafikkarte ist heruntergeladen.
+	The processor build is downloaded.	Die Fassung für den Prozessor ist heruntergeladen.
+	Stored in {folder}	Gespeichert in {folder}
+	Open folder	Ordner öffnen
+	{done} of {total}	{done} von {total}
+	Test the model	Modell testen
+	The runtime for local models is installed.	Die Laufzeit für lokale Modelle ist installiert.
+	{model} is downloaded and checked.	{model} ist heruntergeladen und geprüft.
+	The download was stopped. Downloading again continues where it stopped.	Der Download wurde angehalten. Ein erneuter Download setzt dort fort, wo er aufgehört hat.
+	The download failed: {error}	Der Download ist fehlgeschlagen: {error}
+	Choose a model in File › Options › AI.	Wählen Sie unter Datei › Optionen › KI ein Modell.
+	Download the runtime for local models first (File › Options › AI).	Laden Sie zuerst die Laufzeit für lokale Modelle herunter (Datei › Optionen › KI).
+	Download {model} first (File › Options › AI).	Laden Sie zuerst {model} herunter (Datei › Optionen › KI).
+	Good all-rounder with solid German; needs about 4 GB of graphics memory.	Guter Allrounder mit solidem Deutsch; braucht etwa 4 GB Grafikspeicher.
+	Small and quick on the processor, for computers without a graphics card; simpler answers.	Klein und schnell auf dem Prozessor, für Computer ohne Grafikkarte; einfachere Antworten.
+	Better answers than the 1.5B, on the processor; for personal and research use (see the licence).	Bessere Antworten als das 1.5B, auf dem Prozessor; für private und Forschungszwecke (siehe Lizenz).
+	The strongest of these models; needs about 6 GB of graphics memory or a lot of RAM.	Das stärkste dieser Modelle; braucht etwa 6 GB Grafikspeicher oder viel Arbeitsspeicher.
+	Compact and multilingual, on the processor; Meta's licence has conditions of its own.	Kompakt und mehrsprachig, auf dem Prozessor; Metas Lizenz hat eigene Bedingungen.
+	{provider}: runtime and model are downloaded.	{provider}: Laufzeit und Modell sind heruntergeladen.
+	The runtime or the model for AI on this computer is not downloaded yet.	Laufzeit oder Modell für die KI auf diesem Computer sind noch nicht heruntergeladen.
+	Download them in File › Options › AI.	Laden Sie sie unter Datei › Optionen › KI herunter.

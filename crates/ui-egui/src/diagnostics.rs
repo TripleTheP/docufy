@@ -218,7 +218,7 @@ fn run_self_test(app: &mut WordApp) -> Vec<Check> {
         ai: selftest::AiState {
             enabled: app.ui.ai.enabled,
             local: !app.ui.ai.provider.is_cloud(),
-            has_key: crate::ai_assist::key_stored(app.ui.ai.provider),
+            has_key: crate::ai_assist::key_stored(app.ui.ai.provider) || local_ready(app),
             provider: app.ui.ai.provider.name().to_string(),
         },
         ..Default::default()
@@ -233,6 +233,20 @@ fn run_self_test(app: &mut WordApp) -> Vec<Check> {
     let checks = selftest::run(&i);
     app.diagnostics.checks = Some(checks.clone());
     checks
+}
+
+/// Whether the chosen local model and the runtime are downloaded.
+fn local_ready(app: &WordApp) -> bool {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        use docufy_ai::local::{self, catalog::Build};
+        local::runtime_ready() && local::chosen(&app.ui.ai).is_some_and(|m| [Build::Gpu, Build::Cpu].into_iter().any(|b| local::model_ready(m, b)))
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        let _ = app;
+        false
+    }
 }
 
 /// The system information for a bug report, in English, without the user's home folder or name.

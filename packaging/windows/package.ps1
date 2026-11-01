@@ -67,7 +67,7 @@ if (-not $SkipBuild) {
   [Environment]::SetEnvironmentVariable($flagVar, '-C target-feature=+crt-static')
   # Fail the build (rather than warn) if the icon/VERSIONINFO can't be embedded.
   $env:DOCUFY_REQUIRE_WINRES = '1'
-  Invoke-Native "cargo build ($Target)" { cargo build --release --locked -p docufy -p docufy-cli --target $Target }
+  Invoke-Native "cargo build ($Target)" { cargo build --release --locked -p docufy -p docufy-cli -p docufy-ai-host --target $Target }
 }
 
 $Bin = Join-Path $TargetDir "$Target\release"
@@ -82,7 +82,7 @@ function Get-PeHeader([string] $Path) {
   return @{ Machine = [BitConverter]::ToUInt16($bytes, $pe + 4); Subsystem = [BitConverter]::ToUInt16($bytes, $pe + 0x5C) }
 }
 $Machine = switch ($Arch) { 'x64' { 0x8664 } 'x86' { 0x14C } 'arm64' { 0xAA64 } }
-foreach ($check in @(@('docufy.exe', 2), @('docufy-cli.exe', 3))) {
+foreach ($check in @(@('docufy.exe', 2), @('docufy-cli.exe', 3), @('docufy-ai-host.exe', 3))) {
   $h = Get-PeHeader (Join-Path $Bin $check[0])
   if ($h.Machine -ne $Machine) { throw "$($check[0]) is for machine 0x$('{0:X}' -f $h.Machine), expected 0x$('{0:X}' -f $Machine) ($Arch)" }
   if ($h.Subsystem -ne $check[1]) { throw "$($check[0]) has PE subsystem $($h.Subsystem), expected $($check[1])" }
@@ -91,9 +91,9 @@ foreach ($check in @(@('docufy.exe', 2), @('docufy-cli.exe', 3))) {
 $Stage = Join-Path $TargetDir "windows-package\$Arch"
 Remove-Item -Recurse -Force $Stage -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $Stage | Out-Null
-Copy-Item (Join-Path $Bin 'docufy.exe'), (Join-Path $Bin 'docufy-cli.exe') $Stage
+Copy-Item (Join-Path $Bin 'docufy.exe'), (Join-Path $Bin 'docufy-cli.exe'), (Join-Path $Bin 'docufy-ai-host.exe') $Stage
 
-& (Join-Path $PSScriptRoot 'sign.ps1') (Join-Path $Stage 'docufy.exe') (Join-Path $Stage 'docufy-cli.exe')
+& (Join-Path $PSScriptRoot 'sign.ps1') (Join-Path $Stage 'docufy.exe') (Join-Path $Stage 'docufy-cli.exe') (Join-Path $Stage 'docufy-ai-host.exe')
 
 # Required notices ship in every MSI, independently of optional craft-fonts.
 $AppNotices = Join-Path $Stage 'app-notices'

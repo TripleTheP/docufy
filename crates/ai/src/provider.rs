@@ -86,7 +86,8 @@ impl Provider {
             Provider::Anthropic => Some("claude-opus-5-5"),
             Provider::Mistral => Some("mistral-large-latest"),
             Provider::Gemini => Some("gemini-flash-latest"),
-            Provider::OpenAi | Provider::AzureOpenAi | Provider::Local => None,
+            Provider::Local => Some(crate::local::catalog::DEFAULT_MODEL),
+            Provider::OpenAi | Provider::AzureOpenAi => None,
         }
     }
 

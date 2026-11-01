@@ -24,14 +24,17 @@ pub struct AiState {
     /// The stored key per provider, masked; `None` when none is stored. Read once per provider.
     keys: HashMap<Provider, Option<String>>,
     /// What the hardware probe found.
-    hardware: Option<Hardware>,
+    pub(crate) hardware: Option<Hardware>,
     /// Models loaded from each provider.
     models: HashMap<Provider, Vec<String>>,
     /// Work running on a thread.
     #[cfg(not(target_arch = "wasm32"))]
     job: Option<std::sync::mpsc::Receiver<Done>>,
     /// The last outcome to show: (succeeded, text).
-    outcome: Option<(bool, String)>,
+    pub(crate) outcome: Option<(bool, String)>,
+    /// A runtime or model being downloaded.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) download: Option<crate::ai_local::Download>,
     /// The AI features: the AI Assistant pane, its suggestion and chat.
     pub assist: crate::ai_assist::Assist,
 }
@@ -81,6 +84,10 @@ pub fn settings_command(app: &mut WordApp, p: &Value) -> Result<Value, String> {
         if m.chars().count() > 200 || m.chars().any(char::is_control) {
             return Err("`model` must be a model name".into());
         }
+        if s.provider == Provider::Local && docufy_ai::local::catalog::model(&m).is_none() {
+            let ids: Vec<&str> = docufy_ai::local::catalog::MODELS.iter().map(|m| m.id).collect();
+            return Err(format!("unknown local model `{m}`; one of {}", ids.join(", ")));
+        }
         s.models.insert(s.provider.id().to_string(), m);
     }
     if let Some(e) = text("azureEndpoint")? {
@@ -110,6 +117,11 @@ pub fn settings_command(app: &mut WordApp, p: &Value) -> Result<Value, String> {
     }
     if flag("showNotices")? == Some(true) {
         s.dismissed.clear();
+    }
+    // Another local model or device: the helper process frees the loaded one.
+    #[cfg(not(target_arch = "wasm32"))]
+    if (s.provider, s.model_for(Provider::Local), s.device) != (app.ui.ai.provider, app.ui.ai.model_for(Provider::Local), app.ui.ai.device) {
+        docufy_ai::local::engine::unload();
     }
     app.ui.ai = s;
     Ok(settings_json(&app.ui.ai))
@@ -200,8 +212,19 @@ pub fn pane(app: &mut WordApp, ui: &mut Ui) {
         key_section(app, ui);
         model_section(app, ui);
     } else {
-        section(ui, "Local model");
-        note(ui, tl!("Models that run on this computer come in a later version. The device and the checks below already apply to them."));
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            crate::ai_local::section(app, ui);
+            ui.horizontal(|ui| {
+                let busy = app.ai.busy();
+                if ui.add_enabled(!busy, egui::Button::new(tl!("Test the model"))).clicked() {
+                    start_test(app, ui.ctx());
+                }
+                if busy {
+                    ui.spinner();
+                }
+            });
+        }
     }
     device_section(app, ui);
     hardware_section(app, ui);
@@ -425,7 +448,10 @@ fn notices_section(app: &mut WordApp, ui: &mut Ui) {
         let has_key = app.ai.keys.get(&s.provider).is_some_and(Option::is_some);
         warnings::for_cloud(&s, has_key)
     } else {
-        Vec::new()
+        match (docufy_ai::local::chosen(&s), &app.ai.hardware) {
+            (Some(m), Some(hw)) => warnings::for_local(&s, hw, &m.local_model()),
+            _ => Vec::new(),
+        }
     };
     if list.is_empty() && s.dismissed.is_empty() {
         return;
@@ -472,13 +498,17 @@ fn spawn(app: &mut WordApp, ctx: &egui::Context, work: impl FnOnce() -> Done + S
 
 #[cfg(not(target_arch = "wasm32"))]
 fn start_probe(app: &mut WordApp, ctx: &egui::Context) {
-    let dir = docufy_control_key::settings_dir().unwrap_or_else(std::env::temp_dir);
+    // Free disk space where models are kept.
+    let dir = docufy_ai::local::data_dir().unwrap_or_else(std::env::temp_dir);
     spawn(app, ctx, move || Done::Hardware(docufy_ai::probe::probe(&[], &dir)));
 }
 
 /// The stored key for the current provider, or an outcome saying there is none.
 #[cfg(not(target_arch = "wasm32"))]
 fn key(app: &mut WordApp) -> Option<String> {
+    if app.ui.ai.provider == Provider::Local {
+        return Some(String::new());
+    }
     match docufy_ai::secrets::load(app.ui.ai.provider) {
         Ok(Some(k)) => Some(k),
         Ok(None) => {
@@ -504,6 +534,7 @@ fn start_models(app: &mut WordApp, ctx: &egui::Context) {
 fn start_test(app: &mut WordApp, ctx: &egui::Context) {
     let Some(key) = key(app) else { return };
     let settings = app.ui.ai.clone();
+    let hw = app.ai.hardware.clone();
     app.ai.outcome = None;
     spawn(app, ctx, move || {
         let req = docufy_ai::ChatRequest {
@@ -514,7 +545,7 @@ fn start_test(app: &mut WordApp, ctx: &egui::Context) {
         let cancel = std::sync::atomic::AtomicBool::new(false);
         let mut answer = String::new();
         let mut stop = None;
-        let sent = docufy_ai::http::stream_chat(&settings, &key, &req, &cancel, |e| match e {
+        let sent = docufy_ai::stream_chat(&settings, &key, hw.as_ref(), &req, &cancel, |e| match e {
             docufy_ai::StreamEvent::Text(t) => answer.push_str(&t),
             docufy_ai::StreamEvent::Stop(s) => stop = Some(s),
         });
@@ -564,6 +595,7 @@ pub(crate) fn error_text(e: &docufy_ai::AiError) -> String {
         AiError::Rejected(d) => ("The provider rejected the request; check the model name. ({detail})", d.as_str()),
         AiError::Network(d) => ("No connection to the provider. Check the internet connection and proxy. ({detail})", d.as_str()),
         AiError::Protocol(d) => ("The provider's answer could not be read. ({detail})", d.as_str()),
+        AiError::Local(d) => ("The AI on this computer could not answer: {detail}", d.as_str()),
         AiError::Cancelled => ("Cancelled.", ""),
     };
     fill(tl!(template), &[("detail", detail)])

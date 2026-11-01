@@ -142,6 +142,10 @@
       <Component Id="DocufyCli">
         <File Id="DocufyCliExe" Source="$(var.BinDir)\docufy-cli.exe" KeyPath="yes" />
       </Component>
+      <!-- Runs local AI models in a process of its own (File › Options › AI); idle unless used. -->
+      <Component Id="DocufyAiHost">
+        <File Id="DocufyAiHostExe" Source="$(var.BinDir)\docufy-ai-host.exe" KeyPath="yes" />
+      </Component>
     </ComponentGroup>
   </Fragment>
 </Wix>

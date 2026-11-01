@@ -11,6 +11,7 @@
 pub mod assist;
 pub mod chat;
 pub mod hardware;
+pub mod local;
 pub mod provider;
 pub mod settings;
 pub mod warnings;
@@ -27,6 +28,25 @@ pub use hardware::{DeviceKind, DevicePreference, Gpu, Hardware, LocalModel, Npu}
 pub use provider::Provider;
 pub use settings::AiSettings;
 pub use warnings::{Severity, Warning};
+
+/// Answers `req` with the provider in `settings`: over the network with `key`, or with the model
+/// on this computer (`hw`: what the hardware probe found, for choosing the device). Calls
+/// `on_event` with each piece as it arrives; stops early when `cancel` is set.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn stream_chat(
+    settings: &AiSettings,
+    key: &str,
+    hw: Option<&Hardware>,
+    req: &ChatRequest,
+    cancel: &std::sync::atomic::AtomicBool,
+    on_event: impl FnMut(StreamEvent),
+) -> Result<(), AiError> {
+    if settings.provider == Provider::Local {
+        let (runtime, target) = local::target(settings, hw).map_err(AiError::Local)?;
+        return local::engine::stream_chat(&runtime, &target, req, cancel, on_event);
+    }
+    http::stream_chat(settings, key, req, cancel, on_event)
+}
 
 /// Why a request to a provider failed, sorted by what the user can do about it.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -49,6 +69,10 @@ pub enum AiError {
     /// The answer could not be read.
     #[error("the provider's answer could not be read: {0}")]
     Protocol(String),
+    /// The AI on this computer could not answer: runtime or model missing, the model failed to
+    /// load, or the helper process stopped.
+    #[error("the AI on this computer: {0}")]
+    Local(String),
     /// Stopped by the user.
     #[error("cancelled")]
     Cancelled,

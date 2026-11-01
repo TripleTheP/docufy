@@ -65,8 +65,9 @@ pub struct Graphics {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AiState {
     pub enabled: bool,
-    /// The provider runs on this computer (models come later).
+    /// The provider runs on this computer.
     pub local: bool,
+    /// A key is stored (cloud), or runtime and model are downloaded (local).
     pub has_key: bool,
     pub provider: String,
 }
@@ -186,8 +187,10 @@ fn ai(i: &Inputs) -> Check {
         Check::new("ai", Status::Ok, TITLE, "Off.")
     } else if i.safe_mode {
         Check::new("ai", Status::Ok, TITLE, "Off in safe mode.")
+    } else if a.local && a.has_key {
+        Check::new("ai", Status::Ok, TITLE, "{provider}: runtime and model are downloaded.").arg("provider", a.provider.clone())
     } else if a.local {
-        Check::new("ai", Status::Warn, TITLE, "Models on this computer come in a later version.").fix("Choose a provider in File › Options › AI.")
+        Check::new("ai", Status::Warn, TITLE, "The runtime or the model for AI on this computer is not downloaded yet.").fix("Download them in File › Options › AI.")
     } else if !a.has_key {
         Check::new("ai", Status::Fail, TITLE, "No API key is stored for {provider}.").arg("provider", a.provider.clone()).fix("Store a key in File › Options › AI.")
     } else {

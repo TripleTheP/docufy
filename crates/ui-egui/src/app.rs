@@ -259,6 +259,8 @@ impl WordApp {
         self.settle_async_saves();
         crate::ai_assist::poll(self);
         crate::diagnostics::poll(self);
+        #[cfg(not(target_arch = "wasm32"))]
+        crate::ai_local::poll(self);
         if shown {
             self.apply_interface(ctx, lang);
         }

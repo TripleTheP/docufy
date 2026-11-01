@@ -66,7 +66,9 @@ impl Rewrite {
         match self {
             Rewrite::Improve => "Improve the text: clearer, better flowing and more precise, with the same meaning and about the same length.".into(),
             Rewrite::Shorter => "Make the text noticeably shorter. Keep every essential point.".into(),
-            Rewrite::Longer => "Expand the text: add detail, examples or explanation that fit what it already says. Invent no facts, names or numbers.".into(),
+            Rewrite::Longer => {
+                "Expand the text: add detail, examples or explanation that fit what it already says. Invent no facts, names or numbers.".into()
+            }
             Rewrite::Formal => "Rewrite the text in a more formal, professional register.".into(),
             Rewrite::Simple => "Rewrite the text in simpler, plainer language that is easy to read.".into(),
             Rewrite::Fix => "Correct spelling, grammar and punctuation only. Change nothing else: keep the wording, style and line breaks.".into(),
@@ -98,20 +100,25 @@ fn clip_end(text: &str, max: usize) -> (&str, bool) {
     }
 }
 
-/// Rewrite `text` (the user's selection) as `how` says.
-pub fn rewrite(how: &Rewrite, text: &str, max_tokens: u32) -> ChatRequest {
+/// Rewrite `text` (the user's selection) as `how` says. `language`: the text's language when the
+/// document says (an English name, [`language_name`]); small local models need the reminder.
+pub fn rewrite(how: &Rewrite, text: &str, language: Option<&str>, max_tokens: u32) -> ChatRequest {
     let system = format!(
         "You rewrite text for the user of a word processor. The rewritten text replaces the selected text in their document. \
          Answer with the rewritten text only: no introduction, no comments, no quotation marks or tags around it. \
          Keep the language of the text unless the instruction asks for another one. {PLAIN}"
     );
     let (text, _) = clip(text, MAX_CONTEXT_CHARS);
-    let user = format!("{}\n\n<text>\n{text}\n</text>", how.instruction());
+    let mut user = format!("{}\n\n<text>\n{text}\n</text>", how.instruction());
+    if let Some(l) = language {
+        user.push_str(&format!("\n\nThe text is in {l}. Unless the instruction asks for another language, write the result in {l}."));
+    }
     ChatRequest { system, messages: vec![Message::user(user)], max_tokens }
 }
 
-/// Continue the text that ends at the caret (`before`, the document's text up to it).
-pub fn continue_writing(before: &str, max_tokens: u32) -> ChatRequest {
+/// Continue the text that ends at the caret (`before`, the document's text up to it), in
+/// `language` when known.
+pub fn continue_writing(before: &str, language: Option<&str>, max_tokens: u32) -> ChatRequest {
     let system = format!(
         "You continue the user's document in a word processor. Write the next one to three paragraphs that follow on from where the text ends, \
          in its language, tone and style. Answer with the new text only: do not repeat the existing text and add no comments. \
@@ -120,12 +127,15 @@ pub fn continue_writing(before: &str, max_tokens: u32) -> ChatRequest {
     // The end of the text matters most; a long document sends its last part.
     let (before, cut) = clip_end(before, MAX_CONTEXT_CHARS / 4);
     let lead = if cut { "The document so far (its earlier part is left out):" } else { "The document so far:" };
-    let user = format!("{lead}\n\n<document>\n{before}\n</document>\n\nContinue the text from where it ends.");
+    let mut user = format!("{lead}\n\n<document>\n{before}\n</document>\n\nContinue the text from where it ends.");
+    if let Some(l) = language {
+        user.push_str(&format!(" Write in {l}."));
+    }
     ChatRequest { system, messages: vec![Message::user(user)], max_tokens }
 }
 
-/// Summarise `text`, the content of the document or PDF named `title`.
-pub fn summarize(title: &str, text: &str, max_tokens: u32) -> ChatRequest {
+/// Summarise `text`, the content of the document or PDF named `title`, in `language` when known.
+pub fn summarize(title: &str, text: &str, language: Option<&str>, max_tokens: u32) -> ChatRequest {
     let system = format!(
         "You summarise documents for the user of a word processor. Write a short summary in the document's language: \
          first one or two sentences on what the document is, then its key points as short paragraphs or lines starting with \"- \". \
@@ -133,8 +143,69 @@ pub fn summarize(title: &str, text: &str, max_tokens: u32) -> ChatRequest {
     );
     let (text, cut) = clip(text, MAX_CONTEXT_CHARS);
     let note = if cut { "\n\n(Only the first part of the document is included; say so at the end of the summary.)" } else { "" };
-    let user = format!("Summarise this document.\n\n<document title=\"{}\">\n{text}\n</document>{note}", title.replace('"', "'"));
+    let mut user = format!("Summarise this document.\n\n<document title=\"{}\">\n{text}\n</document>{note}", title.replace('"', "'"));
+    if let Some(l) = language {
+        user.push_str(&format!("\n\nWrite the summary in {l}."));
+    }
     ChatRequest { system, messages: vec![Message::user(user)], max_tokens }
+}
+
+/// The English name of the language a BCP 47 tag ("de-DE", "fr") names, for the languages
+/// Docufy's interface and proofing know; `None` for others.
+pub fn language_name(tag: &str) -> Option<&'static str> {
+    let primary = tag.split(['-', '_']).next()?.to_ascii_lowercase();
+    Some(match primary.as_str() {
+        "de" => "German",
+        "en" => "English",
+        "fr" => "French",
+        "es" => "Spanish",
+        "it" => "Italian",
+        "pt" => "Portuguese",
+        "nl" => "Dutch",
+        "pl" => "Polish",
+        "cs" => "Czech",
+        "sk" => "Slovak",
+        "da" => "Danish",
+        "sv" => "Swedish",
+        "nb" | "no" | "nn" => "Norwegian",
+        "fi" => "Finnish",
+        "hu" => "Hungarian",
+        "ro" => "Romanian",
+        "el" => "Greek",
+        "tr" => "Turkish",
+        "ru" => "Russian",
+        "uk" => "Ukrainian",
+        "ja" => "Japanese",
+        "ko" => "Korean",
+        "zh" => "Chinese",
+        "ar" => "Arabic",
+        "he" => "Hebrew",
+        _ => return None,
+    })
+}
+
+/// Frequent short words by language, for [`detect_language`].
+const STOPWORDS: [(&str, &[&str]); 8] = [
+    ("German", &["der", "die", "das", "und", "ist", "nicht", "ein", "eine", "mit", "auf", "den", "dem", "wurde", "sich", "auch", "wegen", "seit", "für", "zu", "von"]),
+    ("English", &["the", "and", "is", "of", "to", "in", "that", "it", "was", "for", "with", "this", "are", "be", "on", "not", "has", "have"]),
+    ("French", &["le", "la", "les", "et", "est", "des", "une", "un", "du", "que", "pas", "pour", "dans", "sur", "avec", "ce", "qui"]),
+    ("Spanish", &["el", "la", "los", "las", "y", "es", "que", "del", "una", "un", "por", "con", "para", "no", "se", "su"]),
+    ("Italian", &["il", "lo", "gli", "e", "è", "che", "di", "una", "un", "per", "non", "con", "del", "della", "sono"]),
+    ("Dutch", &["de", "het", "een", "en", "is", "van", "niet", "dat", "op", "met", "voor", "zijn", "werd"]),
+    ("Portuguese", &["o", "os", "as", "e", "é", "que", "não", "uma", "um", "para", "com", "do", "da", "em"]),
+    ("Polish", &["i", "w", "nie", "się", "na", "jest", "to", "że", "z", "do", "jak", "ale"]),
+];
+
+/// The language `text` is written in, by its frequent short words, when one clearly leads;
+/// `None` for short or mixed text. Documents' language tags are often wrong (a German letter
+/// tagged English), so the text decides.
+pub fn detect_language(text: &str) -> Option<&'static str> {
+    let words: Vec<String> = text.split(|c: char| !c.is_alphabetic()).filter(|w| !w.is_empty()).take(2000).map(str::to_lowercase).collect();
+    let mut scores: Vec<(&str, usize)> = STOPWORDS.iter().map(|(lang, list)| (*lang, words.iter().filter(|w| list.contains(&w.as_str())).count())).collect();
+    scores.sort_by_key(|(_, n)| std::cmp::Reverse(*n));
+    let (lang, best) = scores[0];
+    let second = scores[1].1;
+    (best >= 2 && best >= second * 2).then_some(lang)
 }
 
 /// What the user lets the chat see of their document.
@@ -213,13 +284,21 @@ mod tests {
 
     #[test]
     fn rewrite_sends_the_selection_and_the_instruction() {
-        let r = rewrite(&Rewrite::Shorter, "Ein langer Satz.", 2048);
+        let r = rewrite(&Rewrite::Shorter, "Ein langer Satz.", Some("German"), 2048);
         assert_eq!(r.messages.len(), 1);
         assert!(r.messages[0].text.contains("<text>\nEin langer Satz.\n</text>"));
         assert!(r.messages[0].text.starts_with("Make the text noticeably shorter."));
         assert!(r.system.contains("rewritten text only"));
+        assert!(r.messages[0].text.ends_with("The text is in German. Unless the instruction asks for another language, write the result in German."));
+        assert_eq!(language_name("de-DE"), Some("German"));
+        assert_eq!(language_name("pt_BR"), Some("Portuguese"));
+        assert_eq!(language_name("x-klingon"), None);
+        assert_eq!(detect_language("Das Treffen wurde wegen dem schlechten Wetter, das seit Tagen anhält, verschoben."), Some("German"));
+        assert_eq!(detect_language("The meeting has been moved to next week because of the weather."), Some("English"));
+        assert_eq!(detect_language("La réunion est reportée à la semaine prochaine pour une raison de météo."), Some("French"));
+        assert_eq!(detect_language("Hallo"), None, "too short to tell");
         assert_eq!(r.max_tokens, 2048);
-        let own = rewrite(&Rewrite::Custom("  als Stichpunkte ".into()), "x", 100);
+        let own = rewrite(&Rewrite::Custom("  als Stichpunkte ".into()), "x", None, 100);
         assert!(own.messages[0].text.contains("as the user asks: als Stichpunkte\n"));
     }
 
@@ -235,17 +314,18 @@ mod tests {
     #[test]
     fn continuing_a_long_document_sends_its_end() {
         let long = format!("{}Das Ende.", "a".repeat(MAX_CONTEXT_CHARS));
-        let r = continue_writing(&long, 1000);
+        let r = continue_writing(&long, None, 1000);
         let text = &r.messages[0].text;
         assert!(text.contains("Das Ende.\n</document>"));
         assert!(text.contains("earlier part is left out"));
         assert!(text.chars().count() < MAX_CONTEXT_CHARS / 4 + 500);
-        assert!(!continue_writing("Kurz.", 1000).messages[0].text.contains("left out"));
+        assert!(!continue_writing("Kurz.", Some("German"), 1000).messages[0].text.contains("left out"));
+        assert!(continue_writing("Kurz.", Some("German"), 1000).messages[0].text.ends_with("Write in German."));
     }
 
     #[test]
     fn summaries_are_capped_and_say_so() {
-        let r = summarize("Bericht \"2026\"", &"ü".repeat(MAX_CONTEXT_CHARS + 10), 1000);
+        let r = summarize("Bericht \"2026\"", &"ü".repeat(MAX_CONTEXT_CHARS + 10), None, 1000);
         let text = &r.messages[0].text;
         assert!(text.contains("title=\"Bericht '2026'\""));
         assert!(text.contains("Only the first part"));
