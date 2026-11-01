@@ -1703,7 +1703,7 @@ dependencies = [
 
 [[package]]
 name = "docufy"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "arboard",
  "chrono",
@@ -1740,7 +1740,7 @@ dependencies = [
 
 [[package]]
 name = "docufy-ai"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "keyring",
  "log",
@@ -1757,7 +1757,7 @@ dependencies = [
 
 [[package]]
 name = "docufy-ai-host"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "libloading",
  "serde_json",
@@ -1765,7 +1765,7 @@ dependencies = [
 
 [[package]]
 name = "docufy-cli"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "docufy-doc",
  "docufy-engine",
@@ -1778,11 +1778,11 @@ dependencies = [
 
 [[package]]
 name = "docufy-control-key"
-version = "0.12.0"
+version = "0.1.0"
 
 [[package]]
 name = "docufy-diag"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "log",
  "sysinfo",
@@ -1790,7 +1790,7 @@ dependencies = [
 
 [[package]]
 name = "docufy-doc"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "base64 0.23.1",
  "docufy-geom",
@@ -1804,7 +1804,7 @@ dependencies = [
 
 [[package]]
 name = "docufy-docbin"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "cfb",
  "chrono",
@@ -1821,7 +1821,7 @@ dependencies = [
 
 [[package]]
 name = "docufy-docx"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "aes",
  "base64 0.23.1",
@@ -1845,7 +1845,7 @@ dependencies = [
 
 [[package]]
 name = "docufy-engine"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "cfb",
  "chrono",
@@ -1876,7 +1876,7 @@ dependencies = [
 
 [[package]]
 name = "docufy-fonts"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "brotli-decompressor",
  "harfrust 0.13.3",
@@ -1890,7 +1890,7 @@ dependencies = [
 
 [[package]]
 name = "docufy-formats"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "cfb",
  "chardetng",
@@ -1908,7 +1908,7 @@ dependencies = [
 
 [[package]]
 name = "docufy-geom"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "image",
  "serde",
@@ -1916,7 +1916,7 @@ dependencies = [
 
 [[package]]
 name = "docufy-layout"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "docufy-doc",
  "docufy-fonts",
@@ -1936,7 +1936,7 @@ dependencies = [
 
 [[package]]
 name = "docufy-mcp"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "docufy-control-key",
  "docufy-doc",
@@ -1948,7 +1948,7 @@ dependencies = [
 
 [[package]]
 name = "docufy-metafile"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "kurbo 0.13.1",
  "thiserror 2.0.21",
@@ -1956,7 +1956,7 @@ dependencies = [
 
 [[package]]
 name = "docufy-pdf"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "chrono",
  "craft-pdf",
@@ -1977,7 +1977,7 @@ dependencies = [
 
 [[package]]
 name = "docufy-proof"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "log",
  "miniz_oxide 0.9.1",
@@ -1987,7 +1987,7 @@ dependencies = [
 
 [[package]]
 name = "docufy-render"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "docufy-doc",
  "docufy-fonts",
@@ -2001,7 +2001,7 @@ dependencies = [
 
 [[package]]
 name = "docufy-ui-egui"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "cfb",
  "chrono",
@@ -2036,7 +2036,7 @@ dependencies = [
 
 [[package]]
 name = "docufy-web"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "docufy-doc",
  "docufy-engine",
@@ -2055,7 +2055,7 @@ dependencies = [
 
 [[package]]
 name = "docufy-zotero"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "docufy-doc",
  "docufy-docx",
@@ -4932,7 +4932,7 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-a11y"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "pdfcraft-content",
  "pdfcraft-cos",
@@ -4944,7 +4944,7 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-annot"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "hayro-syntax",
  "pdfcraft-cos",
@@ -4955,7 +4955,7 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-audit"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "pdfcraft-content",
  "pdfcraft-cos",
@@ -4966,7 +4966,7 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-automation"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "base64 0.23.1",
  "flate2",
@@ -4988,11 +4988,11 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-compare"
-version = "0.12.0"
+version = "0.1.0"
 
 [[package]]
 name = "pdfcraft-content"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "hayro-syntax",
  "pdfcraft-cos",
@@ -5000,7 +5000,7 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-cos"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "chrono",
  "hayro-syntax",
@@ -5015,7 +5015,7 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-create"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "encoding_rs",
  "hayro-syntax",
@@ -5032,7 +5032,7 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-crypt"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "aes",
  "md-5",
@@ -5044,7 +5044,7 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-edit"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "hayro-syntax",
  "kurbo 0.13.1",
@@ -5059,7 +5059,7 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-engine"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "chrono",
  "craft-docpath",
@@ -5100,14 +5100,14 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-export"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "flate2",
 ]
 
 [[package]]
 name = "pdfcraft-filters"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "flate2",
  "proptest",
@@ -5117,7 +5117,7 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-fonts"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "harfrust 0.12.0",
  "pdfcraft-cos",
@@ -5127,7 +5127,7 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-forms"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "hayro-syntax",
  "pdfcraft-content",
@@ -5140,11 +5140,11 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-geom"
-version = "0.12.0"
+version = "0.1.0"
 
 [[package]]
 name = "pdfcraft-js"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "boa_engine",
  "chrono",
@@ -5152,7 +5152,7 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-measure"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "pdfcraft-annot",
  "pdfcraft-content",
@@ -5165,14 +5165,14 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-model"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "pdfcraft-cos",
 ]
 
 [[package]]
 name = "pdfcraft-ocr"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "ocrs",
  "pdfcraft-fonts",
@@ -5183,7 +5183,7 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-optimize"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "image",
  "pdfcraft-annot",
@@ -5198,11 +5198,11 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-oracle"
-version = "0.12.0"
+version = "0.1.0"
 
 [[package]]
 name = "pdfcraft-organize"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "hayro-syntax",
  "pdfcraft-content",
@@ -5213,7 +5213,7 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-platform"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "async-channel",
  "futures-lite",
@@ -5223,7 +5223,7 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-preflight"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "flate2",
  "pdfcraft-content",
@@ -5234,7 +5234,7 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-print"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "craft-print",
  "pdfcraft-content",
@@ -5246,7 +5246,7 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-redact"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "pdfcraft-annot",
  "pdfcraft-content",
@@ -5262,7 +5262,7 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-render"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "bytemuck",
  "flate2",
@@ -5281,7 +5281,7 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-sign"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "aes",
  "aws-lc-rs",
@@ -5317,11 +5317,11 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-testkit"
-version = "0.12.0"
+version = "0.1.0"
 
 [[package]]
 name = "pdfcraft-ui-egui"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "arboard",
  "base64 0.23.1",
@@ -5373,7 +5373,7 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-xfa"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "base64 0.23.1",
  "image",
@@ -5387,7 +5387,7 @@ dependencies = [
 
 [[package]]
 name = "pdfcraft-xfdf"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "pdfcraft-annot",
  "pdfcraft-cos",
@@ -9244,7 +9244,7 @@ checksum = "9440ea3e5aeabb0ac63af70daf835274065238cdd0cec83418f417eae38bacee"
 
 [[package]]
 name = "xtask"
-version = "0.12.0"
+version = "0.1.0"
 dependencies = [
  "serde_json",
 ]
