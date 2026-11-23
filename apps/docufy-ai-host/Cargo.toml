@@ -26,5 +26,5 @@ type_complexity = "allow"
 undocumented_unsafe_blocks = "deny"
 
 [dependencies]
-libloading = "0.8"
+libloading = "0.9"
 serde_json = { workspace = true }
